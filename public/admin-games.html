@@ -523,17 +523,18 @@
     <script src="js/show-admin-link.js"></script>
     <script>
         // ══ 分頁狀態 ══
-        let allGames = [];        // 全量快取（搜尋 + 重複偵測共用）
+        let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
         let allGamesLoaded = false;
         let allGamesLoading = null; // Promise，防止重複 fetch
         let isSuperAdmin = false;
         let currentPage = 1;
-        const PAGE_SIZE = 50;     // 前端分頁每頁筆數
+        const PAGE_SIZE = 50;     // 每頁筆數
         let currentSearch = '';
         let currentSource = '';
         let totalCount = 0;
-        let filteredGames = [];   // 目前顯示的（搜尋/篩選後）結果
+        let filteredGames = [];   // 來源篩選時的前端結果
         let filterDebounce = null;
+        let useServerPagination = true; // 無來源篩選時用伺服器端分頁
 
         // ── site_stats 輔助函式 ──────────────────────────────────────
         // 重新計算 game_database 總數並寫入 site_stats（id = 'global'）
@@ -597,7 +598,7 @@
             return allGamesLoading;
         }
 
-        // ── 套用搜尋 / 篩選，更新 filteredGames，跳到第 1 頁 ──
+        // ── 套用來源篩選（前端），更新 filteredGames ──
         function applyFilter() {
             const q = currentSearch.toLowerCase();
             filteredGames = allGames.filter(g => {
@@ -616,7 +617,6 @@
                 return true;
             });
             totalCount = filteredGames.length;
-            currentPage = 1;
         }
 
         // ── 顯示目前頁 ──
@@ -624,29 +624,54 @@
             currentPage = page;
             const tbody = document.getElementById('game-list');
 
-            // 確保全量資料已載入
-            await ensureAllGames();
+            if (!currentSource) {
+                // ── 伺服器端分頁（無來源篩選）──
+                useServerPagination = true;
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light);">⏳ 載入中...</td></tr>';
 
-            // 套用篩選
-            applyFilter();
+                let url = `tables/game_database?page=${page}&limit=${PAGE_SIZE}`;
+                if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
 
-            // 切出目前頁
-            const start = (currentPage - 1) * PAGE_SIZE;
-            const pageGames = filteredGames.slice(start, start + PAGE_SIZE);
+                const res = await fetch(url);
+                const data = await res.json();
 
-            // 更新統計
-            document.getElementById('total-games').textContent =
-                currentSearch || currentSource
-                    ? `${totalCount.toLocaleString()} / ${allGames.length.toLocaleString()}`
-                    : allGames.length.toLocaleString();
+                totalCount = data.total || 0;
+                const pageGames = data.data || [];
 
-            renderGames(pageGames);
-            renderPagination();
+                document.getElementById('total-games').textContent =
+                    currentSearch
+                        ? `${totalCount.toLocaleString()} / ${allGamesLoaded ? allGames.length.toLocaleString() : '—'}`
+                        : totalCount.toLocaleString();
+
+                renderGames(pageGames);
+                renderPagination();
+            } else {
+                // ── 前端分頁（來源篩選需全量資料）──
+                useServerPagination = false;
+                await ensureAllGames();
+                applyFilter();
+
+                const start = (currentPage - 1) * PAGE_SIZE;
+                const pageGames = filteredGames.slice(start, start + PAGE_SIZE);
+
+                document.getElementById('total-games').textContent =
+                    `${totalCount.toLocaleString()} / ${allGames.length.toLocaleString()}`;
+
+                renderGames(pageGames);
+                renderPagination();
+            }
+
+            // 非同步更新來源統計（若已載入）
+            updateSourceStats();
         }
 
-        // 非同步更新來源統計（不影響主列表速度）
-        async function updateSourceStats() {
-            if (!allGamesLoaded) return;
+        // 非同步更新來源統計
+        function updateSourceStats() {
+            if (!allGamesLoaded) {
+                document.getElementById('bgg-games').textContent    = '—';
+                document.getElementById('manual-games').textContent = '—';
+                return;
+            }
             const bggCount    = allGames.filter(g => g.source === 'BGG').length;
             const manualCount = allGames.filter(g => g.source === 'manual').length;
             document.getElementById('bgg-games').textContent    = bggCount.toLocaleString();
@@ -701,14 +726,15 @@
             return allGames;
         }
 
-        // 篩選（後端分頁版）
+        // 篩選（搜尋用伺服器端，來源篩選用前端）
         function filterGames() {
             clearTimeout(filterDebounce);
             filterDebounce = setTimeout(() => {
                 currentSearch = document.getElementById('search-input').value.trim();
                 currentSource = document.getElementById('source-filter').value;
+                currentPage = 1;
                 loadGames(1);
-            }, 200);
+            }, 300);
         }
 
         // 渲染遊戲列表
@@ -754,7 +780,7 @@
             return game.source === 'manual' && (!game.bgg_id || !game.name_zh || !game.name_en);
         }
 
-        // filterGames 已在上方定義（後端分頁版）
+        // filterGames 已在上方定義（伺服器端分頁 + 前端來源篩選）
 
         // 開啟彈窗
         function openModal(gameId = null) {
