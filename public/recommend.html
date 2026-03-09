@@ -1006,6 +1006,10 @@
             card.className = ['game-card', ...classes].join(' ');
             card.id = cardId;
 
+            // 轉義遊戲名稱中的特殊字元，避免 onclick 字串被截斷
+            // 例如 Don't Get Got → Don\&#39;t Get Got
+            const safeGameName = gameName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
             const imageUrl = localGetImageUrl(gameName);
             console.log(`🃏 buildGameCard [${gameName}] → imageUrl:`, imageUrl ? imageUrl.substring(0,60) : '❌ 無封面');
 
@@ -1032,7 +1036,7 @@
                             上次：${ratingLabel}
                         </span>
                     </div>`;
-                    keepBtn = `<button class="recommendation-btn" onclick="keepRating('${collectionId}', '${gameName}')"
+                    keepBtn = `<button class="recommendation-btn" onclick="keepRating('${collectionId}', '${safeGameName}')"
                         style="background:rgba(102,126,234,0.1);color:var(--primary-color);border:1px dashed var(--primary-color);"
                         title="維持原評">↩️<span class="btn-label">維持</span></button>`;
                 }
@@ -1044,12 +1048,12 @@
                     ${oldRatingBadge}
                     <div class="game-name">${localFormatCard(gameName)}</div>
                     <div class="rating-buttons">
-                        <button class="recommendation-btn btn-super-like" onclick="rateGame('${collectionId}', '${gameName}', 'super_like')" title="超喜歡">🤩<span class="btn-label">超喜歡</span></button>
-                        <button class="recommendation-btn btn-like" onclick="rateGame('${collectionId}', '${gameName}', 'like')" title="喜歡">👍<span class="btn-label">喜歡</span></button>
-                        <button class="recommendation-btn btn-neutral" onclick="rateGame('${collectionId}', '${gameName}', 'neutral')" title="普普">😐<span class="btn-label">普普</span></button>
-                        <button class="recommendation-btn btn-dislike" onclick="rateGame('${collectionId}', '${gameName}', 'dislike')" title="不喜歡">👎<span class="btn-label">不喜歡</span></button>
-                        <button class="recommendation-btn btn-wishlist" onclick="rateGame('${collectionId}', '${gameName}', 'wishlist')" title="想玩">⭐<span class="btn-label">想玩</span></button>
-                        <button class="recommendation-btn btn-no-interest" onclick="rateGame('${collectionId}', '${gameName}', 'no_interest')" title="沒興趣">🚫<span class="btn-label">沒興趣</span></button>
+                        <button class="recommendation-btn btn-super-like" onclick="rateGame('${collectionId}', '${safeGameName}', 'super_like')" title="超喜歡">🤩<span class="btn-label">超喜歡</span></button>
+                        <button class="recommendation-btn btn-like" onclick="rateGame('${collectionId}', '${safeGameName}', 'like')" title="喜歡">👍<span class="btn-label">喜歡</span></button>
+                        <button class="recommendation-btn btn-neutral" onclick="rateGame('${collectionId}', '${safeGameName}', 'neutral')" title="普普">😐<span class="btn-label">普普</span></button>
+                        <button class="recommendation-btn btn-dislike" onclick="rateGame('${collectionId}', '${safeGameName}', 'dislike')" title="不喜歡">👎<span class="btn-label">不喜歡</span></button>
+                        <button class="recommendation-btn btn-wishlist" onclick="rateGame('${collectionId}', '${safeGameName}', 'wishlist')" title="想玩">⭐<span class="btn-label">想玩</span></button>
+                        <button class="recommendation-btn btn-no-interest" onclick="rateGame('${collectionId}', '${safeGameName}', 'no_interest')" title="沒興趣">🚫<span class="btn-label">沒興趣</span></button>
                         ${keepBtn}
                     </div>
                 </div>`;
