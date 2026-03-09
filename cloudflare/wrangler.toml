@@ -9,5 +9,5 @@ database_id = "14005155-22c2-467d-84e5-9177222ea9bf"
 
 [vars]
 GOOGLE_CLIENT_ID = "105319270176-djqr0n6r4l3mvmpalsqjn8kasqii9ukt.apps.googleusercontent.com"
-ALLOWED_ORIGINS = "https://boardgamematch.demo1.app,https://boardgamematch.mlab.host"
+ALLOWED_ORIGINS = "https://boardgamematch.com.tw"
 # API_SECRET 請透過 Cloudflare Dashboard Secrets 或 `wrangler secret put API_SECRET` 設定，勿寫在此檔
