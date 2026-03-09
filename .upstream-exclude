@@ -1,0 +1,4 @@
+CLAUDE.md
+.gitignore
+.upstream-exclude
+cloudflare/wrangler.dev.toml
