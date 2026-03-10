@@ -1,8 +1,0 @@
-name = "mbti-boardgame-api"
-main = "worker.js"
-compatibility_date = "2024-01-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "mbti-board-game-matcher-db"
-database_id = "14005155-22c2-467d-84e5-9177222ea9bf"

@@ -6,14 +6,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 「MBTI × 桌遊配對」— 桌遊玩家 MBTI 配對社群平台。純前端靜態網站（vanilla HTML/CSS/JS），無建構工具、無框架、無 npm。後端 API 由 Cloudflare Worker + D1 SQLite 提供。
 
-- **正式站**：Genspark 託管（`ba3d09ec-fb6a-466f-83dd-38bfd12bd437.vip.gensparksite.com`）
-- **API**：相對路徑 `/tables/{table_name}`，前端直接 fetch
+- **正式站**：`https://boardgamematch.com.tw`
+- **開發站**：`https://boardgamematch.mlab.host`（Herd/Nginx）、`https://boardgamematch.demo1.app`（CloudPanel）
+- **API**：相對路徑 `/tables/{table_name}`，由 Nginx 反向代理至 Cloudflare Worker
+
+## Git 工作流
+
+- **origin**：`wake/boardgamematch`（fork）
+- **upstream**：`Ev01-boardgame/boardgamematch`（客戶 repo）
+- 建立 upstream PR 時，使用 `.upstream-exclude` 排除不應推送的檔案（CLAUDE.md、.gitignore、.upstream-exclude、cloudflare/wrangler.dev.toml）
+- 做法：從 `upstream/main` 建 `upstream-pr/*` 分支，`git merge --squash` 後 `git reset HEAD` 排除清單中的檔案
+
+## 環境設定
+
+### Wrangler 設定檔
+
+| 檔案 | 環境 | Worker 名稱 | D1 資料庫 | ALLOWED_ORIGINS |
+|---|---|---|---|---|
+| `cloudflare/wrangler.toml` | 正式 | `mbti-boardgame-api` | `mbti-board-game-matcher-db` | `https://boardgamematch.com.tw` |
+| `cloudflare/wrangler.dev.toml` | 開發 | `mbti-boardgame-api-dev` | `boardgame-dev-db` | `mlab.host`, `demo1.app` |
+
+- `wrangler.dev.toml` 不進 git（在 `.upstream-exclude` 和 `.gitignore` 中）
+- `API_SECRET` 透過 `wrangler secret put` 設定，勿寫入設定檔
+- 部署：`npx wrangler deploy`（正式）/ `npx wrangler deploy -c wrangler.dev.toml`（開發）
 
 ## 架構
 
 ### API 層（Cloudflare Worker）
 
-`public/cloudflare/worker.js` — 完整 CRUD REST API，對接 Cloudflare D1：
+`cloudflare/worker.js` — 完整 CRUD REST API，對接 Cloudflare D1：
 - `GET /tables/{table}` — 列表（支援 page, limit, search, sort）
 - `GET /tables/{table}/{id}` — 單筆
 - `POST /tables/{table}` — 新增
@@ -21,7 +42,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `DELETE /tables/{table}/{id}` — 刪除
 - **PATCH 不可用**（405）— 一律使用 `safePatch()`
 
-`public/cloudflare/proxy-worker.js` — 舊版 API proxy（轉發到 Genspark），已被 worker.js 取代。
+### API 安全機制（三層驗證）
+
+| 層級 | 驗證方式 | 適用範圍 |
+|---|---|---|
+| public | API Secret（Nginx 注入 `X-Api-Key` header） | GET 公開表 |
+| auth | API Secret + Google JWT | POST/PUT/DELETE 一般表 |
+| admin | API Secret + JWT + `admin_whitelist` 比對 | 敏感表（admin_whitelist 等） |
+
+- JWT 驗證：Worker 從 Google JWKS 端點取得公鑰，驗證 `Authorization: Bearer <token>`
+- CORS：僅允許 `ALLOWED_ORIGINS` 中的網域
 
 ### safePatch — 最關鍵的更新模式
 
@@ -56,16 +86,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 陣列欄位（如 `liked_games`, `unlocked_badges`）存為 JSON 字串。讀取後需用 `JSON.parse()` 還原，寫入前需 `JSON.stringify()`。safePatch 已自動處理序列化。
 
-### 驗證機制
+## 目錄結構
 
-- **使用者登入**：Google OAuth → JWT 存 `localStorage('google_id_token')` → 使用者資料存 `localStorage('currentUser')`
-- **管理員驗證**：Google ID 比對 `admin_whitelist` 表 + 硬編碼超級管理員 ID → 驗證狀態快取 4 小時
-- admin 頁面載入 `admin-auth.js` 時自動隱藏 body，驗證通過才顯示
+```
+boardgamematch/
+├── public/          # 網頁根目錄（HTML/CSS/JS），由 Nginx 提供靜態檔案
+├── cloudflare/      # Cloudflare Worker 相關（不可放在 public/ 下）
+│   ├── worker.js
+│   ├── schema.sql
+│   ├── wrangler.toml
+│   └── wrangler.dev.toml  (不進 git)
+├── backups/         # 歷史版本備份（帶日期標籤）
+├── .upstream-exclude  # upstream PR 排除清單
+└── .gitignore
+```
 
 ## 開發注意事項
 
 - 沒有建構步驟，直接編輯 `public/` 下的 HTML/CSS/JS
 - 所有頁面透過 `<script>` 標籤載入 JS，依賴順序重要（app.js 須在其他模組前載入）
-- API 呼叫使用相對路徑 `tables/...`，本地開發需有 proxy 或部署到 Genspark 環境
-- `public/backups/` 保存歷史版本備份，帶日期標籤（如 `*.20260303-PERFECT.bak`）
-- `_test_*.html` 和 `_debug_*.html` 為開發除錯用頁面
+- API 呼叫使用相對路徑 `tables/...`，Nginx 反向代理至 Worker 並注入 `X-Api-Key`
+- `backups/` 保存歷史版本備份，帶日期標籤（如 `*.20260303-PERFECT.bak`）

@@ -1,1 +1,14 @@
+# Cloudflare local dev cache
 .wrangler/
+cloudflare/.wrangler/
+
+# Debug/test pages
+public/_test*
+public/_debug*
+public/dev-tools.html
+
+# OS
+.DS_Store
+
+# Playwright MCP
+.playwright-mcp/
