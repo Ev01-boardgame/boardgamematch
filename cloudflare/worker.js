@@ -46,7 +46,8 @@ const PUBLIC_READ_TABLES = [
   'collection_game_stats', 'achievements', 'site_stats',
   'quiz_collections', 'quiz_questions', 'daily_quests',
   'limited_events', 'publisher_badge_series',
-  'user_collections', 'leaderboard'
+  'user_collections', 'users', 'user_stats',
+  'game_votes', 'user_collection_votes'
 ];
 
 const ADMIN_ONLY_TABLES = [
