@@ -268,10 +268,8 @@ export default {
         // 取得欄位列表
         const columns = await getTableColumns(db, tableName);
 
-        // 計算總數
-        const hasDeletedAt = !['site_stats', 'game_database', 'game_aliases', 'achievements',
-          'daily_quests', 'limited_events', 'admin_whitelist', 'tester_whitelist',
-          'influencer_whitelist', 'publisher_badge_series'].includes(tableName);
+        // 計算總數（若表有 deleted_at 欄位則自動過濾已刪除資料）
+        const hasDeletedAt = columns.includes('deleted_at');
         const whereBase = hasDeletedAt
           ? `WHERE (deleted_at IS NULL OR deleted_at = '')`
           : `WHERE 1=1`;

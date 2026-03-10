@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_login INTEGER,
   bio TEXT,
   social_links TEXT,
+  explore_list TEXT,
+  explore_list_public INTEGER DEFAULT 1,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
@@ -92,6 +94,7 @@ CREATE TABLE IF NOT EXISTS game_collections (
   games TEXT DEFAULT '[]',
   icon TEXT,
   description TEXT,
+  games_cache TEXT,
   sort_order INTEGER DEFAULT 0,
   is_active INTEGER DEFAULT 1,
   start_date INTEGER,
