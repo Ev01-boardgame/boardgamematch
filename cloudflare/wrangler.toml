@@ -4,8 +4,8 @@ compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "mbti-board-game-matcher-db"
-database_id = "14005155-22c2-467d-84e5-9177222ea9bf"
+database_name = "boardgame-match-db"
+database_id = "f3387dc6-6fcb-4882-9a84-ddc4a40e6599"
 
 [vars]
 GOOGLE_CLIENT_ID = "105319270176-djqr0n6r4l3mvmpalsqjn8kasqii9ukt.apps.googleusercontent.com"
