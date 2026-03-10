@@ -5,9 +5,11 @@
 
 // ========== 配置 ==========
 const ADMIN_AUTH_CONFIG = {
-    // 超級管理員的 Google ID（您的帳號）
-    // 這是寫死在程式碼中的，永遠有權限
-    SUPER_ADMIN_GOOGLE_ID: '101279808163813574015', // 請替換為您的 Google ID
+    // 超級管理員的 Google ID（寫死在程式碼中，永遠有權限）
+    SUPER_ADMIN_IDS: [
+        '101279808163813574015', // 客戶（Emailev01）
+        '103111021786847709012', // 開發者（wake.gs）
+    ],
     
     // 驗證狀態儲存時間（毫秒）- 預設 4 小時
     SESSION_DURATION: 4 * 60 * 60 * 1000,
@@ -53,7 +55,7 @@ async function loadAdminWhitelist() {
 
 async function checkIsAdmin(googleId, email) {
     // 1. 檢查是否為超級管理員（寫死在程式碼中）
-    if (googleId === ADMIN_AUTH_CONFIG.SUPER_ADMIN_GOOGLE_ID) {
+    if (ADMIN_AUTH_CONFIG.SUPER_ADMIN_IDS.includes(googleId)) {
         console.log('✅ 超級管理員驗證通過');
         return { isAdmin: true, role: 'super_admin', source: 'hardcoded' };
     }
@@ -313,11 +315,14 @@ async function handleAdminGoogleLogin(response) {
     try {
         const credential = response.credential;
         const payload = parseJwt(credential);
-        
+
         if (!payload) {
             throw new Error('無法解析 Google 登入資訊');
         }
-        
+
+        // 儲存 JWT credential（供 admin-db-migrate 等頁面的 authFetch 使用）
+        localStorage.setItem('google_id_token', credential);
+
         console.log('Google 登入成功，檢查管理員權限...');
         
         // 檢查是否為管理員
