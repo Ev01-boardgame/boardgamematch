@@ -945,7 +945,7 @@
                 
                 // 檢查使用者的 MBTI 類型
                 console.log('檢查 MBTI 類型:', currentUser.mbti_type);
-                const mbtiInfo = GameMBTI.MBTI_TYPES[currentUser.mbti_type];
+                let mbtiInfo = GameMBTI.MBTI_TYPES[currentUser.mbti_type];
                 
                 if (!mbtiInfo) {
                     console.error('❌ 找不到 MBTI 類型:', currentUser.mbti_type);
