@@ -407,7 +407,7 @@
     </div>
 
     <script src="js/api-base.js?v=20260302-clear"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=20260311"></script>
     <script src="js/admin-navbar-cleanup.js"></script>
     <script>
         if (typeof safePatch === 'undefined') { window.safePatch = async function(url, d, h={}) { const sys=['gs_project_id','gs_table_name','gs_created_at','gs_updated_at','created_at','updated_at','deleted','deleted_at','_rid','_id','__rid','__id']; const g=await fetch(url,{headers:h}); const ex=g.ok?await g.json():{}; const cleaned=Object.fromEntries(Object.entries(ex).filter(([k])=>!sys.includes(k))); const merged={...cleaned,...d}; const s={}; for(const [k,v] of Object.entries(merged)){s[k]=(v!==null&&v!==undefined&&typeof v==='object')?JSON.stringify(v):v;} const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json',...h},body:JSON.stringify(s)}); if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('PUT '+r.status+': '+t.slice(0,100));} return r.json(); }; }
