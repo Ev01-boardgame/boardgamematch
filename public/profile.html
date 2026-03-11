@@ -945,7 +945,7 @@
                 
                 // 檢查使用者的 MBTI 類型
                 console.log('檢查 MBTI 類型:', currentUser.mbti_type);
-                const mbtiInfo = GameMBTI.MBTI_TYPES[currentUser.mbti_type];
+                let mbtiInfo = GameMBTI.MBTI_TYPES[currentUser.mbti_type];
                 
                 if (!mbtiInfo) {
                     console.error('❌ 找不到 MBTI 類型:', currentUser.mbti_type);
@@ -3666,7 +3666,7 @@
 
                 // 如有選新頭貼，先存 localStorage，並加入 PATCH body
                 if (_bioAvatarPending) {
-                    const userId = currentUser.google_id || currentUser.id;
+                    const userId = currentUser?.google_id || currentUser?.id;
                     localStorage.setItem(`avatar_${userId}`, _bioAvatarPending.url);
                     document.getElementById('profile-avatar').src = _bioAvatarPending.url;
                     patchBody.avatar_url = _bioAvatarPending.url;
