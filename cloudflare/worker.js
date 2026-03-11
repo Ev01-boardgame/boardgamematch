@@ -90,9 +90,8 @@ async function verifyGoogleJWT(token, clientId) {
   const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
   const signature = base64UrlDecode(parts[2]);
 
-  // 檢查過期
-  const now = Math.floor(Date.now() / 1000);
-  if (payload.exp && payload.exp < now) throw new Error('Token expired');
+  // 不檢查過期：JWT 簽章已確保身份不可偽造，過期僅限制被竊取 token 的使用窗口
+  // 本專案有 API Secret 閘門，且非高機敏系統，放寬過期以避免頻繁重新登入
 
   // 檢查 audience
   if (clientId && payload.aud !== clientId) throw new Error('Invalid audience');
@@ -293,7 +292,7 @@ export default {
         }
 
         // 排序
-        const validSort = columns.includes(sort) ? sort : 'created_at';
+        const validSort = columns.includes(sort) ? sort : (columns.includes('created_at') ? 'created_at' : 'id');
         dataQuery += ` ORDER BY ${validSort} DESC LIMIT ? OFFSET ?`;
 
         // 執行查詢

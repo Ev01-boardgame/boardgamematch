@@ -1318,7 +1318,7 @@
                 const wishlist_count = rating === 'wishlist' ? 1 : 0;
                 await fetch('tables/collection_game_stats', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ collection_id: collectionId, game_name: gameName, like_count, wishlist_count })
                 });
             } catch(e) {}
@@ -1353,7 +1353,7 @@
                     // 首次建立：直接用新分（舊分扣不到）
                     await fetch('tables/collection_game_stats', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify({
                             collection_id: collectionId,
                             game_name: gameName,
@@ -1483,7 +1483,7 @@
                     // 首次評價：寫入新紀錄
                     await fetch('tables/game_votes', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify({
                             user_id:       currentUser.id,
                             game_name:     gameName,
