@@ -292,8 +292,8 @@
                                                      gap: 0.35rem;"
                                               onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
                                               onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
-                                              title="點擊設定 MBTI（設定後無法更改）" 
-                                              id="profile-mbti">INTJ<span id="mbti-lock-icon" style="display:none;font-size:0.75rem;opacity:0.85;">🔒</span>
+                                              title="點擊設定或更改 MBTI"
+                                              id="profile-mbti">INTJ<span id="mbti-lock-icon" style="display:none;font-size:0.75rem;opacity:0.85;"></span>
                                         </span>
                                         <span style="color: var(--text-light);" id="profile-mbti-name">建築師</span>
                                         <span class="level-badge" id="profile-level-badge">Lv. 1</span>
@@ -877,7 +877,7 @@
                 mbtiElement.textContent = '未設定';
                 mbtiElement.onclick = showMBTIPicker;
                 mbtiElement.style.cursor = 'pointer';
-                mbtiElement.title = '點擊設定 MBTI（設定後無法更改）';
+                mbtiElement.title = '點擊設定 MBTI';
             }
             if (mbtiNameElement) mbtiNameElement.textContent = '點擊設定 MBTI';
             
@@ -1013,15 +1013,12 @@
                     lockSpan.id = 'mbti-lock-icon';
                     lockSpan.style.cssText = 'font-size:0.75rem;opacity:0.85;';
                     if (currentUser.mbti_type) {
-                        // 已鎖定：移除點擊互動和 hover 效果，顯示鎖頭
-                        lockSpan.textContent = '🔒';
+                        // 已設定但可修改：顯示鉛筆 icon，保留點擊
+                        lockSpan.textContent = '✏️';
                         lockSpan.style.display = 'inline';
-                        mbtiElement.style.cursor = 'default';
-                        mbtiElement.title = 'MBTI 已鎖定（選定後無法自行更改）';
-                        mbtiElement.onmouseover = null;
-                        mbtiElement.onmouseout  = null;
-                        mbtiElement.removeAttribute('onmouseover');
-                        mbtiElement.removeAttribute('onmouseout');
+                        mbtiElement.style.cursor = 'pointer';
+                        mbtiElement.title = '點擊更改 MBTI';
+                        mbtiElement.onclick = showMBTIPicker;
                     } else {
                         lockSpan.style.display = 'none';
                     }
@@ -2252,23 +2249,6 @@
 
         // 🎯 顯示 MBTI 選擇器
         function showMBTIPicker() {
-            // ── 已選定 MBTI 後不允許更改 ──
-            if (currentUser && currentUser.mbti_type) {
-                const overlay = document.createElement('div');
-                overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10001;padding:1rem;`;
-                overlay.innerHTML = `
-                    <div style="background:var(--card-bg,white);border-radius:1rem;padding:2rem;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
-                        <h2 style="margin:0 0 0.75rem;color:var(--text-color);">MBTI 已鎖定</h2>
-                        <p style="color:var(--text-light);margin:0 0 0.5rem;line-height:1.6;">你已選定 <strong style="color:var(--primary-color);font-size:1.1rem;">${currentUser.mbti_type}</strong></p>
-                        <p style="color:var(--text-light);font-size:0.88rem;margin:0 0 1.5rem;line-height:1.6;">為確保資料一致性，MBTI 類型選定後無法自行更改。<br>如需修正請聯繫管理員。</p>
-                        <button onclick="this.closest('[style*=fixed]').remove()" style="padding:0.65rem 2rem;background:var(--primary-color,#667eea);color:white;border:none;border-radius:0.5rem;font-size:1rem;cursor:pointer;">了解</button>
-                    </div>`;
-                overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-                document.body.appendChild(overlay);
-                return;
-            }
-
             const mbtiTypes = {
                 'INTJ': { name: '建築師', description: '富有想像力和戰略性的思考者' },
                 'INTP': { name: '邏輯學家', description: '具有創新精神的發明家' },
