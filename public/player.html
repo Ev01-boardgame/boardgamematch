@@ -1325,7 +1325,7 @@
             } else {
                 await fetch('tables/game_votes', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
                         id: `gv_${currentUser.id.slice(-6)}_${Date.now()}`,
                         user_id:   currentUser.id,
@@ -1348,7 +1348,7 @@
             const voteId = `ucv_${collectionId.slice(-6)}_${currentUser.id.slice(-6)}_${Date.now()}`;
             await fetch('tables/user_collection_votes', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     id: voteId,
                     collection_id: collectionId,

@@ -534,6 +534,8 @@
         // ── safePatch 備援定義（若 app.js 尚未載入時使用）──
         if (typeof safePatch === 'undefined') {
             window.safePatch = async function(url, patchData, headers = {}) {
+                const _t = localStorage.getItem('google_id_token');
+                if (_t && !headers['Authorization']) headers = { ...headers, 'Authorization': 'Bearer ' + _t };
                 const sys = ['gs_project_id','gs_table_name','gs_created_at','gs_updated_at',
                              'created_at','updated_at','deleted','deleted_at','_rid','_id','__rid','__id'];
                 const g = await fetch(url, { headers });
@@ -2112,7 +2114,7 @@
                         } else {
                             await fetch('tables/game_votes', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     id: `gv_${currentUser.id.slice(-6)}_${Date.now()}`,
                                     user_id:    currentUser.id,

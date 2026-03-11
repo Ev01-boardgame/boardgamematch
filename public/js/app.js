@@ -127,13 +127,26 @@ async function getSiteStats() {
 }
 
 /**
+ * 取得含 JWT Authorization 的 headers（自動從 localStorage 注入）
+ */
+function getAuthHeaders(extra = {}) {
+    const token = localStorage.getItem('google_id_token');
+    const h = { 'Content-Type': 'application/json', ...extra };
+    if (token && !h['Authorization']) h['Authorization'] = 'Bearer ' + token;
+    return h;
+}
+
+/**
  * safePatch(url, patchData)
  * GET 取回現有資料 → 移除所有非 schema 欄位 → PUT 回去
- * 
+ *
  * Genspark/D1 只接受 schema 裡存在的欄位，多送就 500
  * 系統欄位（gs_*、_rid 等）、created_at、updated_at 都不能送
  */
 async function safePatch(url, patchData, headers = {}) {
+    // 自動注入 JWT Authorization header
+    headers = getAuthHeaders(headers);
+
     // 1. 取回現有資料
     const getRes = await fetch(url, { headers });
     if (!getRes.ok) throw new Error(`GET 失敗 HTTP ${getRes.status}`);
@@ -294,7 +307,7 @@ async function createUser(userData) {
     try {
         const response = await fetch(API_BASE, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(userData)
         });
         if (!response.ok) throw new Error('無法新增使用者');
@@ -555,7 +568,7 @@ async function createUserStats(userId) {
     try {
         const response = await fetch('tables/user_stats', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 user_id: userId,
                 total_xp: 100, // 註冊獎勵

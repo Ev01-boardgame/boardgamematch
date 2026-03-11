@@ -418,7 +418,7 @@
                         // 新使用者 → 建立記錄
                         const createResp = await fetch('tables/users', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getAuthHeaders(),
                             body: JSON.stringify({
                                 google_id: payload.sub,
                                 email: payload.email,

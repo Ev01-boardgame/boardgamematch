@@ -745,7 +745,7 @@
                 payload.id = `uc_${currentUser.id.slice(0,8)}_${Date.now()}`;
                 res = await fetch(`tables/${TABLE}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(payload)
                 });
             }
