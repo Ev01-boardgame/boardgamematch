@@ -208,7 +208,39 @@
         /* 卡片內的中英分行大小覆寫 */
         .game-name .gn-zh { display: block; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
         .game-name .gn-en { display: block; font-size: 1rem; color: #888; font-weight: 400; }
-        
+
+        /* 遊戲名稱 + 跳過按鈕列 */
+        .game-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .game-name-row .game-name {
+            margin-bottom: 0;
+        }
+        .skip-btn {
+            flex-shrink: 0;
+            padding: 0.25rem 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 1rem;
+            background: rgba(0,0,0,0.04);
+            color: #999;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .skip-btn:hover {
+            background: rgba(0,0,0,0.08);
+            color: #666;
+            border-color: #aaa;
+        }
+        .skip-btn:active {
+            transform: scale(0.95);
+        }
+
         /* 評價按鈕 */
         .rating-buttons {
             display: grid;
@@ -890,13 +922,11 @@
                     buttonText = unratedGames.length === 0 ? '✅ 已全部評價' : `開始評價 (${unratedGames.length} 款)`;
                 }
                 
-                // 出版社類型 badge
+                // 出版社類型 badge（僅出版社顯示）
                 const isPublisher = sectionType === 'publisher';
                 const badgeHtml = isPublisher
                     ? `<span class="collection-badge publisher-badge">出版社</span>`
-                    : `<span class="collection-badge ${collection.type === 'limited' ? 'limited-badge' : ''}">
-                        ${collection.type === 'permanent' ? '常駐' : '限時'}
-                       </span>`;
+                    : '';
                 
                 return `
                 <div class="collection-card${isPublisher ? ' publisher-card' : ''}" id="collection-${collection.id}">
@@ -1021,6 +1051,11 @@
                    </div>`
                 : '';
 
+            // 非重評模式：顯示跳過按鈕（放在遊戲標題旁）
+            const skipBtn = !isReRateMode
+                ? `<button class="skip-btn" onclick="skipGame('${collectionId}')" title="跳過這款">⏭ 跳過</button>`
+                : '';
+
             // 重評模式：查詢此遊戲的舊評分
             let oldRatingBadge = '';
             let keepBtn = '';
@@ -1046,7 +1081,10 @@
                 ${coverHtml}
                 <div class="${imageUrl ? 'card-body' : 'card-body-no-cover'}">
                     ${oldRatingBadge}
-                    <div class="game-name">${localFormatCard(gameName)}</div>
+                    <div class="game-name-row">
+                        <div class="game-name">${localFormatCard(gameName)}</div>
+                        ${skipBtn}
+                    </div>
                     <div class="rating-buttons">
                         <button class="recommendation-btn btn-super-like" onclick="rateGame('${collectionId}', '${safeGameName}', 'super_like')" title="超喜歡">🤩<span class="btn-label">超喜歡</span></button>
                         <button class="recommendation-btn btn-like" onclick="rateGame('${collectionId}', '${safeGameName}', 'like')" title="喜歡">👍<span class="btn-label">喜歡</span></button>
@@ -1073,6 +1111,24 @@
 
         // 維持原評：直接跳過此張（不更新任何資料）
         function keepRating(collectionId, gameName) {
+            const card = document.getElementById(`game-card-${collectionId}`);
+            if (!card) return;
+            card.style.pointerEvents = 'none';
+            const nextCard = document.getElementById(`game-card-next-${collectionId}`);
+            card.classList.remove('current-card');
+            card.classList.add('swiped-up');
+            if (nextCard) {
+                nextCard.classList.remove('next-card');
+                nextCard.classList.add('current-card', 'card-enter');
+            }
+            setTimeout(() => {
+                currentGameIndex++;
+                showNextGame(collectionId);
+            }, 220);
+        }
+
+        // 跳過：不評價，直接換下一張（不寫入任何資料）
+        function skipGame(collectionId) {
             const card = document.getElementById(`game-card-${collectionId}`);
             if (!card) return;
             card.style.pointerEvents = 'none';
