@@ -1167,12 +1167,14 @@
                 // 全部完成：重置重評模式，重新渲染該清單
                 const wasReRate = isReRateMode;
                 isReRateMode = false;
-                const permanentCollections = gameCollections.filter(c => c.type === 'permanent');
-                const limitedCollections   = gameCollections.filter(c => c.type === 'limited');
-                const publisherCollections = gameCollections.filter(c => isPublisherType(c));
+                const publisherCollections = gameCollections.filter(isPublisherType);
+                const yearlyCollections    = gameCollections.filter(c => !isPublisherType(c) && c.type === 'yearly');
+                const permanentCollections = gameCollections.filter(c => !isPublisherType(c) && c.type === 'permanent');
+                const limitedCollections   = gameCollections.filter(c => !isPublisherType(c) && c.type === 'limited');
+                renderCollections(publisherCollections, 'publisher-collections-container', 'publisher');
+                renderCollections(yearlyCollections,    'yearly-collections-container');
                 renderCollections(permanentCollections, 'permanent-collections-container');
                 renderCollections(limitedCollections,   'limited-collections-container');
-                renderCollections(publisherCollections, 'publisher-collections-container', 'publisher');
                 if (wasReRate) {
                     showNotification('✅ 重評完成！', '已更新你的評分，排名將反映最新喜好 🎯', '🔄');
                 } else {
