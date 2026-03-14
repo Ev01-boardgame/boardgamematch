@@ -1,0 +1,10 @@
+# 入口 Worker：boardgamematch.com.tw
+# 部署：npx wrangler deploy -c wrangler-entry.toml
+# 首次部署前：npx wrangler secret put BOARDGAME_API_KEY -c wrangler-entry.toml
+
+name = "boardgamematch-entry"
+main = "entry-worker.js"
+compatibility_date = "2024-01-01"
+
+# X-Api-Key 請勿寫在此檔，用 Secret 設定：
+#   npx wrangler secret put BOARDGAME_API_KEY -c wrangler-entry.toml
