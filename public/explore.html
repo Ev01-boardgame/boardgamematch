@@ -578,17 +578,6 @@
             // 統計資訊
             document.getElementById('playerMbti').textContent = playerData.mbti_type;
             
-            // 等級：從 user_stats 表取得
-            const levelEl = document.getElementById('playerLevel');
-            levelEl.textContent = 'Lv.?';
-            fetch(`tables/user_stats?limit=500`)
-                .then(r => r.json())
-                .then(d => {
-                    const stats = (d.data || []).find(s => s.user_id === playerData.id);
-                    levelEl.textContent = stats ? `Lv.${stats.level || 1}` : 'Lv.1';
-                })
-                .catch(() => { levelEl.textContent = 'Lv.1'; });
-            
             // 只顯示 super_liked_games
             const likedGamesElement = document.getElementById('playerLikedGames');
             const superLikedGames = playerData.super_liked_games || [];
@@ -692,10 +681,6 @@
                     <div class="player-stat-item">
                         <div id="playerMbti" class="player-stat-value">-</div>
                         <div class="player-stat-label">MBTI</div>
-                    </div>
-                    <div class="player-stat-item">
-                        <div id="playerLevel" class="player-stat-value">-</div>
-                        <div class="player-stat-label">等級</div>
                     </div>
                 </div>
             </div>

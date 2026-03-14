@@ -184,11 +184,11 @@
             monday.setHours(0, 0, 0, 0);
             const weekStart = monday.getTime();
             
-            // 篩選本週有活動的使用者，並以 user_id 去重（保留 XP 最高那筆）
+            // 篩選本週有活動的使用者，並以 user_id 去重（保留貢獻最高那筆）
             const seenUserIds = new Set();
             const weeklyStats = allUserStats
                 .filter(stat => stat.updated_at >= weekStart)
-                .sort((a, b) => (b.total_xp || 0) - (a.total_xp || 0)) // 先排序讓去重保留最高XP
+                .sort((a, b) => (b.total_contributions || 0) - (a.total_contributions || 0))
                 .filter(stat => {
                     if (seenUserIds.has(stat.user_id)) return false;
                     seenUserIds.add(stat.user_id);
@@ -210,10 +210,10 @@
 
         // 總排行榜
         function displayOverallLeaderboard(container) {
-            // 以 user_id 去重（保留 XP 最高那筆）
+            // 以 user_id 去重（保留貢獻最高那筆）
             const seenUserIds = new Set();
             const overallStats = allUserStats
-                .sort((a, b) => (b.total_xp || 0) - (a.total_xp || 0))
+                .sort((a, b) => (b.total_contributions || 0) - (a.total_contributions || 0))
                 .filter(stat => {
                     if (seenUserIds.has(stat.user_id)) return false;
                     seenUserIds.add(stat.user_id);
@@ -259,7 +259,7 @@
             
             Object.keys(GameMBTI.MBTI_TYPES).forEach(mbtiType => {
                 const members = mbtiGroups[mbtiType] || [];
-                const topThree = members.sort((a, b) => b.total_xp - a.total_xp).slice(0, 3);
+                const topThree = members.sort((a, b) => (b.total_contributions || 0) - (a.total_contributions || 0)).slice(0, 3);
                 const mbtiInfo = GameMBTI.MBTI_TYPES[mbtiType];
                 
                 html += `
@@ -283,7 +283,7 @@
                                         }
                                         <span>${member.username}</span>
                                     </div>
-                                    <span class="level-badge" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;">Lv.${member.level}</span>
+                                    <span style="font-size: 0.85rem; color: var(--text-light);">貢獻 ${member.total_contributions || 0}</span>
                                 </div>
                             `).join('') : '<p style="color: var(--text-light); font-size: 0.9rem; text-align: center;">尚無資料</p>'}
                         </div>
@@ -331,18 +331,15 @@
                                     <span style="background: ${mbtiInfo.color}; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">
                                         ${stat.mbti_type}
                                     </span>
-                                    <span class="level-badge" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;">
-                                        Lv.${stat.level}
-                                    </span>
                                 </div>
                             </div>
                         </div>
                         <div style="display: flex; gap: 2rem; align-items: center;">
                             <div style="text-align: center;">
                                 <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">
-                                    ${stat.total_xp.toLocaleString()}
+                                    ${(stat.total_contributions || 0).toLocaleString()}
                                 </div>
-                                <div style="color: var(--text-light); font-size: 0.85rem;">總 XP</div>
+                                <div style="color: var(--text-light); font-size: 0.85rem;">貢獻次數</div>
                             </div>
                             <div style="text-align: center;">
                                 <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary-color);">

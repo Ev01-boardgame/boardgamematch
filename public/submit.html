@@ -409,7 +409,6 @@
             input.value = '';
             renderLikedGames();
             
-            // 顯示即時 XP 提示（視覺回饋）
             const addBtn = document.getElementById('add-liked-btn');
             addBtn.classList.add('btn-success-pulse');
             setTimeout(() => addBtn.classList.remove('btn-success-pulse'), 600);
@@ -441,7 +440,6 @@
             input.value = '';
             renderDislikedGames();
             
-            // 顯示即時 XP 提示（視覺回饋）
             const addBtn = document.getElementById('add-disliked-btn');
             addBtn.classList.add('btn-success-pulse');
             setTimeout(() => addBtn.classList.remove('btn-success-pulse'), 600);
@@ -571,83 +569,20 @@
                 // 儲存到本地
                 GameMBTI.setCurrentUser(result);
                 
-                // === 🎮 遊戲化系統：新增 XP 獎勵 ===
-                try {
-                    let totalXP = 0;
-                    let leveledUp = false;
-                    let newLevel = 1;
-                    
-                    // 🆕 只有新使用者才發放註冊獎勵
-                    if (!existingUser) {
-                        // 建立使用者統計資料（自動給予註冊獎勵 100 XP）
-                        await GameMBTI.createUserStats(result.id);
-                        
-                        // 填寫 MBTI 獎勵：+50 XP
-                        const mbtiReward = await GameMBTI.addXP(result.id, 50, '填寫 MBTI 類型');
-                        
-                        // 每個遊戲獎勵：+10 XP（喜歡的 + 不喜歡的）
-                        const totalGames = likedGames.length + dislikedGames.length;
-                        const gamesReward = await GameMBTI.addXP(result.id, totalGames * 10, `新增 ${totalGames} 款桌遊`);
-                        
-                        // 計算總 XP
-                        totalXP = 100 + 50 + (totalGames * 10);
-                        leveledUp = gamesReward.leveledUp;
-                        newLevel = gamesReward.newLevel;
-                        
-                        // 顯示 XP 獲得動畫
-                        GameMBTI.showXPAnimation(totalXP, submitBtn.parentElement);
-                        
-                        // 靜默解鎖成就（不顯示彈窗，統一成就系統體驗）
-                        const newAchievements = await GameMBTI.checkAndUnlockAchievements(result.id);
-                        
-                        console.log('🎮 新使用者獎勵發放成功！', {
-                            註冊獎勵: '100 XP',
-                            MBTI獎勵: '50 XP',
-                            遊戲獎勵: `${totalGames * 10} XP`,
-                            總XP: totalXP,
-                            等級: newLevel,
-                            解鎖成就: newAchievements.length
-                        });
-                    } else {
-                        console.log('✅ 更新現有使用者資料，不發放獎勵');
-                    }
-                    
-                    // 計算需要的總延遲時間
-                    let totalDelay = existingUser ? 1000 : 2000; // 更新資料較快
-                    
-                    // 如果有升級，立即顯示升級通知
-                    if (leveledUp) {
-                        setTimeout(() => {
-                            GameMBTI.showLevelUpNotification(newLevel);
-                        }, 1000);
-                        totalDelay += 3000; // 升級通知時間
-                    }
-                    
-                    // 顯示成功訊息
-                    messageContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong>提交成功！</strong> 你的資料已經儲存。
-                        </div>
-                    `;
-                    
-                    // 動態計算跳轉延遲（確保所有動畫都能看到）
-                    setTimeout(() => {
-                        window.location.href = 'profile.html';
-                    }, totalDelay);
-                    
-                } catch (xpError) {
-                    console.error('XP 系統錯誤（不影響資料提交）:', xpError);
-                    // 即使 XP 系統出錯，仍然跳轉（但使用較短延遲）
-                    messageContainer.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong>提交成功！</strong> 你的資料已經儲存。
-                        </div>
-                    `;
-                    setTimeout(() => {
-                        window.location.href = 'profile.html';
-                    }, 2000);
+                // 新使用者：建立 user_stats（供成就等使用）
+                if (!existingUser) {
+                    await GameMBTI.createUserStats(result.id).catch(() => {});
+                    GameMBTI.checkAndUnlockAchievements(result.id).catch(() => {});
                 }
-                // === 遊戲化系統結束 ===
+                
+                messageContainer.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>提交成功！</strong> 你的資料已經儲存。
+                    </div>
+                `;
+                setTimeout(() => {
+                    window.location.href = 'profile.html';
+                }, 1500);
                 
             } catch (error) {
                 console.error('Error submitting form:', error);
