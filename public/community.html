@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌遊社群 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .page-hero-fix {
+            color: white;
+            padding: 2.5rem 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .page-hero-fix h1 { margin: 0 0 0.5rem; font-size: 2rem; font-weight: 700; color: white; background: none; -webkit-text-fill-color: white; }
+        .page-hero-fix p { margin: 0; opacity: 0.9; font-size: 1rem; color: white; }
+        .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-tabs .btn { white-space: nowrap; }
+        .sub-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .community-card {
+            background: var(--card-bg);
+            padding: 1.25rem 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+        .community-card:hover { border-color: var(--primary-color); box-shadow: var(--shadow-md); }
+        .community-card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .community-card-name { font-size: 1.15rem; font-weight: 600; color: var(--text-color); }
+        .source-tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .source-line { background: #e8f5e9; color: #2e7d32; }
+        .source-discord { background: #e3f2fd; color: #1565c0; }
+        .source-fb { background: #e8eaf6; color: #3949ab; }
+        .source-site { background: #fff3e0; color: #e65100; }
+        .source-other { background: #f5f5f5; color: #616161; }
+        .community-card-desc { font-size: 0.9rem; color: var(--text-light); line-height: 1.5; }
+        .community-empty { text-align: center; padding: 3rem 2rem; color: var(--text-light); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="leaderboard.html">貢獻排行</a></li>
+                <li><a href="community.html" class="active">桌遊社群</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-hero-fix" style="background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);">
+            <h1>👥 桌遊社群</h1>
+            <p>全台桌遊揪團與討論群組，一鍵加入</p>
+        </div>
+
+        <section style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-color);">選擇分類</h2>
+            <div class="filter-tabs">
+                <button type="button" class="btn btn-primary" data-main="discussion" id="tab-discussion">討論</button>
+                <button type="button" class="btn btn-secondary" data-main="region" id="tab-region">地區</button>
+                <button type="button" class="btn btn-secondary" data-main="platform" id="tab-platform">平台</button>
+                <button type="button" class="btn btn-secondary" data-main="meetup" id="tab-meetup">揪團</button>
+            </div>
+            <div id="sub-tabs-wrap" class="sub-tabs" style="display: none;">
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="北">北</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="中">中</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="南">南</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="東">東</button>
+            </div>
+            <div id="sub-tabs-platform" class="sub-tabs" style="display: none;">
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="實體">實體</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="Board Game Arena">BGA</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="Tabletop Simulator">TTS</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="Tabletopia">Tabletopia</button>
+                <button type="button" class="btn btn-secondary sub-btn" data-sub="其他">其他</button>
+            </div>
+        </section>
+
+        <section>
+            <div id="community-list"></div>
+            <div id="community-empty" class="community-empty" style="display: none;">
+                <p>此分類目前沒有社群連結，敬請期待。</p>
+            </div>
+        </section>
+    </div>
+
+    <footer style="text-align: center; padding: 2rem; margin-top: 4rem; color: var(--text-light); border-top: 1px solid var(--border-color);">
+        <p>© 2025 MBTI × 桌遊配對</p>
+    </footer>
+
+    <script src="js/api-base.js"></script>
+    <script>
+        const SOURCE_CLASS = { 'Line': 'source-line', 'Discord': 'source-discord', 'FB': 'source-fb', '自架網站': 'source-site', '其他': 'source-other' };
+        let allLinks = [];
+        let mainFilter = 'discussion';
+        let subFilter = null;
+
+        async function loadLinks() {
+            try {
+                const r = await fetch('tables/community_links?limit=500');
+                if (!r.ok) throw new Error('無法載入');
+                const j = await r.json();
+                const raw = j.data || [];
+                allLinks = raw
+                    .filter(row => row.is_active !== 0 && row.is_active !== '0')
+                    .map(row => ({
+                        ...row,
+                        category_regions: parseJson(row.category_regions),
+                        category_platforms: parseJson(row.category_platforms)
+                    }))
+                    .sort((a, b) => (Number(a.sort_order) || 999) - (Number(b.sort_order) || 999));
+                render();
+            } catch (e) {
+                document.getElementById('community-list').innerHTML = '<div class="community-empty"><p>載入失敗，請稍後再試。</p></div>';
+            }
+        }
+
+        function parseJson(s) {
+            if (Array.isArray(s)) return s;
+            if (!s) return [];
+            try { return JSON.parse(s); } catch (_) { return []; }
+        }
+
+        function matchesFilter(link) {
+            if (mainFilter === 'discussion') return link.category_discussion === 1 || link.category_discussion === '1';
+            if (mainFilter === 'region') {
+                const regions = link.category_regions || [];
+                if (!subFilter) return regions.length > 0;
+                return regions.includes(subFilter);
+            }
+            if (mainFilter === 'platform') {
+                const platforms = link.category_platforms || [];
+                if (!subFilter) return platforms.length > 0;
+                return platforms.includes(subFilter);
+            }
+            if (mainFilter === 'meetup') return link.category_meetup === 1 || link.category_meetup === '1';
+            return false;
+        }
+
+        function render() {
+            const list = allLinks.filter(matchesFilter);
+            const wrap = document.getElementById('community-list');
+            const empty = document.getElementById('community-empty');
+            if (list.length === 0) {
+                wrap.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            wrap.innerHTML = list.map(link => {
+                const tag = link.source_tag || '其他';
+                const tagClass = SOURCE_CLASS[tag] || 'source-other';
+                return '<a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener" class="community-card">' +
+                    '<div class="community-card-header">' +
+                    '<span class="community-card-name">' + escapeHtml(link.name) + '</span>' +
+                    '<span class="source-tag ' + tagClass + '">' + escapeHtml(tag) + '</span>' +
+                    '</div>' +
+                    (link.description ? '<div class="community-card-desc">' + escapeHtml(link.description) + '</div>' : '') +
+                    '</a>';
+            }).join('');
+        }
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function setMainTab(main) {
+            mainFilter = main;
+            subFilter = null;
+            document.querySelectorAll('.filter-tabs .btn').forEach(btn => {
+                btn.classList.toggle('btn-primary', btn.dataset.main === main);
+                btn.classList.toggle('btn-secondary', btn.dataset.main !== main);
+            });
+            document.getElementById('sub-tabs-wrap').style.display = main === 'region' ? 'flex' : 'none';
+            document.getElementById('sub-tabs-platform').style.display = main === 'platform' ? 'flex' : 'none';
+            if (main !== 'region') document.querySelectorAll('#sub-tabs-wrap .sub-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+            if (main !== 'platform') document.querySelectorAll('#sub-tabs-platform .sub-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+            render();
+        }
+
+        function setSubTab(sub) {
+            subFilter = subFilter === sub ? null : sub;
+            const container = mainFilter === 'region' ? document.getElementById('sub-tabs-wrap') : document.getElementById('sub-tabs-platform');
+            container.querySelectorAll('.sub-btn').forEach(btn => {
+                const on = btn.dataset.sub === subFilter;
+                btn.classList.toggle('btn-primary', on);
+                btn.classList.toggle('btn-secondary', !on);
+            });
+            render();
+        }
+
+        document.querySelectorAll('.filter-tabs [data-main]').forEach(btn => {
+            btn.addEventListener('click', () => setMainTab(btn.dataset.main));
+        });
+        document.querySelectorAll('#sub-tabs-wrap .sub-btn').forEach(btn => {
+            btn.addEventListener('click', () => { setSubTab(btn.dataset.sub); });
+        });
+        document.querySelectorAll('#sub-tabs-platform .sub-btn').forEach(btn => {
+            btn.addEventListener('click', () => { setSubTab(btn.dataset.sub); });
+        });
+
+        loadLinks();
+    </script>
+</body>
+</html>

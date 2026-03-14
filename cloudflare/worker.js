@@ -27,13 +27,15 @@ const ALLOWED_TABLES = [
   'user_collection_votes', 'achievements', 'admin_whitelist',
   'tester_whitelist', 'influencer_whitelist', 'publisher_badge_series',
   'quiz_collections', 'quiz_questions', 'quiz_attempts',
-  'daily_quests', 'limited_events', 'event_progress', 'site_stats'
+  'daily_quests', 'limited_events', 'event_progress', 'site_stats',
+  'community_links'
 ];
 
 // 每頁最大筆數
 const TABLE_MAX_LIMIT = {
   game_database: 200,
   game_aliases: 200,
+  community_links: 500,
   default: 100
 };
 
@@ -47,7 +49,7 @@ const PUBLIC_READ_TABLES = [
   'quiz_collections', 'quiz_questions', 'daily_quests',
   'limited_events', 'publisher_badge_series',
   'user_collections', 'users', 'user_stats',
-  'game_votes', 'user_collection_votes'
+  'game_votes', 'user_collection_votes', 'community_links'
 ];
 
 const ADMIN_ONLY_TABLES = [

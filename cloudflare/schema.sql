@@ -293,6 +293,23 @@ CREATE TABLE IF NOT EXISTS site_stats (
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
 
+-- 桌遊社群連結（Line/Discord/FB/自架等，多分類、可上架/下架）
+CREATE TABLE IF NOT EXISTS community_links (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  description TEXT,
+  sort_order INTEGER DEFAULT 999,
+  is_active INTEGER DEFAULT 1,
+  source_tag TEXT NOT NULL,
+  category_discussion INTEGER DEFAULT 0,
+  category_regions TEXT DEFAULT '[]',
+  category_platforms TEXT DEFAULT '[]',
+  category_meetup INTEGER DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+  updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+);
+
 -- 索引（加速常用查詢）
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -306,3 +323,4 @@ CREATE INDEX IF NOT EXISTS idx_quiz_questions_collection_id ON quiz_questions(co
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_id ON quiz_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_event_progress_user_id ON event_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_collection_game_stats_collection_id ON collection_game_stats(collection_id);
+CREATE INDEX IF NOT EXISTS idx_community_links_active_sort ON community_links(is_active, sort_order);

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌遊社群管理 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .admin-header { color: white; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; }
+        .admin-header h2 { margin: 0 0 0.5rem; color: white; background: none; -webkit-text-fill-color: white; }
+        .admin-header p { margin: 0; opacity: 0.9; color: white; }
+        .admin-header .back-btn { display: inline-block; margin-top: 0.75rem; padding: 0.35rem 1rem; background: rgba(255,255,255,0.2); color: white; border: 1.5px solid rgba(255,255,255,0.6); border-radius: 2rem; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+        .community-row { background: var(--card-bg); padding: 1rem 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border-color); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+        .community-row .info { flex: 1; min-width: 0; }
+        .community-row .name { font-weight: 600; font-size: 1.05rem; }
+        .community-row .meta { font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem; }
+        .community-row .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-right: 0.35rem; }
+        .community-row .badge-off { background: #fee2e2; color: #b91c1c; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 2rem; border-radius: 1rem; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-xl); }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.35rem; font-weight: 600; color: var(--text-color); }
+        .form-input, .form-select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; box-sizing: border-box; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+        .checkbox-group label { display: flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="js/admin-auth.js?v=20240222-fix"></script>
+    <script src="js/app.js?v=20260311"></script>
+    <script src="js/api-base.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="leaderboard.html">貢獻排行</a></li>
+                <li><a href="community.html">桌遊社群</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="admin-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);">
+            <h2>👥 桌遊社群管理</h2>
+            <p>管理 Line / Discord / FB / 自架網站等社群連結，分類為討論、地區、平台、揪團</p>
+            <a href="admin.html" class="back-btn">← 返回管理後台</a>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <button type="button" class="btn btn-primary" onclick="openModal()">➕ 新增社群連結</button>
+            <button type="button" class="btn btn-secondary" onclick="loadList()">🔄 重新載入</button>
+        </div>
+
+        <div id="list-wrap"></div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">新增社群連結</h2>
+            <input type="hidden" id="edit-id">
+            <div class="form-group">
+                <label class="form-label">名稱 *</label>
+                <input type="text" id="edit-name" class="form-input" required placeholder="例：台北桌遊 Line 群">
+            </div>
+            <div class="form-group">
+                <label class="form-label">連結 *</label>
+                <input type="url" id="edit-url" class="form-input" required placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">標籤（來源）*</label>
+                <select id="edit-source_tag" class="form-select">
+                    <option value="Line">Line</option>
+                    <option value="Discord">Discord</option>
+                    <option value="FB">FB</option>
+                    <option value="自架網站">自架網站</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">簡短說明</label>
+                <input type="text" id="edit-description" class="form-input" placeholder="選填">
+            </div>
+            <div class="form-group">
+                <label class="form-label">排序（數字越小越前面）</label>
+                <input type="number" id="edit-sort_order" class="form-input" value="999" min="0">
+            </div>
+            <div class="form-group">
+                <label class="checkbox-group"><input type="checkbox" id="edit-is_active" checked> 上架（顯示於前台）</label>
+            </div>
+            <div class="form-group">
+                <span class="form-label">分類（可多選，各自獨立）</span>
+                <div class="checkbox-group" style="margin-top: 0.5rem;">
+                    <label><input type="checkbox" id="cat-discussion"> 討論（綜合）</label>
+                    <label><input type="checkbox" id="cat-meetup"> 揪團</label>
+                </div>
+                <div class="form-label" style="margin-top: 0.75rem;">地區</div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="cat-region" value="北"> 北</label>
+                    <label><input type="checkbox" class="cat-region" value="中"> 中</label>
+                    <label><input type="checkbox" class="cat-region" value="南"> 南</label>
+                    <label><input type="checkbox" class="cat-region" value="東"> 東</label>
+                </div>
+                <div class="form-label" style="margin-top: 0.75rem;">平台（遊玩平台）</div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="cat-platform" value="實體"> 實體</label>
+                    <label><input type="checkbox" class="cat-platform" value="Board Game Arena"> BGA</label>
+                    <label><input type="checkbox" class="cat-platform" value="Tabletop Simulator"> TTS</label>
+                    <label><input type="checkbox" class="cat-platform" value="Tabletopia"> Tabletopia</label>
+                    <label><input type="checkbox" class="cat-platform" value="其他"> 其他</label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" onclick="saveLink()">儲存</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let list = [];
+
+        function parseJson(s) {
+            if (Array.isArray(s)) return s;
+            if (!s) return [];
+            try { return JSON.parse(s); } catch (_) { return []; }
+        }
+
+        function uuid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 3 | 8);
+                return v.toString(16);
+            });
+        }
+
+        async function loadList() {
+            const wrap = document.getElementById('list-wrap');
+            wrap.innerHTML = '<div class="simple-hourglass"><span class="hourglass-icon-simple combined">⏳</span><span class="hourglass-text-simple">載入中...</span></div>';
+            try {
+                const r = await fetch('tables/community_links?limit=500');
+                const j = await r.json();
+                list = (j.data || []).sort((a, b) => (Number(a.sort_order) || 999) - (Number(b.sort_order) || 999));
+                wrap.innerHTML = list.length === 0
+                    ? '<p style="color: var(--text-light);">尚無資料，請新增社群連結。</p>'
+                    : list.map(row => {
+                        const active = row.is_active !== 0 && row.is_active !== '0';
+                        const regions = parseJson(row.category_regions).join('、') || '—';
+                        const platforms = parseJson(row.category_platforms).join('、') || '—';
+                        const tags = [];
+                        if (row.category_discussion === 1 || row.category_discussion === '1') tags.push('討論');
+                        if (row.category_meetup === 1 || row.category_meetup === '1') tags.push('揪團');
+                        return '<div class="community-row">' +
+                            '<div class="info">' +
+                            '<div class="name">' + escapeHtml(row.name) + ' <span class="badge ' + (active ? '' : 'badge-off') + '">' + (active ? '上架' : '下架') + '</span></div>' +
+                            '<div class="meta">' + escapeHtml(row.source_tag || '') + ' · 排序 ' + (row.sort_order ?? 999) + ' · 地區 ' + regions + ' · 平台 ' + platforms + (tags.length ? ' · ' + tags.join('、') : '') + '</div>' +
+                            '</div>' +
+                            '<div style="display:flex;gap:0.5rem;">' +
+                            '<button type="button" class="btn btn-sm btn-secondary" onclick="openModal(\'' + row.id + '\')">編輯</button>' +
+                            '<button type="button" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;" onclick="deleteLink(\'' + row.id + '\')">刪除</button>' +
+                            '</div></div>';
+                    }).join('');
+            } catch (e) {
+                wrap.innerHTML = '<p style="color: #b91c1c;">載入失敗：' + escapeHtml(e.message) + '</p>';
+            }
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function openModal(id) {
+            document.getElementById('modal-title').textContent = id ? '編輯社群連結' : '新增社群連結';
+            document.getElementById('edit-id').value = id || '';
+            if (id) {
+                const row = list.find(r => r.id === id);
+                if (!row) return;
+                document.getElementById('edit-name').value = row.name || '';
+                document.getElementById('edit-url').value = row.url || '';
+                document.getElementById('edit-source_tag').value = row.source_tag || '其他';
+                document.getElementById('edit-description').value = row.description || '';
+                document.getElementById('edit-sort_order').value = row.sort_order ?? 999;
+                document.getElementById('edit-is_active').checked = row.is_active !== 0 && row.is_active !== '0';
+                document.getElementById('cat-discussion').checked = row.category_discussion === 1 || row.category_discussion === '1';
+                document.getElementById('cat-meetup').checked = row.category_meetup === 1 || row.category_meetup === '1';
+                const regions = parseJson(row.category_regions);
+                document.querySelectorAll('.cat-region').forEach(cb => { cb.checked = regions.includes(cb.value); });
+                const platforms = parseJson(row.category_platforms);
+                document.querySelectorAll('.cat-platform').forEach(cb => { cb.checked = platforms.includes(cb.value); });
+            } else {
+                document.getElementById('edit-name').value = '';
+                document.getElementById('edit-url').value = '';
+                document.getElementById('edit-source_tag').value = 'Line';
+                document.getElementById('edit-description').value = '';
+                document.getElementById('edit-sort_order').value = 999;
+                document.getElementById('edit-is_active').checked = true;
+                document.getElementById('cat-discussion').checked = false;
+                document.getElementById('cat-meetup').checked = false;
+                document.querySelectorAll('.cat-region').forEach(cb => { cb.checked = false; });
+                document.querySelectorAll('.cat-platform').forEach(cb => { cb.checked = false; });
+            }
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function saveLink() {
+            const id = document.getElementById('edit-id').value.trim();
+            const name = document.getElementById('edit-name').value.trim();
+            const url = document.getElementById('edit-url').value.trim();
+            if (!name || !url) { alert('請填寫名稱與連結'); return; }
+            const regions = [];
+            document.querySelectorAll('.cat-region:checked').forEach(cb => regions.push(cb.value));
+            const platforms = [];
+            document.querySelectorAll('.cat-platform:checked').forEach(cb => platforms.push(cb.value));
+            const body = {
+                name,
+                url,
+                source_tag: document.getElementById('edit-source_tag').value || '其他',
+                description: document.getElementById('edit-description').value.trim() || null,
+                sort_order: parseInt(document.getElementById('edit-sort_order').value, 10) || 999,
+                is_active: document.getElementById('edit-is_active').checked ? 1 : 0,
+                category_discussion: document.getElementById('cat-discussion').checked ? 1 : 0,
+                category_meetup: document.getElementById('cat-meetup').checked ? 1 : 0,
+                category_regions: JSON.stringify(regions),
+                category_platforms: JSON.stringify(platforms)
+            };
+            try {
+                const headers = getAuthHeaders();
+                if (id) {
+                    await safePatch('tables/community_links/' + id, body);
+                } else {
+                    body.id = uuid();
+                    const r = await fetch('tables/community_links', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+                    if (!r.ok) throw new Error(await r.text());
+                }
+                closeModal();
+                loadList();
+            } catch (e) {
+                alert('儲存失敗：' + e.message);
+            }
+        }
+
+        async function deleteLink(id) {
+            if (!confirm('確定要刪除這筆社群連結？')) return;
+            try {
+                const r = await fetch('tables/community_links/' + id, { method: 'DELETE', headers: getAuthHeaders() });
+                if (!r.ok) throw new Error(await r.text());
+                loadList();
+            } catch (e) {
+                alert('刪除失敗：' + e.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof requireAdminAuth === 'function') requireAdminAuth(loadList); else loadList();
+        });
+    </script>
+</body>
+</html>
