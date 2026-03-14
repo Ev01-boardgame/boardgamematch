@@ -368,7 +368,6 @@
                                 <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-bottom:0.5rem;">
                                     <span id="player-mbti-badge" style="background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:white;padding:0.3rem 0.9rem;border-radius:2rem;font-weight:600;font-size:0.95rem;">-</span>
                                     <span id="player-mbti-name" style="color:var(--text-light); font-size:0.95rem;">-</span>
-                                    <span id="player-level-badge" class="level-badge">Lv. 1</span>
                                 </div>
                                 <div style="color:var(--text-light); font-size:0.85rem;" id="player-joined">加入於 -</div>
                                 <!-- 社群連結 -->
@@ -386,17 +385,6 @@
                             <div style="font-size:0.8rem; color:var(--text-light); margin-top:0.5rem;">
                                 共識 <span id="sim-agreement">0</span> | 分歧 <span id="sim-disagreement">0</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- XP 進度條 -->
-                    <div style="margin-top:1.5rem;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.88rem; color:var(--text-light); margin-bottom:0.4rem;">
-                            <span>經驗值</span>
-                            <span id="player-xp-text" style="color:var(--primary-color); font-weight:600;">0 XP</span>
-                        </div>
-                        <div style="background:var(--border-color); height:8px; border-radius:1rem; overflow:hidden;">
-                            <div id="player-xp-bar" style="background:linear-gradient(90deg,var(--primary-color),var(--secondary-color));height:100%;width:0%;transition:width 0.8s ease;"></div>
                         </div>
                     </div>
 
@@ -796,17 +784,6 @@
             `linear-gradient(90deg, ${mbtiInfo.color}, var(--secondary-color))`;
         document.getElementById('player-mbti-badge').textContent = mbti;
         document.getElementById('player-mbti-name').textContent = mbtiInfo.name;
-
-        // 等級
-        const level = targetUser.level || 1;
-        document.getElementById('player-level-badge').textContent = `Lv. ${level}`;
-
-        // XP
-        const xp = targetUser.xp || 0;
-        const xpToNext = level * 100;
-        const xpProgress = Math.min(100, (xp % xpToNext) / xpToNext * 100);
-        document.getElementById('player-xp-text').textContent = `${xp} XP`;
-        document.getElementById('player-xp-bar').style.width = `${xpProgress}%`;
 
         // 加入日期
         if (targetUser.created_at) {

@@ -296,24 +296,12 @@
                                               id="profile-mbti">INTJ<span id="mbti-lock-icon" style="display:none;font-size:0.75rem;opacity:0.85;"></span>
                                         </span>
                                         <span style="color: var(--text-light);" id="profile-mbti-name">建築師</span>
-                                        <span class="level-badge" id="profile-level-badge">Lv. 1</span>
                                     </div>
                                 </div>
                             </div>
                             <p style="color: var(--text-light); margin-bottom: 0.5rem; margin-top: 0.2rem;" id="profile-created-at">加入於 -</p>
                             <!-- 個人簡介 -->
                             <p id="profile-bio-display" style="display:none; color:var(--text-color); font-size:0.95rem; line-height:1.6; margin-bottom:1rem; padding:0.6rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid var(--primary-color);"></p>
-                            
-                            <!-- XP 進度條 -->
-                            <div style="margin-top: 1rem;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
-                                    <span style="color: var(--text-light);">經驗值</span>
-                                    <span style="color: var(--primary-color); font-weight: 600;" id="profile-xp-text">0 / 100 XP</span>
-                                </div>
-                                <div style="background: var(--border-color); height: 8px; border-radius: 1rem; overflow: hidden;">
-                                    <div id="profile-xp-bar" style="background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
-                                </div>
-                            </div>
                         </div>
                         
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -886,11 +874,6 @@
             // 設定加入日期
             document.getElementById('profile-created-at').textContent = '已登入 Google';
             
-            // 設定等級與 XP（預設值）
-            document.getElementById('profile-level-badge').textContent = 'Lv. 1';
-            document.getElementById('profile-xp-text').textContent = '0 / 100 XP';
-            document.getElementById('profile-xp-bar').style.width = '0%';
-            
             // 顯示「尚未分享喜好」的提示
             const statsGrid = document.querySelector('#logged-in > section:nth-of-type(2) > div');
             if (statsGrid) {
@@ -1255,36 +1238,10 @@
             }
         }
 
-        // 工具：把 stats 渲染到 UI（不含徽章）
-        function renderStatsUI(stats) {
-            const level = stats.level || 1;
-            const totalXP = stats.total_xp || 0;
-            const currentLevelXP = GameMBTI.getLevelXP(level);
-            const nextLevelXP = GameMBTI.getLevelXP(level + 1);
-            const xpInCurrentLevel = totalXP - currentLevelXP;
-            const xpNeededForNextLevel = nextLevelXP - currentLevelXP;
-            const progressPercent = xpNeededForNextLevel > 0
-                ? Math.min(100, (xpInCurrentLevel / xpNeededForNextLevel) * 100)
-                : 100;
-            document.getElementById('profile-level-badge').textContent = `Lv. ${level}`;
-            document.getElementById('profile-xp-text').textContent =
-                `${xpInCurrentLevel} / ${xpNeededForNextLevel} XP`;
-            document.getElementById('profile-xp-bar').style.width = `${progressPercent}%`;
-        }
-
-        // 顯示使用者統計資料（XP、等級、徽章）
+        // 顯示使用者統計資料（徽章等，已移除 XP/等級）
         async function displayUserStats() {
             try {
-                // ① 先從 localStorage 快取即時顯示（無需等 API）
-                try {
-                    const cached = JSON.parse(localStorage.getItem('userStats_cache') || 'null');
-                    if (cached && cached.user_id === currentUser.id) {
-                        renderStatsUI(cached);
-                        console.log(`⚡ 快取等級顯示：Lv. ${cached.level}（XP ${cached.total_xp}）`);
-                    }
-                } catch(e) { /* 快取讀取失敗不影響 */ }
-
-                // ② 並行抓取：stats + achievements + game_votes + user_collections
+                // ① 並行抓取：stats + achievements + game_votes + user_collections
                 //    只 fetch 一次，成就檢查與顯示共用同一份資料
                 const gamesAdded = ((currentUser.super_liked_games || []).length + (currentUser.liked_games || []).length + (currentUser.neutral_games || []).length + (currentUser.disliked_games || []).length + (currentUser.no_interest_games || []).length);
 
@@ -1308,27 +1265,23 @@
                     } catch(e) { return false; }
                 }).length;
 
-                renderStatsUI(stats);
-
-                // ④ 同步最新值回快取
+                // ② 同步最新值回快取（徽章等）
                 try {
                     localStorage.setItem('userStats_cache', JSON.stringify({
                         user_id: currentUser.id,
-                        total_xp: stats.total_xp,
-                        level: stats.level,
                         unlocked_badges: stats.unlocked_badges,
                         streak_days: stats.streak_days,
                         cached_at: Date.now()
                     }));
                 } catch(e) { /* 寫入失敗不影響 */ }
 
-                // ⑤ 顯示成就牆（用已載入的資料，不再重複 fetch）
+                // ③ 顯示成就牆（用已載入的資料，不再重複 fetch）
                 await displayAchievements(stats, allAchievements, {
                     gamesAdded, myVotesCount, myCollectionsCount, myRatedOthersCount,
                     streakDays: stats.streak_days || 0,
                 });
 
-                // ⑥ 背景執行成就解鎖檢查，完成後無論有無新解鎖都重繪（確保即時反映）
+                // ④ 背景執行成就解鎖檢查，完成後無論有無新解鎖都重繪（確保即時反映）
                 GameMBTI.checkAndUnlockAchievements(currentUser.id).then(newUnlocks => {
                     if (newUnlocks && newUnlocks.length > 0) {
                         console.log('🏅 新解鎖成就:', newUnlocks.map(a => a.name_zh));
@@ -1345,9 +1298,6 @@
                 
             } catch (error) {
                 console.error('Error loading user stats:', error);
-                document.getElementById('profile-level-badge').textContent = 'Lv. 1';
-                document.getElementById('profile-xp-text').textContent = '0 / 100 XP';
-                document.getElementById('profile-xp-bar').style.width = '0%';
             }
         }
 
@@ -1992,24 +1942,14 @@
                 // 更新 localStorage
                 GameMBTI.setCurrentUser(currentUser);
                 
-                // 🎯 背景執行：增加 XP（不等待）
-                const xpAmount = 10;
-                GameMBTI.addXP(currentUser.id, xpAmount, voteType === 'agree' ? '喜歡遊戲' : '不喜歡遊戲').catch(err => console.error('XP 更新失敗:', err));
-                
-                // 🎯 顯示 XP 動畫（不用 alert）
-                const recommendContainer = document.getElementById('recommendations');
-                if (recommendContainer) {
-                    GameMBTI.showXPAnimation(xpAmount, recommendContainer);
-                }
-                
-                // 🎯 立即更新 UI（不等待 API）
+                // 立即更新 UI（不等待 API）
                 displayGames();
                 displayRecommendations();
                 
-                // 🎯 背景更新統計（不等待）
+                // 背景更新統計（不等待）
                 displayUserStats().catch(err => console.error('統計更新失敗:', err));
                 
-                console.log(`✅ ${voteType === 'agree' ? '已加入喜歡清單' : '已加入不喜歡清單'}！+${xpAmount} XP`);
+                console.log(`✅ ${voteType === 'agree' ? '已加入喜歡清單' : '已加入不喜歡清單'}`);
                 
             } catch (error) {
                 console.error('投票失敗:', error);
@@ -2032,24 +1972,14 @@
                 currentUser.wishlist = wishlist;
                 GameMBTI.setCurrentUser(currentUser);
                 
-                // 🎯 背景執行：增加 XP（不等待）
-                const xpAmount = 5;
-                GameMBTI.addXP(currentUser.id, xpAmount, '加入願望清單').catch(err => console.error('XP 更新失敗:', err));
-                
-                // 🎯 顯示 XP 動畫（不用 alert）
-                const recommendContainer = document.getElementById('recommendations');
-                if (recommendContainer) {
-                    GameMBTI.showXPAnimation(xpAmount, recommendContainer);
-                }
-                
-                // 🎯 立即更新 UI（按鈕會自動變成 ✓ 並 disabled）
+                // 立即更新 UI（按鈕會自動變成 ✓ 並 disabled）
                 displayGames();
                 displayRecommendations();
                 
-                // 🎯 背景更新統計（不等待）
+                // 背景更新統計（不等待）
                 displayUserStats().catch(err => console.error('統計更新失敗:', err));
                 
-                console.log('✅ 已加入願望清單！+' + xpAmount + ' XP');
+                console.log('✅ 已加入願望清單');
                 
             } catch (error) {
                 console.error('加入願望清單失敗:', error);
@@ -2419,7 +2349,7 @@
                 if (existingMBTI && existingMBTI !== selectedType) {
                     const confirmed = confirm(
                         `⚠️ 確定要從 ${existingMBTI} 改為 ${selectedType} 嗎？\n\n` +
-                        `✅ 不影響的項目：\n• 你的遊戲評分記錄\n• 等級與 XP\n• 待玩清單\n\n` +
+                        `✅ 不影響的項目：\n• 你的遊戲評分記錄\n• 待玩清單\n\n` +
                         `🔄 會改變的項目：\n• 人格類型分類\n• 與其他玩家的對比數據\n• 推薦遊戲內容`
                     );
                     if (!confirmed) return;
@@ -2430,7 +2360,7 @@
             
             // 清除 MBTI 按鈕
             document.getElementById('clear-mbti').addEventListener('click', () => {
-                if (confirm('確定要清除 MBTI 設定嗎？\n\n這不會影響你的遊戲記錄、等級和 XP。')) {
+                if (confirm('確定要清除 MBTI 設定嗎？\n\n這不會影響你的遊戲記錄。')) {
                     saveMBTI(null);
                 }
             });
@@ -2949,17 +2879,6 @@
             
             // 統計資訊
             document.getElementById('playerMbti').textContent = playerData.mbti_type;
-            
-            // 等級：從 user_stats 查
-            const levelEl = document.getElementById('playerLevel');
-            levelEl.textContent = 'Lv.?';
-            fetch(`tables/user_stats?limit=500`)
-                .then(r => r.json())
-                .then(d => {
-                    const stats = (d.data || []).find(s => s.user_id === playerData.id);
-                    levelEl.textContent = stats ? `Lv.${stats.level || 1}` : 'Lv.1';
-                })
-                .catch(() => { levelEl.textContent = 'Lv.1'; });
             
             // 只顯示 super_liked_games
             const likedGamesElement = document.getElementById('playerLikedGames');
@@ -3757,10 +3676,6 @@
                     <div class="player-stat-item">
                         <div id="playerMbti" class="player-stat-value">-</div>
                         <div class="player-stat-label">MBTI</div>
-                    </div>
-                    <div class="player-stat-item">
-                        <div id="playerLevel" class="player-stat-value">-</div>
-                        <div class="player-stat-label">等級</div>
                     </div>
                 </div>
             </div>

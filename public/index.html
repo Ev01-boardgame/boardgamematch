@@ -80,14 +80,13 @@
             <!-- 已登入狀態顯示 -->
             <div id="logged-in-container" style="display: none;">
                 <div style="background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 1rem; box-shadow: var(--shadow-md); text-align: center; max-width: 500px; margin: 0 auto;">
-                    <!-- 頭像 + 暱稱 + MBTI + 等級 -->
+                    <!-- 頭像 + 暱稱 + MBTI -->
                     <div style="display: inline-flex; align-items: center; gap: 1rem; padding: 0.875rem 1.5rem; background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); border-radius: 0.875rem; margin-bottom: 1.25rem; width: 100%; box-sizing: border-box;">
                         <img id="user-avatar" src="" alt="頭像" style="width: 52px; height: 52px; border-radius: 50%; border: 3px solid white; flex-shrink: 0;">
                         <div style="text-align: left; color: white; flex: 1; min-width: 0;">
                             <div id="user-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                             <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                                 <span id="user-mbti" style="font-size: 0.85rem; opacity: 0.95;"></span>
-                                <span id="user-level-badge" style="font-size: 0.8rem; background: rgba(255,255,255,0.25); padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 600;"></span>
                             </div>
                         </div>
                     </div>
@@ -495,7 +494,6 @@
                 const currentUser = GameMBTI.getCurrentUser();
                 const mbtiType = user.mbti_type || currentUser?.mbti_type || null;
                 const mbtiEl = document.getElementById('user-mbti');
-                const levelEl = document.getElementById('user-level-badge');
 
                 function showMBTI(type) {
                     if (type) {
@@ -507,41 +505,13 @@
                 }
                 showMBTI(mbtiType);
 
-                // 等級：優先 localStorage 快取 → 再背景查 DB
-                try {
-                    const cached = JSON.parse(localStorage.getItem('userStats_cache') || 'null');
-                    if (cached && cached.level) {
-                        levelEl.textContent = `Lv. ${cached.level}`;
-                    } else {
-                        levelEl.textContent = '';
-                    }
-                } catch(e) {
-                    levelEl.textContent = '';
-                }
-
-                // 背景從 DB 取最新 MBTI + 等級（不管快取）
+                // 背景從 DB 取最新 MBTI
                 const googleId = user.sub || user.google_id;
                 if (googleId) {
                     GameMBTI.getAllUsers().then(users => {
                         const dbUser = users.find(u => u.google_id === googleId);
-                        if (dbUser) {
-                            // 更新 MBTI
-                            showMBTI(dbUser.mbti_type || mbtiType);
-                            // 取等級
-                            return GameMBTI.getUserStats(dbUser.id).then(stats => {
-                                levelEl.textContent = `Lv. ${stats.level}`;
-                                // 同步回快取
-                                localStorage.setItem('userStats_cache', JSON.stringify({
-                                    user_id: dbUser.id,
-                                    total_xp: stats.total_xp,
-                                    level: stats.level,
-                                    cached_at: Date.now()
-                                }));
-                            });
-                        }
-                    }).catch(() => {
-                        if (!levelEl.textContent) levelEl.textContent = 'Lv. 1';
-                    });
+                        if (dbUser) showMBTI(dbUser.mbti_type || mbtiType);
+                    }).catch(() => {});
                 }
 
                 signinContainer.style.display = 'none';

@@ -571,8 +571,6 @@ async function createUserStats(userId) {
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 user_id: userId,
-                total_xp: 100, // 註冊獎勵
-                level: 1,
                 games_added: 0,
                 votes_count: 0,
                 daily_streak: 0,
@@ -637,47 +635,9 @@ function getLevelXP(level) {
     return xpMap[level] || 0;
 }
 
-// 增加 XP
+// 增加 XP（已停用：經驗值等級系統已移除）
 async function addXP(userId, amount, reason = '') {
-    try {
-        const stats = await getUserStats(userId);
-        const newXP = stats.total_xp + amount;
-        const oldLevel = calculateLevel(stats.total_xp);
-        const newLevel = calculateLevel(newXP);
-        
-        const updates = {
-            total_xp: newXP,
-            level: newLevel
-        };
-        
-        await updateUserStats(userId, updates);
-        
-        // ✅ 同步快取到 localStorage，下次開頁可即時顯示
-        try {
-            localStorage.setItem('userStats_cache', JSON.stringify({
-                user_id: userId,
-                total_xp: newXP,
-                level: newLevel,
-                cached_at: Date.now()
-            }));
-        } catch(e) { /* localStorage 寫入失敗不影響主流程 */ }
-        
-        // 檢查是否升級
-        const leveledUp = newLevel > oldLevel;
-        
-        return {
-            success: true,
-            xpGained: amount,
-            totalXP: newXP,
-            oldLevel,
-            newLevel,
-            leveledUp,
-            reason
-        };
-    } catch (error) {
-        console.error('Error adding XP:', error);
-        throw error;
-    }
+    return { success: true, xpGained: 0, totalXP: 0, oldLevel: 1, newLevel: 1, leveledUp: false, reason };
 }
 
 // 獲取使用者已解鎖的成就
@@ -1133,8 +1093,6 @@ async function recordGameAnswer(userId, gameName, answerType) {
         if (!user) throw new Error('找不到使用者');
         
         let updates = {};
-        let xpAmount = 0;
-        let reason = '';
         
         if (answerType === 'like') {
             const likedGames = user.liked_games || [];
@@ -1142,24 +1100,18 @@ async function recordGameAnswer(userId, gameName, answerType) {
                 likedGames.push(gameName);
                 updates.liked_games = likedGames;
             }
-            xpAmount = 10;
-            reason = '喜歡遊戲推薦';
         } else if (answerType === 'dislike') {
             const dislikedGames = user.disliked_games || [];
             if (!dislikedGames.includes(gameName)) {
                 dislikedGames.push(gameName);
                 updates.disliked_games = dislikedGames;
             }
-            xpAmount = 10;
-            reason = '不喜歡遊戲推薦';
         } else if (answerType === 'unknown') {
             const wishlist = user.wishlist || [];
             if (!wishlist.includes(gameName)) {
                 wishlist.push(gameName);
                 updates.wishlist = wishlist;
             }
-            xpAmount = 5;
-            reason = '標記未玩過遊戲';
         }
         
         // 1. 更新使用者資料（唯一的阻塞操作）
@@ -1172,14 +1124,11 @@ async function recordGameAnswer(userId, gameName, answerType) {
         
         const dailyCount = (today === lastAnswer) ? (stats.daily_question_count || 0) + 1 : 1;
         
-        // 3. 背景執行：更新統計和 XP（不等待）
-        Promise.all([
-            addXP(userId, xpAmount, reason),
-            updateUserStats(userId, {
-                daily_question_count: dailyCount,
-                last_question_date: Date.now()
-            })
-        ]).catch(err => console.error('背景更新失敗:', err));
+        // 3. 背景執行：更新統計（不等待）
+        updateUserStats(userId, {
+            daily_question_count: dailyCount,
+            last_question_date: Date.now()
+        }).catch(err => console.error('背景更新失敗:', err));
         
         // 4. 立即更新 localStorage
         user.liked_games = updates.liked_games || user.liked_games;
@@ -1190,11 +1139,7 @@ async function recordGameAnswer(userId, gameName, answerType) {
         // 5. 返回正確的 dailyCount
         return {
             success: true,
-            xpGained: xpAmount,
-            totalXP: 0,
-            leveledUp: false,
-            newLevel: 0,
-            dailyCount: dailyCount  // 🎯 返回實際計數
+            dailyCount: dailyCount
         };
         
     } catch (error) {
