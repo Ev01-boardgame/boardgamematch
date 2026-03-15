@@ -277,6 +277,21 @@ export default {
     try {
       // ── GET 列表 ──
       if (method === 'GET' && !recordId) {
+        // game_database?random=10：全庫隨機 N 筆（一次請求，供純隨機推薦用）
+        const randomN = parseInt(url.searchParams.get('random') || '0', 10);
+        if (tableName === 'game_database' && randomN > 0 && randomN <= 50) {
+          const columns = await getTableColumns(db, tableName);
+          const hasDeletedAt = columns.includes('deleted_at');
+          const whereBase = hasDeletedAt ? ` WHERE (deleted_at IS NULL OR deleted_at = '')` : '';
+          const dataQuery = `SELECT * FROM ${tableName}${whereBase} ORDER BY RANDOM() LIMIT ?`;
+          const dataResult = await db.prepare(dataQuery).bind(randomN).all();
+          const rows = dataResult.results || [];
+          const parsedRows = rows.map(row => parseJsonFields(row));
+          const countResult = await db.prepare(`SELECT COUNT(*) as total FROM ${tableName}${whereBase}`).first();
+          const total = countResult?.total || 0;
+          return jsonResponse({ data: parsedRows, total, table: tableName }, 200, origin, env);
+        }
+
         const page = parseInt(url.searchParams.get('page') || '1');
         const maxLimit = TABLE_MAX_LIMIT[tableName] || TABLE_MAX_LIMIT.default;
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), maxLimit);

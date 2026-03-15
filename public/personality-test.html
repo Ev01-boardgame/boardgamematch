@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桌遊人格測驗 - MBTI × 桌遊配對</title>
+    <title>桌友適性 - MBTI × 桌遊配對</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/hourglass-simple.css">
     <style>
@@ -182,7 +182,7 @@
                 <li><a href="index.html">回到首頁</a></li>
                 <li><a href="recommend.html">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
-                <li><a href="personality-test.html" class="active">桌遊人格測驗</a></li>
+                <li><a href="personality-test.html" class="active">桌友適性</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
                 <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
@@ -192,8 +192,8 @@
 
     <div class="container">
         <div class="page-hero-fix" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);">
-            <h1>🎭 桌遊人格測驗</h1>
-            <p>選一個測驗，找出你的風格（可離線、可重測）</p>
+            <h1>🎭 桌友適性</h1>
+            <p>選一個測驗，找出你的桌遊風格與偏好，結果可儲存到「我的檔案」、可隨時重測。</p>
         </div>
 
         <!-- 測驗列表（二選一） -->
@@ -239,8 +239,7 @@
                         </div>
                     </div>
                 </div>
-                <aside class="test-live-result" id="live-result-panel">
-                    <h3>即時結果（測試用）</h3>
+                <aside class="test-live-result" id="live-result-panel" style="display:none;">
                     <div id="live-result-content"></div>
                 </aside>
             </div>
@@ -1006,12 +1005,17 @@
                 if (btn) btn.disabled = false;
                 alert(msg);
             };
+            function errMsg(e) {
+                var msg = (e && e.message) ? e.message : '請稍後再試';
+                if (msg.indexOf('儲存失敗') === -1) return '儲存失敗：' + msg;
+                return msg;
+            }
             if (c.resultType === 'mbti') {
                 var code = getMbtiCode(state.dimensionScores);
                 updateUser(user.id, { mbti_type: code }).then(function() {
                     done('已將 MBTI 類型 ' + code + ' 儲存到我的檔案');
                 }).catch(function(e) {
-                    done('儲存失敗：' + (e && e.message ? e.message : '請稍後再試'), true);
+                    done(errMsg(e) + '（若持續失敗請檢查網路或重新登入）', true);
                 });
                 return;
             }
@@ -1036,11 +1040,17 @@
                         return fetch(url, { method: method, headers: headers, body: JSON.stringify(body) });
                     })
                     .then(function(r) {
-                        if (!r.ok) throw new Error(r.statusText || '儲存失敗');
-                        done('已將桌遊偏好儲存到我的檔案');
+                        if (r.ok) {
+                            done('已將桌遊偏好儲存到我的檔案');
+                            return;
+                        }
+                        return r.text().then(function(t) {
+                            var detail = (t && t.length < 200) ? t : (r.status + ' ' + (r.statusText || ''));
+                            throw new Error('儲存失敗：' + detail);
+                        });
                     })
                     .catch(function(e) {
-                        done('儲存失敗：' + (e && e.message ? e.message : '請稍後再試'), true);
+                        done(errMsg(e) + '（若持續失敗請檢查網路或重新登入）', true);
                     });
             }
         }

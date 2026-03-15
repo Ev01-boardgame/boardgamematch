@@ -507,6 +507,7 @@
                 <li><a href="index.html">回到首頁</a></li>
                 <li><a href="recommend.html" class="active">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
                 <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
@@ -526,11 +527,11 @@
         <section style="max-width: 1000px; margin: 0 auto 1.5rem;">
             <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--text-color);">選擇分類</h2>
             <div class="filter-tabs" id="recommend-filter-tabs">
-                <button type="button" class="btn btn-primary" data-tab="yearly" id="tab-yearly">🏆 年度排行</button>
+                <button type="button" class="btn btn-primary" data-tab="random" id="tab-random">🎲 隨機推薦</button>
+                <button type="button" class="btn btn-secondary" data-tab="limited" id="tab-limited">⏰ 限時活動</button>
                 <button type="button" class="btn btn-secondary" data-tab="permanent" id="tab-permanent">⭐ 常駐主題</button>
                 <button type="button" class="btn btn-secondary" data-tab="publisher" id="tab-publisher">🏢 出版社主打</button>
-                <button type="button" class="btn btn-secondary" data-tab="limited" id="tab-limited">⏰ 限時活動</button>
-                <button type="button" class="btn btn-secondary" data-tab="random" id="tab-random">🎲 隨機推薦</button>
+                <button type="button" class="btn btn-secondary" data-tab="yearly" id="tab-yearly">🏆 年度排行</button>
             </div>
         </section>
 
@@ -538,7 +539,7 @@
         <section id="game-collections-section" style="max-width: 1000px; margin: 0 auto;">
 
             <!-- 年度排行 -->
-            <div id="panel-yearly" class="recommend-panel active">
+            <div id="panel-yearly" class="recommend-panel">
                 <div id="yearly-collections" style="margin-bottom: 2rem;">
                     <div id="yearly-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
                         <div class="simple-hourglass" style="grid-column: 1/-1;">
@@ -586,7 +587,7 @@
             </div>
 
             <!-- 隨機推薦 -->
-            <div id="panel-random" class="recommend-panel">
+            <div id="panel-random" class="recommend-panel active">
                 <div class="random-mode-section">
                     <h3 style="font-size: 1.1rem; margin: 0 0 0.75rem; color: var(--text-color);">推薦方式</h3>
                     <div class="random-mode-options">
@@ -665,7 +666,8 @@
         const BACKUP_KEY = 'mbti_game_ratings_backup';
 
         // 隨機推薦用（與 random-recommend 同邏輯，用語改為「桌遊偏好」）
-        const RANDOM_POOL_SIZE = 400;
+        const RANDOM_PAGE_SIZE = 100;   // 每頁筆數（與 API 一致）
+        const RANDOM_POOL_SIZE = 1000;  // MBTI/軸線模式用的 pool 大小（只抓前 N 筆）
         const RANDOM_RESULT_COUNT = 10;
         let randomGamePool = [];
         let randomGameMapByName = {};
@@ -679,6 +681,11 @@
             const wrap = document.getElementById('random-result-wrap');
             const cardsEl = document.getElementById('random-result-cards');
             const emptyEl = document.getElementById('random-result-empty');
+            // 方案 B：MBTI／桌遊偏好需登入，點下去再彈登入提示
+            if ((mode === 'mbti' || mode === 'axis' || mode === 'both') && (!currentUser || !currentUser.id)) {
+                showNotification('請先登入', '使用「依 MBTI 性格」或「依桌遊偏好」推薦需先登入，登入後可依你的喜好個人化推薦。', '🔒', 'info');
+                return;
+            }
             if (btn) btn.disabled = true;
             wrap.style.display = 'block';
             cardsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;">載入中...</div>';
@@ -702,6 +709,39 @@
                 return a;
             }
 
+            // 純隨機做法一：後端支援 ?random=10 時一次請求取 10 筆（Worker 用 seq 或 ORDER BY RANDOM()）
+            async function fetchTenRandomOneRequest() {
+                const res = await fetch('tables/game_database?random=' + RANDOM_RESULT_COUNT);
+                if (!res.ok) return null;
+                const data = await res.json();
+                const list = (data.data != null ? data.data : Array.isArray(data) ? data : []).filter(g => g && (g.name_zh || g.name_en));
+                return list.length >= RANDOM_RESULT_COUNT ? list.slice(0, RANDOM_RESULT_COUNT) : null;
+            }
+            // 純隨機 fallback：十次「隨機一頁 → 該頁隨機一款」（後端尚未支援 ?random=10 時）
+            async function fetchTenRandomFromAllPages() {
+                const first = await fetch('tables/game_database?limit=1').then(r => r.ok ? r.json() : {});
+                const total = first.total || 0;
+                if (total === 0) return [];
+                const totalPages = Math.ceil(total / RANDOM_PAGE_SIZE);
+                const seen = new Set();
+                const results = [];
+                let retries = 0;
+                const maxRetries = RANDOM_RESULT_COUNT * 5;
+                while (results.length < RANDOM_RESULT_COUNT && retries < maxRetries) {
+                    retries++;
+                    const page = 1 + Math.floor(Math.random() * totalPages);
+                    const res = await fetch('tables/game_database?limit=' + RANDOM_PAGE_SIZE + '&page=' + page).then(r => r.ok ? r.json() : { data: [] });
+                    const list = (res.data || []).filter(g => g && (g.name_zh || g.name_en));
+                    if (list.length === 0) continue;
+                    const g = list[Math.floor(Math.random() * list.length)];
+                    const key = (g.id != null ? String(g.id) : '') || getDisplayName(g) || '';
+                    if (key && seen.has(key)) continue;
+                    if (key) seen.add(key);
+                    results.push(g);
+                }
+                return results;
+            }
+
             function loadPool() {
                 return fetchAllPages('tables/game_database', RANDOM_POOL_SIZE).then(rows => {
                     randomGamePool = (rows || []).filter(r => (r.name_zh || r.name_en));
@@ -717,29 +757,47 @@
             }
 
             function ensureData() {
-                let p = loadPool();
-                if (mode === 'mbti' || mode === 'both') {
-                    p = p.then(() => (typeof getAllUsers === 'function' ? getAllUsers() : [])).then(u => {
-                        randomAllUsers = u || [];
-                        return randomGamePool;
-                    });
-                }
-                if (mode === 'axis' || mode === 'both') {
-                    const cu = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-                    if (cu && cu.id) {
-                        const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
-                        p = p.then(() => fetch('tables/user_preference_profiles/' + cu.id, { headers }).then(r => r.status === 200 ? r.json() : null)).then(prof => {
-                            randomUserProfile = prof;
+                let p;
+                if (mode === 'random') {
+                    p = Promise.resolve();
+                } else {
+                    p = loadPool();
+                    if (mode === 'mbti' || mode === 'both') {
+                        p = p.then(() => (typeof getAllUsers === 'function' ? getAllUsers() : [])).then(u => {
+                            randomAllUsers = u || [];
                             return randomGamePool;
                         });
-                    } else randomUserProfile = null;
+                    }
+                    if (mode === 'axis' || mode === 'both') {
+                        const cu = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                        if (cu && cu.id) {
+                            const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                            p = p.then(() => fetch('tables/user_preference_profiles/' + cu.id, { headers }).then(r => r.status === 200 ? r.json() : null)).then(prof => {
+                                randomUserProfile = prof;
+                                return randomGamePool;
+                            });
+                        } else randomUserProfile = null;
+                    }
                 }
                 return p;
             }
 
-            function runRandom() {
-                return shuffle(randomGamePool).slice(0, RANDOM_RESULT_COUNT).map(g => ({ game: g, scoreLabel: null }));
+            async function runRandom() {
+                const one = await fetchTenRandomOneRequest();
+                const games = one || await fetchTenRandomFromAllPages();
+                return (games || []).slice(0, RANDOM_RESULT_COUNT).map(g => ({ game: g, scoreLabel: null }));
             }
+            // 是否為「已評價」：超喜歡、喜歡、普普、不喜歡（不含想玩、沒興趣、跳過）
+            function isRatedGameName(name) {
+                if (!name || !currentUser) return false;
+                const u = currentUser;
+                const arr = [].concat(u.super_liked_games || [], u.liked_games || [], u.neutral_games || [], u.disliked_games || []);
+                return arr.some(n => String(n).trim() === String(name).trim());
+            }
+            function isRatedGame(g) {
+                return isRatedGameName(getDisplayName(g));
+            }
+
             function runMBTI() {
                 if (!currentUser || !currentUser.mbti_type || !randomAllUsers.length) return runRandom();
                 const typeUsers = randomAllUsers.filter(u => u.mbti_type === currentUser.mbti_type);
@@ -750,7 +808,9 @@
                 });
                 const ranked = Object.entries(gameCount).map(([game, score]) => ({ game, score })).sort((a, b) => b.score - a.score);
                 if (ranked.length === 0) return runRandom();
-                return shuffle(ranked.slice(0, 50)).slice(0, RANDOM_RESULT_COUNT).map(p => {
+                // 依相似度排序，排除已評價，取前 10（不 shuffle）
+                const filtered = ranked.filter(p => !isRatedGameName(p.game)).slice(0, RANDOM_RESULT_COUNT);
+                return filtered.map(p => {
                     const g = randomGameMapByName[p.game] || { name_zh: p.game, name_en: p.game };
                     return { game: g, scoreLabel: '同類型 ' + p.score + ' 分' };
                 }).filter(x => x.game);
@@ -765,7 +825,8 @@
                     return { game: g, scoreLabel: '偏好匹配 ' + s + '%', score: s };
                 });
                 scored.sort((a, b) => (b.score || 0) - (a.score || 0));
-                return scored.slice(0, RANDOM_RESULT_COUNT);
+                // 依相似度排序，排除已評價，取前 10
+                return scored.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT);
             }
             function runBoth() {
                 const mbtiList = runMBTI();
@@ -783,29 +844,40 @@
                 }
                 add(mbtiList, 0.5);
                 add(axisList, 0.5);
-                return Object.values(byGame).sort((a, b) => b.combined - a.combined).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
+                const sorted = Object.values(byGame).sort((a, b) => b.combined - a.combined);
+                // 依相似度排序，排除已評價，取前 10
+                return sorted.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
             }
 
-            ensureData().then(() => {
-                let list = [];
-                if (mode === 'random') list = runRandom();
-                else if (mode === 'mbti') list = runMBTI();
-                else if (mode === 'axis') list = runAxis();
-                else if (mode === 'both') list = runBoth();
+            function renderList(list) {
                 if (!list || list.length === 0) {
                     cardsEl.innerHTML = '';
+                    emptyEl.textContent = (mode === 'mbti' || mode === 'axis' || mode === 'both')
+                        ? '你已經評過所有相似遊戲了'
+                        : '尚無資料，請改用「純隨機」或稍後再試。';
                     emptyEl.style.display = 'block';
                 } else {
                     emptyEl.style.display = 'none';
                     cardsEl.innerHTML = list.map(item => {
                         const g = item.game;
                         const name = getDisplayName(g);
-                        const img = getImageUrl(g);
+                        let img = getImageUrl(g);
+                        if (!img && localGetImageUrl) img = localGetImageUrl(name);
+                        const urlStyle = img ? 'background-image:url("' + String(img).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")' : '';
                         const scoreHtml = item.scoreLabel ? '<div class="random-result-card-score">' + item.scoreLabel + '</div>' : '';
-                        return '<div class="random-result-card"><div class="random-result-card-cover" style="' + (img ? 'background-image:url(' + JSON.stringify(img) + ')' : '') + '"></div><div class="random-result-card-body"><div class="random-result-card-name">' + (name || '桌遊').replace(/</g, '&lt;') + '</div>' + scoreHtml + '</div></div>';
+                        return '<div class="random-result-card"><div class="random-result-card-cover" style="' + urlStyle + '"></div><div class="random-result-card-body"><div class="random-result-card-name">' + (name || '桌遊').replace(/</g, '&lt;') + '</div>' + scoreHtml + '</div></div>';
                     }).join('');
                 }
                 if (btn) btn.disabled = false;
+            }
+
+            ensureData().then(async () => {
+                let list = [];
+                if (mode === 'random') list = await runRandom();
+                else if (mode === 'mbti') list = runMBTI();
+                else if (mode === 'axis') list = runAxis();
+                else if (mode === 'both') list = runBoth();
+                renderList(list);
             }).catch(e => {
                 cardsEl.innerHTML = '';
                 emptyEl.textContent = '載入失敗：' + (e && e.message ? e.message : '請稍後再試');
@@ -823,15 +895,12 @@
                 // 載入當前使用者（使用 GameMBTI 統一方法）
                 currentUser = GameMBTI.getCurrentUser();
                 
-                // ✅ 如果已登入 Google，即使未分享喜好也允許瀏覽
+                // 方案 B：未登入也可瀏覽清單與遊戲卡，評分時再提示登入
                 if (!currentUser && !googleUser) {
-                    console.log('未找到登入使用者');
-                    showNotLoggedIn();
-                    return;
-                }
-                
-                // 📝 如果只有 Google 登入但未分享喜好，創建臨時使用者物件
-                if (!currentUser && googleUser) {
+                    console.log('未登入，以訪客模式瀏覽');
+                    currentUser = null;
+                } else if (!currentUser && googleUser) {
+                    // 📝 如果只有 Google 登入但未分享喜好，創建臨時使用者物件
                     try {
                         const user = JSON.parse(googleUser);
                         currentUser = {
@@ -852,47 +921,45 @@
                         return;
                     }
                 }
-                
-                // 確保陣列欄位存在（先給預設值，讓後續操作不 crash）
-                if (!currentUser.liked_games) currentUser.liked_games = [];
-                if (!currentUser.disliked_games) currentUser.disliked_games = [];
-                if (!currentUser.wishlist) currentUser.wishlist = [];
 
-                // ── 從伺服器同步最新評分（跨裝置連通）──
-                // 優先用伺服器資料覆蓋 localStorage，再合併 localStorage 的未同步備份
-                if (currentUser.id) {
-                    try {
-                        const syncRes = await fetch(`tables/users/${currentUser.id}`);
-                        if (syncRes.ok) {
-                            const serverUser = await syncRes.json();
-                            // 以伺服器資料為主，更新所有評分欄位
-                            const ratingFields = [
-                                'liked_games','disliked_games','wishlist',
-                                'super_liked_games','neutral_games',
-                                'no_interest_games'
-                            ];
-                            ratingFields.forEach(f => {
-                                if (Array.isArray(serverUser[f])) {
-                                    currentUser[f] = serverUser[f];
-                                }
-                            });
-                            // 同步回 localStorage，讓下次開啟也是最新版
-                            try {
-                                const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                                ratingFields.forEach(f => { stored[f] = currentUser[f] || []; });
-                                localStorage.setItem('currentUser', JSON.stringify(stored));
-                            } catch(e) {}
-                            console.log('✅ 已從伺服器同步最新評分資料');
+                if (currentUser) {
+                    // 確保陣列欄位存在（先給預設值，讓後續操作不 crash）
+                    if (!currentUser.liked_games) currentUser.liked_games = [];
+                    if (!currentUser.disliked_games) currentUser.disliked_games = [];
+                    if (!currentUser.wishlist) currentUser.wishlist = [];
+
+                    // ── 從伺服器同步最新評分（跨裝置連通）──
+                    if (currentUser.id) {
+                        try {
+                            const syncRes = await fetch(`tables/users/${currentUser.id}`);
+                            if (syncRes.ok) {
+                                const serverUser = await syncRes.json();
+                                const ratingFields = [
+                                    'liked_games','disliked_games','wishlist',
+                                    'super_liked_games','neutral_games',
+                                    'no_interest_games'
+                                ];
+                                ratingFields.forEach(f => {
+                                    if (Array.isArray(serverUser[f])) {
+                                        currentUser[f] = serverUser[f];
+                                    }
+                                });
+                                try {
+                                    const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                                    ratingFields.forEach(f => { stored[f] = currentUser[f] || []; });
+                                    localStorage.setItem('currentUser', JSON.stringify(stored));
+                                } catch(e) {}
+                                console.log('✅ 已從伺服器同步最新評分資料');
+                            }
+                        } catch(e) {
+                            console.warn('⚠️ 伺服器同步失敗，使用本地資料:', e);
                         }
-                    } catch(e) {
-                        console.warn('⚠️ 伺服器同步失敗，使用本地資料:', e);
                     }
+                    // 嘗試從 localStorage 恢復上次未成功同步到伺服器的評價
+                    await restoreFromLocalStorage();
                 }
 
-                // 嘗試從 localStorage 恢復上次未成功同步到伺服器的評價（網路中斷等情況）
-                await restoreFromLocalStorage();
-
-                console.log('當前使用者:', currentUser);
+                console.log('當前使用者:', currentUser ? '已登入' : '訪客瀏覽');
                 
                 // 載入主題清單
                 await loadGameCollections();
@@ -913,9 +980,15 @@
                     });
                 }
                 tabs.forEach(btn => {
-                    btn.addEventListener('click', () => { switchTab(btn.dataset.tab); });
+                    btn.addEventListener('click', () => {
+                        switchTab(btn.dataset.tab);
+                        try { location.hash = btn.dataset.tab; } catch (e) {}
+                    });
                 });
-                if (location.hash === '#random') switchTab('random');
+                // 依 hash 顯示對應分頁；無 hash 或未知則預設「隨機推薦」
+                const hashTab = (location.hash || '').replace(/^#/, '') || 'random';
+                const validTabs = ['random', 'limited', 'permanent', 'publisher', 'yearly'];
+                switchTab(validTabs.includes(hashTab) ? hashTab : 'random');
 
                 // 隨機推薦：模式選項點擊
                 document.querySelectorAll('.random-mode-option').forEach(el => {
@@ -1123,14 +1196,15 @@
                 const totalCount = collection.games.length;
                 const questionsPerSession = collection.questions_per_session || 0;
                 
-                // 計算可評價的遊戲數量
+                // 計算可評價的遊戲數量（未登入時視為皆未評分）
+                const u = currentUser || {};
                 const allRatedGames = [
-                    ...(currentUser.super_liked_games || []),
-                    ...(currentUser.liked_games || []),
-                    ...(currentUser.neutral_games || []),
-                    ...(currentUser.disliked_games || []),
-                    ...(currentUser.no_interest_games || []),
-                    ...(currentUser.wishlist || [])
+                    ...(u.super_liked_games || []),
+                    ...(u.liked_games || []),
+                    ...(u.neutral_games || []),
+                    ...(u.disliked_games || []),
+                    ...(u.no_interest_games || []),
+                    ...(u.wishlist || [])
                 ];
                 const unratedGames = collection.games.filter(game => !allRatedGames.includes(game));
                 const ratedCount = totalCount - unratedGames.length;
@@ -1217,13 +1291,14 @@
                 return;
             }
 
+            const u = currentUser || {};
             const allRatedGames = [
-                ...(currentUser.super_liked_games || []),
-                ...(currentUser.liked_games || []),
-                ...(currentUser.neutral_games || []),
-                ...(currentUser.disliked_games || []),
-                ...(currentUser.no_interest_games || []),
-                ...(currentUser.wishlist || [])
+                ...(u.super_liked_games || []),
+                ...(u.liked_games || []),
+                ...(u.neutral_games || []),
+                ...(u.disliked_games || []),
+                ...(u.no_interest_games || []),
+                ...(u.wishlist || [])
             ];
 
             let gamesToRate;
@@ -1333,8 +1408,9 @@
             return card;
         }
 
-        // 取得玩家對某遊戲的舊評分
+        // 取得玩家對某遊戲的舊評分（未登入無評分）
         function getOldRating(gameName) {
+            if (!currentUser) return null;
             if ((currentUser.super_liked_games || []).includes(gameName)) return 'super_like';
             if ((currentUser.liked_games || []).includes(gameName)) return 'like';
             if ((currentUser.neutral_games || []).includes(gameName)) return 'neutral';
@@ -1450,6 +1526,11 @@
         
         // 評價遊戲
         async function rateGame(collectionId, gameName, rating) {
+            // 方案 B：未登入時不寫入，點擊評分再提示
+            if (!currentUser || !currentUser.id) {
+                showNotification('請先登入', '登入後才能為遊戲評分，系統會根據你的喜好推薦桌遊。', '🔒', 'info');
+                return;
+            }
             const card = document.getElementById(`game-card-${collectionId}`);
 
             // 一般模式：已評價過直接跳過
