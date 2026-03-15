@@ -59,9 +59,15 @@ CREATE TABLE IF NOT EXISTS game_database (
   playing_time INTEGER,
   complexity REAL,
   image_url TEXT,
-  description TEXT,
-  source TEXT,
   bgg_id TEXT,
+  axis_conflict REAL,
+  axis_strategy REAL,
+  axis_social_fun REAL,
+  axis_immersion REAL,
+  axis_accessibility REAL,
+  axis_manipulation REAL,
+  axis_coop REAL,
+  axis_luck REAL,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
@@ -293,7 +299,7 @@ CREATE TABLE IF NOT EXISTS site_stats (
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
 
--- 桌遊社群連結（Line/Discord/FB/自架等，多分類、可上架/下架）
+-- 揪桌趣處連結（Line/Discord/FB/自架/店家 Google Map 等，多分類、可上架/下架）
 CREATE TABLE IF NOT EXISTS community_links (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -306,6 +312,7 @@ CREATE TABLE IF NOT EXISTS community_links (
   category_regions TEXT DEFAULT '[]',
   category_platforms TEXT DEFAULT '[]',
   category_meetup INTEGER DEFAULT 0,
+  category_store INTEGER DEFAULT 0,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
@@ -324,3 +331,31 @@ CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_id ON quiz_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_event_progress_user_id ON event_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_collection_game_stats_collection_id ON collection_game_stats(collection_id);
 CREATE INDEX IF NOT EXISTS idx_community_links_active_sort ON community_links(is_active, sort_order);
+
+-- 若為既有資料庫，請執行：ALTER TABLE community_links ADD COLUMN category_store INTEGER DEFAULT 0;
+
+-- ========== 玩家 8 軸偏好輪廓（做完桌遊偏好測驗後寫入，供「玩家影響遊戲 8 軸」用） ==========
+CREATE TABLE IF NOT EXISTS user_preference_profiles (
+  user_id TEXT PRIMARY KEY,
+  conflict INTEGER DEFAULT 0,
+  strategy INTEGER DEFAULT 0,
+  social_fun INTEGER DEFAULT 0,
+  immersion INTEGER DEFAULT 0,
+  accessibility INTEGER DEFAULT 0,
+  manipulation INTEGER DEFAULT 0,
+  coop INTEGER DEFAULT 0,
+  luck INTEGER DEFAULT 0,
+  updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+);
+
+-- ========== 遊戲 8 軸（由「喜歡該遊戲的玩家」的輪廓平均計算，NULL = 尚未計算） ==========
+-- 若為既有資料庫，請依序執行以下 ALTER：
+-- ALTER TABLE game_database ADD COLUMN axis_conflict REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_strategy REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_social_fun REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_immersion REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_accessibility REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_manipulation REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_coop REAL;
+-- ALTER TABLE game_database ADD COLUMN axis_luck REAL;
+-- 既有 DB 若曾建 description/source，可移除：ALTER TABLE game_database DROP COLUMN description; ALTER TABLE game_database DROP COLUMN source;

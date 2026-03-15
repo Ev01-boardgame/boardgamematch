@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桌遊社群 - MBTI × 桌遊配對</title>
+    <title>揪桌趣處 - MBTI × 桌遊配對</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/hourglass-simple.css">
     <style>
@@ -45,6 +45,7 @@
         .source-fb { background: #e8eaf6; color: #3949ab; }
         .source-site { background: #fff3e0; color: #e65100; }
         .source-other { background: #f5f5f5; color: #616161; }
+        .source-map { background: #e8f5e9; color: #1b5e20; }
         .community-card-desc { font-size: 0.9rem; color: var(--text-light); line-height: 1.5; }
         .community-empty { text-align: center; padding: 3rem 2rem; color: var(--text-light); }
     </style>
@@ -63,7 +64,7 @@
                 <li><a href="recommend.html">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
-                <li><a href="community.html" class="active">桌遊社群</a></li>
+                <li><a href="community.html" class="active">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
             </ul>
         </div>
@@ -71,7 +72,7 @@
 
     <div class="container">
         <div class="page-hero-fix" style="background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);">
-            <h1>👥 桌遊社群</h1>
+            <h1>👥 揪桌趣處</h1>
             <p>全台桌遊揪團與討論群組，一鍵加入</p>
         </div>
 
@@ -82,6 +83,7 @@
                 <button type="button" class="btn btn-secondary" data-main="region" id="tab-region">地區</button>
                 <button type="button" class="btn btn-secondary" data-main="platform" id="tab-platform">平台</button>
                 <button type="button" class="btn btn-secondary" data-main="meetup" id="tab-meetup">揪團</button>
+                <button type="button" class="btn btn-secondary" data-main="store" id="tab-store">店家</button>
             </div>
             <div id="sub-tabs-wrap" class="sub-tabs" style="display: none;">
                 <button type="button" class="btn btn-secondary sub-btn" data-sub="北">北</button>
@@ -112,7 +114,7 @@
 
     <script src="js/api-base.js"></script>
     <script>
-        const SOURCE_CLASS = { 'Line': 'source-line', 'Discord': 'source-discord', 'FB': 'source-fb', '自架網站': 'source-site', '其他': 'source-other' };
+        const SOURCE_CLASS = { 'Line': 'source-line', 'Discord': 'source-discord', 'FB': 'source-fb', '自架網站': 'source-site', 'Google Map': 'source-map', '其他': 'source-other' };
         let allLinks = [];
         let mainFilter = 'discussion';
         let subFilter = null;
@@ -128,7 +130,8 @@
                     .map(row => ({
                         ...row,
                         category_regions: parseJson(row.category_regions),
-                        category_platforms: parseJson(row.category_platforms)
+                        category_platforms: parseJson(row.category_platforms),
+                        category_store: row.category_store === 1 || row.category_store === '1' ? 1 : 0
                     }))
                     .sort((a, b) => (Number(a.sort_order) || 999) - (Number(b.sort_order) || 999));
                 render();
@@ -156,6 +159,12 @@
                 return platforms.includes(subFilter);
             }
             if (mainFilter === 'meetup') return link.category_meetup === 1 || link.category_meetup === '1';
+            if (mainFilter === 'store') {
+                if (!(link.category_store === 1 || link.category_store === '1')) return false;
+                const regions = link.category_regions || [];
+                if (!subFilter) return true;
+                return regions.includes(subFilter);
+            }
             return false;
         }
 
@@ -172,7 +181,8 @@
             wrap.innerHTML = list.map(link => {
                 const tag = link.source_tag || '其他';
                 const tagClass = SOURCE_CLASS[tag] || 'source-other';
-                return '<a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener" class="community-card">' +
+                const isStore = mainFilter === 'store';
+                return '<a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener" class="community-card"' + (isStore ? ' title="開啟 Google 地圖"' : '') + '>' +
                     '<div class="community-card-header">' +
                     '<span class="community-card-name">' + escapeHtml(link.name) + '</span>' +
                     '<span class="source-tag ' + tagClass + '">' + escapeHtml(tag) + '</span>' +
@@ -196,8 +206,9 @@
                 btn.classList.toggle('btn-primary', btn.dataset.main === main);
                 btn.classList.toggle('btn-secondary', btn.dataset.main !== main);
             });
-            document.getElementById('sub-tabs-wrap').style.display = main === 'region' ? 'flex' : 'none';
+            document.getElementById('sub-tabs-wrap').style.display = (main === 'region' || main === 'store') ? 'flex' : 'none';
             document.getElementById('sub-tabs-platform').style.display = main === 'platform' ? 'flex' : 'none';
+            if (main !== 'region' && main !== 'store') document.querySelectorAll('#sub-tabs-wrap .sub-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
             if (main !== 'region') document.querySelectorAll('#sub-tabs-wrap .sub-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
             if (main !== 'platform') document.querySelectorAll('#sub-tabs-platform .sub-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
             render();
@@ -205,7 +216,7 @@
 
         function setSubTab(sub) {
             subFilter = subFilter === sub ? null : sub;
-            const container = mainFilter === 'region' ? document.getElementById('sub-tabs-wrap') : document.getElementById('sub-tabs-platform');
+            const container = (mainFilter === 'region' || mainFilter === 'store') ? document.getElementById('sub-tabs-wrap') : document.getElementById('sub-tabs-platform');
             container.querySelectorAll('.sub-btn').forEach(btn => {
                 const on = btn.dataset.sub === subFilter;
                 btn.classList.toggle('btn-primary', on);

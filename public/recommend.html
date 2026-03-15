@@ -474,6 +474,23 @@
                 font-size: 1.5rem;
             }
         }
+
+        /* 切換分頁（與揪桌趣處同風格） */
+        .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-tabs .btn { white-space: nowrap; }
+        .recommend-panel { display: none; }
+        .recommend-panel.active { display: block; }
+        .random-mode-section { background: var(--card-bg); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+        .random-mode-options { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .random-mode-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 2px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-color); cursor: pointer; transition: all 0.2s; }
+        .random-mode-option:hover { border-color: var(--primary-color); }
+        .random-mode-option.selected { border-color: var(--primary-color); background: rgba(102,126,234,0.1); }
+        .random-result-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+        .random-result-card { background: var(--card-bg); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
+        .random-result-card-cover { aspect-ratio: 1; background: var(--border-color); background-size: cover; background-position: center; }
+        .random-result-card-body { padding: 0.6rem; }
+        .random-result-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-color); line-height: 1.3; }
+        .random-result-card-score { font-size: 0.75rem; color: var(--primary-color); margin-top: 0.25rem; }
     </style>
 </head>
 <body>
@@ -491,7 +508,7 @@
                 <li><a href="recommend.html" class="active">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
-                <li><a href="community.html">桌遊社群</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
             </ul>
         </div>
@@ -505,50 +522,88 @@
             <p>點選評分，找出你的桌遊靈魂伴侶</p>
         </div>
 
-        <!-- 主題清單區 -->
+        <!-- 切換分頁（與揪桌趣處同風格） -->
+        <section style="max-width: 1000px; margin: 0 auto 1.5rem;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--text-color);">選擇分類</h2>
+            <div class="filter-tabs" id="recommend-filter-tabs">
+                <button type="button" class="btn btn-primary" data-tab="yearly" id="tab-yearly">🏆 年度排行</button>
+                <button type="button" class="btn btn-secondary" data-tab="permanent" id="tab-permanent">⭐ 常駐主題</button>
+                <button type="button" class="btn btn-secondary" data-tab="publisher" id="tab-publisher">🏢 出版社主打</button>
+                <button type="button" class="btn btn-secondary" data-tab="limited" id="tab-limited">⏰ 限時活動</button>
+                <button type="button" class="btn btn-secondary" data-tab="random" id="tab-random">🎲 隨機推薦</button>
+            </div>
+        </section>
+
+        <!-- 主題清單區（依分頁顯示） -->
         <section id="game-collections-section" style="max-width: 1000px; margin: 0 auto;">
 
-            <!-- 限時活動 -->
-            <div id="limited-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">⏰ 限時活動</h3>
-                <div id="limited-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 出版社主打 -->
-            <div id="publisher-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">🏢 出版社主打</h3>
-                <div id="publisher-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
-                    </div>
-                </div>
-            </div>
-            
             <!-- 年度排行 -->
-            <div id="yearly-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">🏆 年度排行</h3>
-                <div id="yearly-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入中...</span>
+            <div id="panel-yearly" class="recommend-panel active">
+                <div id="yearly-collections" style="margin-bottom: 2rem;">
+                    <div id="yearly-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入中...</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 常駐主題 -->
-            <div id="permanent-collections">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">⭐ 常駐主題</h3>
-                <div id="permanent-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
+            <div id="panel-permanent" class="recommend-panel">
+                <div id="permanent-collections" style="margin-bottom: 2rem;">
+                    <div id="permanent-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 出版社主打 -->
+            <div id="panel-publisher" class="recommend-panel">
+                <div id="publisher-collections" style="margin-bottom: 2rem;">
+                    <div id="publisher-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 限時活動 -->
+            <div id="panel-limited" class="recommend-panel">
+                <div id="limited-collections" style="margin-bottom: 2rem;">
+                    <div id="limited-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 隨機推薦 -->
+            <div id="panel-random" class="recommend-panel">
+                <div class="random-mode-section">
+                    <h3 style="font-size: 1.1rem; margin: 0 0 0.75rem; color: var(--text-color);">推薦方式</h3>
+                    <div class="random-mode-options">
+                        <label class="random-mode-option selected" data-mode="random"><input type="radio" name="random-mode" value="random" checked> <span>純隨機</span></label>
+                        <label class="random-mode-option" data-mode="mbti"><input type="radio" name="random-mode" value="mbti"> <span>依 MBTI 性格</span></label>
+                        <label class="random-mode-option" data-mode="axis"><input type="radio" name="random-mode" value="axis"> <span>依桌遊偏好</span></label>
+                        <label class="random-mode-option" data-mode="both"><input type="radio" name="random-mode" value="both"> <span>依 MBTI + 桌遊偏好</span></label>
+                    </div>
+                    <p class="result-hint" style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">純隨機不依個人資料；MBTI 依同類型玩家喜好；桌遊偏好依你的偏好輪廓與遊戲的匹配度。</p>
+                </div>
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <button type="button" class="btn btn-primary" id="btn-random-recommend" style="padding: 0.9rem 2rem;">推薦 10 款</button>
+                </div>
+                <div id="random-result-wrap" style="display: none;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-color);">推薦結果</h3>
+                    <div id="random-result-cards" class="random-result-cards"></div>
+                    <div id="random-result-empty" class="community-empty" style="display: none;">尚無資料，請改用「純隨機」或稍後再試。</div>
                 </div>
             </div>
         </section>
@@ -571,6 +626,7 @@
     <script src="js/api-base.js?v=20260302-clear"></script>
     <script src="js/app.js?v=20260311"></script>
     <script src="js/game-names.js"></script>
+    <script src="js/match-score.js"></script>
     <script>
         // ── safePatch 備援定義 ──
         if (typeof safePatch === 'undefined') {
@@ -607,6 +663,156 @@
         
         // localStorage 備份鍵名
         const BACKUP_KEY = 'mbti_game_ratings_backup';
+
+        // 隨機推薦用（與 random-recommend 同邏輯，用語改為「桌遊偏好」）
+        const RANDOM_POOL_SIZE = 400;
+        const RANDOM_RESULT_COUNT = 10;
+        let randomGamePool = [];
+        let randomGameMapByName = {};
+        let randomAllUsers = [];
+        let randomUserProfile = null;
+
+        function runRandomRecommend() {
+            const modeEl = document.querySelector('input[name="random-mode"]:checked');
+            const mode = modeEl ? modeEl.value : 'random';
+            const btn = document.getElementById('btn-random-recommend');
+            const wrap = document.getElementById('random-result-wrap');
+            const cardsEl = document.getElementById('random-result-cards');
+            const emptyEl = document.getElementById('random-result-empty');
+            if (btn) btn.disabled = true;
+            wrap.style.display = 'block';
+            cardsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;">載入中...</div>';
+            emptyEl.style.display = 'none';
+
+            function getDisplayName(g) {
+                if (!g) return '';
+                return (g.name_zh || g.name_en || g.name_ja || (typeof g === 'string' ? g : '') || '').trim();
+            }
+            function getImageUrl(g) {
+                if (!g) return '';
+                if (typeof g === 'object' && g.image_url) return g.image_url;
+                return localGetImageUrl ? localGetImageUrl(getDisplayName(g)) : null;
+            }
+            function shuffle(arr) {
+                const a = arr.slice();
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            }
+
+            function loadPool() {
+                return fetchAllPages('tables/game_database', RANDOM_POOL_SIZE).then(rows => {
+                    randomGamePool = (rows || []).filter(r => (r.name_zh || r.name_en));
+                    randomGameMapByName = {};
+                    randomGamePool.forEach(g => {
+                        ['name_zh', 'name_en', 'name_ja'].forEach(k => {
+                            const n = (g[k] || '').trim();
+                            if (n && !randomGameMapByName[n]) randomGameMapByName[n] = g;
+                        });
+                    });
+                    return randomGamePool;
+                });
+            }
+
+            function ensureData() {
+                let p = loadPool();
+                if (mode === 'mbti' || mode === 'both') {
+                    p = p.then(() => (typeof getAllUsers === 'function' ? getAllUsers() : [])).then(u => {
+                        randomAllUsers = u || [];
+                        return randomGamePool;
+                    });
+                }
+                if (mode === 'axis' || mode === 'both') {
+                    const cu = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                    if (cu && cu.id) {
+                        const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                        p = p.then(() => fetch('tables/user_preference_profiles/' + cu.id, { headers }).then(r => r.status === 200 ? r.json() : null)).then(prof => {
+                            randomUserProfile = prof;
+                            return randomGamePool;
+                        });
+                    } else randomUserProfile = null;
+                }
+                return p;
+            }
+
+            function runRandom() {
+                return shuffle(randomGamePool).slice(0, RANDOM_RESULT_COUNT).map(g => ({ game: g, scoreLabel: null }));
+            }
+            function runMBTI() {
+                if (!currentUser || !currentUser.mbti_type || !randomAllUsers.length) return runRandom();
+                const typeUsers = randomAllUsers.filter(u => u.mbti_type === currentUser.mbti_type);
+                const gameCount = {};
+                typeUsers.forEach(u => {
+                    (u.super_liked_games || []).forEach(game => { gameCount[game] = (gameCount[game] || 0) + 2; });
+                    (u.liked_games || []).forEach(game => { gameCount[game] = (gameCount[game] || 0) + 1; });
+                });
+                const ranked = Object.entries(gameCount).map(([game, score]) => ({ game, score })).sort((a, b) => b.score - a.score);
+                if (ranked.length === 0) return runRandom();
+                return shuffle(ranked.slice(0, 50)).slice(0, RANDOM_RESULT_COUNT).map(p => {
+                    const g = randomGameMapByName[p.game] || { name_zh: p.game, name_en: p.game };
+                    return { game: g, scoreLabel: '同類型 ' + p.score + ' 分' };
+                }).filter(x => x.game);
+            }
+            function runAxis() {
+                if (!randomUserProfile || !window.MatchScore) return runRandom();
+                const withAxis = randomGamePool.filter(g => g.axis_conflict != null || g.axis_strategy != null);
+                if (withAxis.length === 0) return runRandom();
+                const playerAxes = { conflict: randomUserProfile.conflict, strategy: randomUserProfile.strategy, social_fun: randomUserProfile.social_fun, immersion: randomUserProfile.immersion, accessibility: randomUserProfile.accessibility, manipulation: randomUserProfile.manipulation, coop: randomUserProfile.coop, luck: randomUserProfile.luck };
+                const scored = withAxis.map(g => {
+                    const s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);
+                    return { game: g, scoreLabel: '偏好匹配 ' + s + '%', score: s };
+                });
+                scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+                return scored.slice(0, RANDOM_RESULT_COUNT);
+            }
+            function runBoth() {
+                const mbtiList = runMBTI();
+                const axisList = runAxis();
+                if (mbtiList.length === 0 && axisList.length === 0) return runRandom();
+                const byGame = {};
+                function add(list, weight) {
+                    list.forEach((x, i) => {
+                        const name = getDisplayName(x.game);
+                        if (!name) return;
+                        const rank = 1 - (i / Math.max(list.length, 1));
+                        if (!byGame[name]) byGame[name] = { game: x.game, combined: 0 };
+                        byGame[name].combined += weight * rank;
+                    });
+                }
+                add(mbtiList, 0.5);
+                add(axisList, 0.5);
+                return Object.values(byGame).sort((a, b) => b.combined - a.combined).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
+            }
+
+            ensureData().then(() => {
+                let list = [];
+                if (mode === 'random') list = runRandom();
+                else if (mode === 'mbti') list = runMBTI();
+                else if (mode === 'axis') list = runAxis();
+                else if (mode === 'both') list = runBoth();
+                if (!list || list.length === 0) {
+                    cardsEl.innerHTML = '';
+                    emptyEl.style.display = 'block';
+                } else {
+                    emptyEl.style.display = 'none';
+                    cardsEl.innerHTML = list.map(item => {
+                        const g = item.game;
+                        const name = getDisplayName(g);
+                        const img = getImageUrl(g);
+                        const scoreHtml = item.scoreLabel ? '<div class="random-result-card-score">' + item.scoreLabel + '</div>' : '';
+                        return '<div class="random-result-card"><div class="random-result-card-cover" style="' + (img ? 'background-image:url(' + JSON.stringify(img) + ')' : '') + '"></div><div class="random-result-card-body"><div class="random-result-card-name">' + (name || '桌遊').replace(/</g, '&lt;') + '</div>' + scoreHtml + '</div></div>';
+                    }).join('');
+                }
+                if (btn) btn.disabled = false;
+            }).catch(e => {
+                cardsEl.innerHTML = '';
+                emptyEl.textContent = '載入失敗：' + (e && e.message ? e.message : '請稍後再試');
+                emptyEl.style.display = 'block';
+                if (btn) btn.disabled = false;
+            });
+        }
         
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
@@ -690,6 +896,35 @@
                 
                 // 載入主題清單
                 await loadGameCollections();
+
+                // 切換分頁（年度排行 / 常駐主題 / 出版社主打 / 限時活動 / 隨機推薦）
+                const tabs = document.querySelectorAll('#recommend-filter-tabs .btn[data-tab]');
+                const panels = document.querySelectorAll('.recommend-panel');
+                function switchTab(tabKey) {
+                    tabs.forEach(btn => {
+                        if (btn.dataset.tab === tabKey) {
+                            btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+                        } else {
+                            btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary');
+                        }
+                    });
+                    panels.forEach(panel => {
+                        panel.classList.toggle('active', panel.id === 'panel-' + tabKey);
+                    });
+                }
+                tabs.forEach(btn => {
+                    btn.addEventListener('click', () => { switchTab(btn.dataset.tab); });
+                });
+                if (location.hash === '#random') switchTab('random');
+
+                // 隨機推薦：模式選項點擊
+                document.querySelectorAll('.random-mode-option').forEach(el => {
+                    el.addEventListener('click', function() {
+                        document.querySelectorAll('.random-mode-option').forEach(o => o.classList.remove('selected'));
+                        this.classList.add('selected');
+                    });
+                });
+                document.getElementById('btn-random-recommend').addEventListener('click', runRandomRecommend);
                 
             } catch (error) {
                 console.error('初始化失敗:', error);

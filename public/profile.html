@@ -223,7 +223,7 @@
                 <li><a href="recommend.html">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
-                <li><a href="community.html">桌遊社群</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html" class="active">我的檔案</a></li>
             </ul>
         </div>
@@ -305,6 +305,8 @@
                         </div>
                         
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a href="personality-test.html?test=mbti" class="btn btn-secondary">測 MBTI 風格</a>
+                            <a href="personality-test.html?test=preference" class="btn btn-secondary">測桌遊偏好</a>
                             <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
                             <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
                             <a href="my-collections.html" class="btn btn-secondary">📚 我的清單</a>
@@ -312,6 +314,11 @@
                                     style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
                                 🚪 登出
                             </button>
+                        </div>
+                        <!-- 桌遊偏好（僅能透過測驗寫入，不可編輯） -->
+                        <div id="profile-preference-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <div style="color: var(--text-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem;">🎯 桌遊偏好</div>
+                            <div id="profile-preference-content" style="color: var(--text-light); font-size: 0.9rem;">載入中...</div>
                         </div>
                     </div>
 
@@ -911,6 +918,31 @@
             console.log('✅ 簡化版檔案顯示完成');
         }
 
+        // 載入並顯示桌遊偏好 8 軸（僅能透過測驗寫入，不可編輯）
+        async function loadAndShowPreferenceProfile() {
+            const el = document.getElementById('profile-preference-content');
+            if (!el || !currentUser || !currentUser.id) return;
+            try {
+                const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+                const r = await fetch('tables/user_preference_profiles/' + currentUser.id, { headers });
+                if (r.status === 404) {
+                    el.textContent = '尚未測驗（可點「測桌遊偏好」填寫）';
+                    return;
+                }
+                if (!r.ok) {
+                    el.textContent = '無法載入';
+                    return;
+                }
+                const data = await r.json();
+                const labels = { conflict: '衝突', strategy: '策略', social_fun: '社交', immersion: '沉浸', accessibility: '易學', manipulation: '心機', coop: '合作', luck: '運氣' };
+                const keys = ['conflict', 'strategy', 'social_fun', 'immersion', 'accessibility', 'manipulation', 'coop', 'luck'];
+                const parts = keys.map(function(k) { return labels[k] + ' ' + (data[k] ?? 0); });
+                el.textContent = parts.join('、');
+            } catch (e) {
+                el.textContent = '尚未測驗（可點「測桌遊偏好」填寫）';
+            }
+        }
+
         // 顯示檔案資訊
         async function displayProfile() {
             try {
@@ -1085,6 +1117,9 @@
 
                 // 探索清單摘要
                 displayExploreListSummary();
+
+                // 桌遊偏好 8 軸（僅顯示，不可編輯）
+                loadAndShowPreferenceProfile();
                 
                 console.log('✅ displayProfile() 完成');
                 

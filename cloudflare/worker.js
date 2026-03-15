@@ -28,7 +28,7 @@ const ALLOWED_TABLES = [
   'tester_whitelist', 'influencer_whitelist', 'publisher_badge_series',
   'quiz_collections', 'quiz_questions', 'quiz_attempts',
   'daily_quests', 'limited_events', 'event_progress', 'site_stats',
-  'community_links'
+  'community_links', 'user_preference_profiles'
 ];
 
 // 每頁最大筆數
@@ -38,6 +38,12 @@ const TABLE_MAX_LIMIT = {
   community_links: 500,
   default: 100
 };
+
+// 以非 id 為 PK 的資料表（單筆 GET/PUT/PATCH 用此欄位）
+const PK_COLUMN = { user_preference_profiles: 'user_id' };
+function getPkColumn(tableName) {
+  return PK_COLUMN[tableName] || 'id';
+}
 
 // ══ 權限矩陣 ══
 // public  = API Secret 即可（未登入可讀）
@@ -213,6 +219,18 @@ export default {
       }
     }
 
+    // ── 內部：遊戲 8 軸批次重算（POST /internal/recalc-game-axes，需帶 X-Api-Key 或 X-Internal-Secret）──
+    if (url.pathname === '/internal/recalc-game-axes') {
+      if (method !== 'POST') return errorResponse('Method not allowed', 405, origin, env);
+      try {
+        const result = await recalcGameAxes(env.DB);
+        return jsonResponse({ ok: true, updated: result.updated, errors: result.errors }, 200, origin, env);
+      } catch (e) {
+        console.error('recalc-game-axes', e);
+        return errorResponse('Recalc failed: ' + (e && e.message ? e.message : 'unknown'), 500, origin, env);
+      }
+    }
+
     // 解析路徑：/tables/{table} 或 /tables/{table}/{id}
     const pathMatch = url.pathname.match(/^\/tables\/([^\/]+)\/?([^\/]*)$/);
     if (!pathMatch) {
@@ -324,8 +342,9 @@ export default {
 
       // ── GET 單筆 ──
       if (method === 'GET' && recordId) {
+        const pk = getPkColumn(tableName);
         const row = await db.prepare(
-          `SELECT * FROM ${tableName} WHERE id = ?`
+          `SELECT * FROM ${tableName} WHERE ${pk} = ?`
         ).bind(recordId).first();
 
         if (!row) return errorResponse('Record not found', 404, origin, env);
@@ -335,26 +354,28 @@ export default {
       // ── POST 新增 ──
       if (method === 'POST') {
         const body = await request.json();
-        const id = body.id || generateUUID();
+        const pk = getPkColumn(tableName);
         const now = Date.now();
-
         const columns = await getTableColumns(db, tableName);
-        const insertData = { ...body, id, created_at: now, updated_at: now };
+        const insertData = { ...body, updated_at: now };
+        if (!columns.includes(pk) || insertData[pk] === undefined) {
+          if (pk === 'id') insertData.id = body.id || generateUUID();
+        }
+        if (pk !== 'id' && columns.includes('updated_at')) insertData.updated_at = now;
 
-        // 只保留 schema 中存在的欄位
         const validKeys = Object.keys(insertData).filter(k => columns.includes(k));
         const values = validKeys.map(k => serializeValue(insertData[k]));
 
         const placeholders = validKeys.map(() => '?').join(', ');
         const colNames = validKeys.join(', ');
-
         await db.prepare(
           `INSERT INTO ${tableName} (${colNames}) VALUES (${placeholders})`
         ).bind(...values).run();
 
+        const pkValue = insertData[pk] || body[pk];
         const created = await db.prepare(
-          `SELECT * FROM ${tableName} WHERE id = ?`
-        ).bind(id).first();
+          `SELECT * FROM ${tableName} WHERE ${pk} = ?`
+        ).bind(pkValue).first();
 
         return jsonResponse(parseJsonFields(created), 201, origin, env);
       }
@@ -363,22 +384,22 @@ export default {
       if (method === 'PUT' && recordId) {
         const body = await request.json();
         const now = Date.now();
-
+        const pk = getPkColumn(tableName);
         const columns = await getTableColumns(db, tableName);
         const updateData = { ...body, updated_at: now };
 
         const validKeys = Object.keys(updateData).filter(k =>
-          columns.includes(k) && k !== 'id'
+          columns.includes(k) && k !== pk
         );
         const setClauses = validKeys.map(k => `${k} = ?`).join(', ');
         const values = validKeys.map(k => serializeValue(updateData[k]));
 
         await db.prepare(
-          `UPDATE ${tableName} SET ${setClauses} WHERE id = ?`
+          `UPDATE ${tableName} SET ${setClauses} WHERE ${pk} = ?`
         ).bind(...values, recordId).run();
 
         const updated = await db.prepare(
-          `SELECT * FROM ${tableName} WHERE id = ?`
+          `SELECT * FROM ${tableName} WHERE ${pk} = ?`
         ).bind(recordId).first();
 
         if (!updated) return errorResponse('Record not found', 404, origin, env);
@@ -389,12 +410,12 @@ export default {
       if (method === 'PATCH' && recordId) {
         const body = await request.json();
         const now = Date.now();
-
+        const pk = getPkColumn(tableName);
         const columns = await getTableColumns(db, tableName);
         const updateData = { ...body, updated_at: now };
 
         const validKeys = Object.keys(updateData).filter(k =>
-          columns.includes(k) && k !== 'id'
+          columns.includes(k) && k !== pk
         );
 
         if (validKeys.length === 0) {
@@ -405,11 +426,11 @@ export default {
         const values = validKeys.map(k => serializeValue(updateData[k]));
 
         await db.prepare(
-          `UPDATE ${tableName} SET ${setClauses} WHERE id = ?`
+          `UPDATE ${tableName} SET ${setClauses} WHERE ${pk} = ?`
         ).bind(...values, recordId).run();
 
         const updated = await db.prepare(
-          `SELECT * FROM ${tableName} WHERE id = ?`
+          `SELECT * FROM ${tableName} WHERE ${pk} = ?`
         ).bind(recordId).first();
 
         if (!updated) return errorResponse('Record not found', 404, origin, env);
@@ -418,14 +439,15 @@ export default {
 
       // ── DELETE 刪除 ──
       if (method === 'DELETE' && recordId) {
+        const pk = getPkColumn(tableName);
         const existing = await db.prepare(
-          `SELECT id FROM ${tableName} WHERE id = ?`
+          `SELECT ${pk} FROM ${tableName} WHERE ${pk} = ?`
         ).bind(recordId).first();
 
         if (!existing) return errorResponse('Record not found', 404, origin, env);
 
         await db.prepare(
-          `DELETE FROM ${tableName} WHERE id = ?`
+          `DELETE FROM ${tableName} WHERE ${pk} = ?`
         ).bind(recordId).run();
 
         const headers = corsHeaders(origin, env);
@@ -438,6 +460,15 @@ export default {
     } catch (err) {
       console.error('Worker error:', err);
       return errorResponse(`Internal server error: ${err.message}`, 500, origin, env);
+    }
+  },
+
+  async scheduled(event, env, ctx) {
+    try {
+      const result = await recalcGameAxes(env.DB);
+      console.log('recalcGameAxes completed', result.updated, 'games');
+    } catch (e) {
+      console.error('recalcGameAxes failed', e);
     }
   }
 };
@@ -466,4 +497,115 @@ function serializeValue(value) {
   if (value === null || value === undefined) return null;
   if (typeof value === 'object') return JSON.stringify(value);
   return value;
+}
+
+// ══ 遊戲 8 軸排程批次（只重算「至少被一位有偏好輪廓的玩家 like/super_like」的遊戲）════
+const AXIS_KEYS = ['conflict', 'strategy', 'social_fun', 'immersion', 'accessibility', 'manipulation', 'coop', 'luck'];
+const AXIS_DB_KEYS = AXIS_KEYS.map(k => 'axis_' + k);
+
+function parseJsonArray(str) {
+  if (str == null || str === '') return [];
+  if (typeof str === 'string') {
+    try {
+      const v = JSON.parse(str);
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+  return Array.isArray(str) ? str : [];
+}
+
+async function recalcGameAxes(db) {
+  let updated = 0;
+  let errors = 0;
+  try {
+    const profilesRows = await db.prepare('SELECT user_id, conflict, strategy, social_fun, immersion, accessibility, manipulation, coop, luck FROM user_preference_profiles').all();
+    const profiles = (profilesRows.results || []).map(r => ({
+      user_id: r.user_id,
+      conflict: Number(r.conflict) || 0,
+      strategy: Number(r.strategy) || 0,
+      social_fun: Number(r.social_fun) || 0,
+      immersion: Number(r.immersion) || 0,
+      accessibility: Number(r.accessibility) || 0,
+      manipulation: Number(r.manipulation) || 0,
+      coop: Number(r.coop) || 0,
+      luck: Number(r.luck) || 0
+    }));
+    const profileUserIds = new Set(profiles.map(p => p.user_id));
+    const profileByUserId = {};
+    profiles.forEach(p => { profileByUserId[p.user_id] = p; });
+
+    const usersRows = await db.prepare('SELECT id, liked_games, super_liked_games FROM users').all();
+    const gameToUserIds = {};
+    (usersRows.results || []).forEach(row => {
+      if (!profileUserIds.has(row.id)) return;
+      const liked = parseJsonArray(row.liked_games);
+      const superLiked = parseJsonArray(row.super_liked_games);
+      [...liked, ...superLiked].forEach(gameName => {
+        const name = (gameName && typeof gameName === 'string' ? gameName.trim() : '') || '';
+        if (!name) return;
+        if (!gameToUserIds[name]) gameToUserIds[name] = [];
+        gameToUserIds[name].push(row.id);
+      });
+    });
+
+    const gamesRows = await db.prepare('SELECT id, name_zh, name_en, complexity FROM game_database').all();
+    const games = gamesRows.results || [];
+
+    for (const g of games) {
+      const nameZh = (g.name_zh && g.name_zh.trim()) || '';
+      const nameEn = (g.name_en && g.name_en.trim()) || '';
+      const name = nameZh || nameEn;
+      if (!name) continue;
+      const userIds = gameToUserIds[nameZh] || gameToUserIds[nameEn] || gameToUserIds[name] || [];
+      if (userIds.length === 0) continue;
+
+      const L_G = userIds.map(uid => profileByUserId[uid]).filter(Boolean);
+      if (L_G.length === 0) continue;
+
+      const axisValues = {};
+      const sevenKeys = AXIS_KEYS.filter(k => k !== 'accessibility');
+      for (const k of sevenKeys) {
+        let sumSq = 0, sumP = 0;
+        for (const p of L_G) {
+          const v = p[k];
+          const num = Math.max(0, Math.min(12, Number(v) || 0));
+          sumSq += num * num;
+          sumP += num;
+        }
+        axisValues['axis_' + k] = sumP > 0 ? sumSq / sumP : null;
+      }
+
+      let accPlayers = 0;
+      let sumSqAcc = 0, sumAcc = 0;
+      for (const p of L_G) {
+        const v = Math.max(0, Math.min(12, Number(p.accessibility) || 0));
+        sumSqAcc += v * v;
+        sumAcc += v;
+      }
+      if (sumAcc > 0) accPlayers = sumSqAcc / sumAcc;
+      const complexity = g.complexity != null ? Number(g.complexity) : null;
+      let E_G = null;
+      if (complexity != null && !isNaN(complexity)) {
+        const c = Math.max(0, Math.min(5, complexity));
+        E_G = (1 - c / 5) * 12;
+      }
+      axisValues.axis_accessibility = E_G != null
+        ? 0.3 * accPlayers + 0.7 * E_G
+        : accPlayers;
+
+      const setClauses = AXIS_DB_KEYS.map(k => `${k} = ?`).join(', ');
+      const values = AXIS_DB_KEYS.map(k => axisValues[k] != null ? axisValues[k] : null);
+      try {
+        await db.prepare(`UPDATE game_database SET ${setClauses}, updated_at = ? WHERE id = ?`)
+          .bind(...values, Date.now(), g.id).run();
+        updated++;
+      } catch (e) {
+        errors++;
+      }
+    }
+  } catch (e) {
+    console.error('recalcGameAxes error:', e);
+    throw e;
+  }
+  return { updated, errors };
 }
