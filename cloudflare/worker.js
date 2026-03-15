@@ -248,6 +248,70 @@ export default {
       }
     }
 
+    // ── 大頭貼上傳（POST /api/upload-avatar）：需 JWT，body { image: "data:image/jpeg;base64,..." }，寫入 R2，回傳公開 URL ──
+    if (url.pathname === '/api/upload-avatar' && method === 'POST') {
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
+      if (!token) return errorResponse('Authentication required', 401, origin, env);
+      let jwtPayload;
+      try {
+        jwtPayload = await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+      } catch (err) {
+        return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+      }
+      const bucket = env.AVATAR_BUCKET;
+      if (!bucket) return errorResponse('Avatar storage not configured', 503, origin, env);
+      try {
+        const body = await request.json();
+        const dataUrl = body && body.image;
+        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+          return errorResponse('Body must be { image: "data:image/..." }', 400, origin, env);
+        }
+        const base64Match = dataUrl.match(/^data:image\/\w+;base64,(.+)$/);
+        if (!base64Match) return errorResponse('Invalid data URL', 400, origin, env);
+        const binary = Uint8Array.from(atob(base64Match[1]), c => c.charCodeAt(0));
+        const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3MB
+        if (binary.length > MAX_AVATAR_BYTES) {
+          return errorResponse('頭貼不得超過 3MB', 413, origin, env);
+        }
+        const key = `avatars/${jwtPayload.sub}.jpg`;
+        await bucket.put(key, binary, {
+          httpMetadata: { contentType: 'image/jpeg' },
+          customMetadata: { uploaded: String(Date.now()) },
+        });
+        const base = (env.AVATAR_PUBLIC_BASE || '').replace(/\/$/, '') || url.origin;
+        const avatarUrl = `${base}/avatars/${jwtPayload.sub}`;
+        return jsonResponse({ url: avatarUrl }, 200, origin, env);
+      } catch (e) {
+        if (e && (e.status === 400 || e.status === 401)) throw e;
+        console.error('upload-avatar', e);
+        return errorResponse('Upload failed: ' + (e && e.message ? e.message : 'unknown'), 500, origin, env);
+      }
+    }
+
+    // ── 大頭貼讀取（GET /avatars/:userId）：公開，從 R2 回傳圖片，其他玩家可載入 ──
+    const avatarPathMatch = url.pathname.match(/^\/avatars\/([^\/]+)$/);
+    if (avatarPathMatch && method === 'GET') {
+      const userId = avatarPathMatch[1];
+      const bucket = env.AVATAR_BUCKET;
+      if (!bucket) return errorResponse('Avatar storage not configured', 503, origin, env);
+      try {
+        const key = `avatars/${userId}.jpg`;
+        const object = await bucket.get(key);
+        if (!object) {
+          const headers = corsHeaders(origin, env);
+          Object.keys(headers).forEach(k => headers[k] === undefined && delete headers[k]);
+          return new Response(null, { status: 404, headers });
+        }
+        const headers = { ...corsHeaders(origin, env), 'Content-Type': object.httpMetadata?.contentType || 'image/jpeg', 'Cache-Control': 'public, max-age=86400' };
+        Object.keys(headers).forEach(k => headers[k] === undefined && delete headers[k]);
+        return new Response(object.body, { status: 200, headers });
+      } catch (e) {
+        console.error('get-avatar', e);
+        return errorResponse('Avatar not found', 404, origin, env);
+      }
+    }
+
     // 解析路徑：/tables/{table} 或 /tables/{table}/{id}
     const pathMatch = url.pathname.match(/^\/tables\/([^\/]+)\/?([^\/]*)$/);
     if (!pathMatch) {

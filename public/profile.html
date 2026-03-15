@@ -2271,7 +2271,7 @@
                 <h2 style="margin-bottom: 1rem; color: var(--text-color); font-size: 1.5rem;">🎯 選擇你的 MBTI 類型</h2>
                 <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:0.6rem;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.88rem;color:#856404;">
                     💡 請選擇你的 MBTI 類型，之後仍可隨時更改。<br>
-                    <span style="font-size:0.82rem;">還不確定？<a href="https://www.16personalities.com/tw" target="_blank" style="color:#856404;font-weight:600;">點此測驗 →</a></span>
+                    <span style="font-size:0.82rem;">還不確定？<a href="personality-test.html" style="color:#856404;font-weight:600;">到桌友適性測驗 →</a></span>
                 </div>
                 <div id="mbti-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                     ${Object.entries(mbtiTypes).map(([type, info]) => `
@@ -3289,9 +3289,9 @@
             const file = event.target.files?.[0];
             if (!file) return;
 
-            // 限制大小：最大 5MB（裁切後會壓縮）
-            if (file.size > 5 * 1024 * 1024) {
-                alert('圖片太大了！請選擇 5MB 以內的圖片。');
+            // 限制大小：最大 3MB
+            if (file.size > 3 * 1024 * 1024) {
+                alert('圖片太大了！請選擇 3MB 以內的圖片。');
                 event.target.value = '';
                 return;
             }
@@ -3556,8 +3556,14 @@
                         offsetX * ratio, offsetY * ratio,
                         img.width * scale * ratio, img.height * scale * ratio);
                     const compressed = out.toDataURL('image/jpeg', 0.75);
-                    // base64 大小檢查（約 200x200 JPEG 0.75 ≈ 15–25KB）
-                    console.log(`📸 頭貼大小：${Math.round(compressed.length / 1024)}KB`);
+                    const prefixLen = compressed.indexOf(',') + 1;
+                    const byteSize = Math.ceil((compressed.length - prefixLen) * 3 / 4);
+                    const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3MB
+                    if (byteSize > MAX_AVATAR_BYTES) {
+                        alert('頭貼不得超過 3MB，目前約 ' + (byteSize / 1024 / 1024).toFixed(2) + 'MB。請縮小圖片或降低畫質後再試。');
+                        return;
+                    }
+                    console.log(`📸 頭貼大小：${Math.round(byteSize / 1024)}KB`);
 
                     // 套用到 pending + 更新 bio modal 預覽
                     _bioAvatarPending = { url: compressed, name: '自訂圖片', emoji: null, color: null };
@@ -3601,13 +3607,29 @@
                 const patchBody = { social_links: JSON.stringify(socialLinks), bio: bioText };
                 if (nickname) patchBody.username = nickname;
 
-                // 如有選新頭貼，先存 localStorage，並加入 PATCH body
+                // 如有選新頭貼：若為 data URL（自訂上傳），先上傳到 R2 取得公開 URL，再寫入 D1
                 if (_bioAvatarPending) {
+                    let avatarUrlToSave = _bioAvatarPending.url;
+                    if (typeof avatarUrlToSave === 'string' && avatarUrlToSave.startsWith('data:image/')) {
+                        const token = localStorage.getItem('google_id_token');
+                        if (!token) throw new Error('請重新登入後再上傳頭貼');
+                        const uploadRes = await fetch('/api/upload-avatar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                            body: JSON.stringify({ image: avatarUrlToSave }),
+                        });
+                        if (!uploadRes.ok) {
+                            const err = await uploadRes.json().catch(() => ({}));
+                            throw new Error(err.error || '頭貼上傳失敗，請稍後再試');
+                        }
+                        const data = await uploadRes.json();
+                        avatarUrlToSave = data.url || avatarUrlToSave;
+                    }
                     const userId = currentUser?.google_id || currentUser?.id;
-                    localStorage.setItem(`avatar_${userId}`, _bioAvatarPending.url);
-                    document.getElementById('profile-avatar').src = _bioAvatarPending.url;
-                    patchBody.avatar_url = _bioAvatarPending.url;
-                    currentUser.avatar_url = _bioAvatarPending.url;
+                    localStorage.setItem(`avatar_${userId}`, avatarUrlToSave);
+                    document.getElementById('profile-avatar').src = avatarUrlToSave;
+                    patchBody.avatar_url = avatarUrlToSave;
+                    currentUser.avatar_url = avatarUrlToSave;
                 }
 
                 // safePatch 到資料庫
