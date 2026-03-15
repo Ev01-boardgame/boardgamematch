@@ -275,6 +275,8 @@
                                 </div>
                                 <div style="flex: 1;">
                                     <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="profile-username">-</h1>
+                                    <!-- 地區、是否想被聯絡（供之後「想找桌友」用） -->
+                                    <div id="profile-region-display" style="font-size:0.88rem; color:var(--text-light); margin-bottom:0.5rem;"></div>
                                     <!-- 社群連結 inline 顯示列 -->
                                     <div id="social-links-inline" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;"></div>
                                     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
@@ -1064,6 +1066,7 @@
                         bioDisplayEl.textContent = currentUser.bio;
                         bioDisplayEl.style.display = 'block';
                     }
+                    updateProfileRegionDisplay();
                 }
                 
                 // 統計數據
@@ -3011,6 +3014,21 @@
             displaySocialLinksInline();
         }
 
+        function updateProfileRegionDisplay() {
+            const el = document.getElementById('profile-region-display');
+            if (!el) return;
+            const u = currentUser || window.currentUser;
+            const parts = [];
+            if (u && u.region) {
+                let arr = u.region;
+                if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = [arr]; } }
+                if (Array.isArray(arr) && arr.length) parts.push('📍 ' + arr.join('、'));
+            }
+            if (u && u.want_contact) parts.push('🤝 願意被桌友連絡');
+            el.textContent = parts.join('　');
+            el.style.display = parts.length ? 'block' : 'none';
+        }
+
         function displaySocialLinksInline() {
             const container = document.getElementById('social-links-inline');
             if (!container) return;
@@ -3147,6 +3165,7 @@
 
         // ── 編輯簡介 Modal ──
         let _bioAvatarPending = null; // 暫存在 modal 中選擇的頭貼（尚未儲存）
+        window.REGION_OPTIONS = ['台北市','新北市','桃園市','台中市','台南市','高雄市','基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣','台東縣','澎湖縣','金門縣','連江縣','其他'];
 
         function showBioEditor() {
             const modal = document.getElementById('bio-editor-modal');
@@ -3188,6 +3207,23 @@
 
             // 填入暱稱
             document.getElementById('bio-nickname-input').value = currentUser.username || '';
+
+            // 填入地區（複選）：region 存 JSON 陣列或舊版單一字串
+            let regionArr = currentUser.region;
+            if (typeof regionArr === 'string') {
+                if (!regionArr.trim()) regionArr = []; else { try { regionArr = JSON.parse(regionArr); } catch(e) { regionArr = [regionArr]; } }
+            }
+            if (!Array.isArray(regionArr)) regionArr = [];
+            const regionContainer = document.getElementById('bio-region-checkboxes');
+            if (regionContainer && window.REGION_OPTIONS) {
+                regionContainer.innerHTML = window.REGION_OPTIONS.map(v => {
+                    const checked = regionArr.includes(v) ? ' checked' : '';
+                    const id = 'bio-region-' + v.replace(/\s/g, '_');
+                    return '<label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;"><input type="checkbox" name="bio-region-cb" value="' + v.replace(/"/g, '&quot;') + '"' + checked + ' id="' + id + '" style="accent-color:var(--primary-color);"><span>' + v + '</span></label>';
+                }).join('');
+            }
+            const wantContactEl = document.getElementById('bio-want-contact');
+            if (wantContactEl) wantContactEl.checked = !!(currentUser.want_contact);
 
             // 填入個人簡介
             const bioText = currentUser.bio || '';
@@ -3606,6 +3642,9 @@
                 // 組合 PATCH body（social_links 須序列化為 JSON 字串，DB 欄位為 text 型）
                 const patchBody = { social_links: JSON.stringify(socialLinks), bio: bioText };
                 if (nickname) patchBody.username = nickname;
+                const regionChecked = Array.from(document.querySelectorAll('input[name="bio-region-cb"]:checked')).map(el => el.value);
+                patchBody.region = regionChecked.length > 0 ? JSON.stringify(regionChecked) : null;
+                patchBody.want_contact = document.getElementById('bio-want-contact')?.checked ? 1 : 0;
 
                 // 如有選新頭貼：若為 data URL（自訂上傳），先上傳到 R2 取得公開 URL，再寫入 D1
                 if (_bioAvatarPending) {
@@ -3645,6 +3684,8 @@
                 // 更新本地
                 currentUser.social_links = socialLinks;
                 currentUser.bio = bioText;
+                currentUser.region = patchBody.region;
+                currentUser.want_contact = patchBody.want_contact;
                 if (nickname) {
                     currentUser.username = nickname;
                     document.getElementById('profile-username').textContent = nickname;
@@ -3655,6 +3696,7 @@
                     bioDisplayEl.textContent = bioText;
                     bioDisplayEl.style.display = bioText ? 'block' : 'none';
                 }
+                updateProfileRegionDisplay();
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
                 // 更新 inline 社群顯示
@@ -3801,6 +3843,22 @@
             <label for="bio-nickname-input" style="display:block; font-weight:600; margin-bottom:0.5rem; color:var(--text-color);">✏️ 暱稱</label>
             <input type="text" id="bio-nickname-input" maxlength="30" placeholder="輸入你的暱稱（最多30字）"
                 style="width:100%; padding:0.65rem 0.9rem; border:1px solid var(--border-color); border-radius:0.65rem; font-size:1rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+        </div>
+
+        <!-- 可接受被聯絡的地區（可複選，方便之後「想找桌友」篩選） -->
+        <div style="margin-bottom:1.5rem;">
+            <label style="display:block; font-weight:600; margin-bottom:0.5rem; color:var(--text-color);">📍 可接受被聯絡的地區（可複選）</label>
+            <p style="margin:0 0 0.5rem 0; font-size:0.82rem; color:var(--text-light);">勾選你願意被桌友連絡的區域，之後「想找桌友」可依地區篩選</p>
+            <div id="bio-region-checkboxes" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:0.4rem 0.75rem;"></div>
+        </div>
+
+        <!-- 是否想被其它桌友連絡 -->
+        <div style="margin-bottom:1.5rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="bio-want-contact" style="width:1.2rem; height:1.2rem; accent-color:var(--primary-color);">
+                <span style="font-weight:600; color:var(--text-color);">🤝 願意被其它桌友連絡</span>
+            </label>
+            <p style="margin:0.35rem 0 0; font-size:0.82rem; color:var(--text-light);">之後「想找桌友」會依條件篩選，僅顯示勾選此項的玩家</p>
         </div>
 
         <!-- 個人簡介 -->
