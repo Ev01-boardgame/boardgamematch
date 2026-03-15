@@ -877,7 +877,7 @@
                 current.push(grantSelectedBadge.id);
                 const r = await fetch(`tables/user_stats/${stats.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ unlocked_badges: current, updated_at: Date.now() })
                 });
                 if (!r.ok) throw new Error('寫入失敗');
@@ -897,7 +897,7 @@
                 const current = (Array.isArray(stats.unlocked_badges) ? stats.unlocked_badges : []).filter(id => id !== grantSelectedBadge.id);
                 const r = await fetch(`tables/user_stats/${stats.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ unlocked_badges: current, updated_at: Date.now() })
                 });
                 if (!r.ok) throw new Error('寫入失敗');
@@ -975,7 +975,7 @@
             try {
                 const res = await fetch(`tables/${table}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ google_id: googleId, note, is_active: true })
                 });
                 if (!res.ok) throw new Error('新增失敗');
@@ -992,7 +992,7 @@
             try {
                 await fetch(`tables/${table}/${rowId}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ is_active: !currentActive })
                 });
                 loadWhitelist(type);
@@ -1003,7 +1003,7 @@
             if (!confirm(`確定要從白名單移除「${name}」？`)) return;
             const table = getWhitelistTable(type);
             try {
-                await fetch(`tables/${table}/${rowId}`, { method: 'DELETE' });
+                await fetch(`tables/${table}/${rowId}`, { method: 'DELETE', headers: getAuthHeaders() });
                 loadWhitelist(type);
             } catch(e) { alert('刪除失敗'); }
         }
@@ -1173,7 +1173,7 @@
                     // 更新
                     const response = await fetch(`tables/achievements/${badgeId}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify(badgeData)
                     });
                     if (!response.ok) throw new Error('更新失敗');
@@ -1194,7 +1194,7 @@
                     
                     const response = await fetch('tables/achievements', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify(badgeData)
                     });
                     if (!response.ok) throw new Error('新增失敗');
@@ -1218,7 +1218,8 @@
             
             try {
                 const response = await fetch(`tables/achievements/${badgeId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
                 });
                 
                 if (!response.ok) throw new Error('刪除失敗');
@@ -1438,7 +1439,7 @@
 
             if (isEdit) {
                 const r = await fetch(`tables/achievements/${specialEditId}`, {
-                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(payload)
                 });
                 if (!r.ok) { alert('更新失敗'); return; }
                 alert('✅ 更新成功！');
@@ -1448,7 +1449,7 @@
                 payload.id = customId;
                 payload.created_at = Date.now();
                 const r = await fetch('tables/achievements', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
                 });
                 if (!r.ok) { alert('新增失敗'); return; }
                 alert('✅ 新增成功！');
@@ -1661,7 +1662,7 @@
 
             if (publisherEditId) {
                 const r = await fetch(`tables/publisher_badge_series/${publisherEditId}`, {
-                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(payload)
                 });
                 if (!r.ok) { alert('更新失敗'); return; }
                 alert('✅ 出版社更新成功！');
@@ -1671,7 +1672,7 @@
                 // 建立出版社記錄
                 payload.created_at = Date.now();
                 const r = await fetch('tables/publisher_badge_series', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
                 });
                 if (!r.ok) { alert('新增失敗'); return; }
                 const pub = await r.json();
@@ -1744,7 +1745,7 @@
                     if (newBadges.length > 0) {
                         const updated = [...current, ...newBadges];
                         await fetch(`tables/user_stats/${stats.id}`, {
-                            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                            method: 'PATCH', headers: getAuthHeaders(),
                             body: JSON.stringify({ unlocked_badges: updated })
                         });
                         granted += newBadges.length;
@@ -1833,7 +1834,7 @@
                 if (current.includes(EARLY_BADGE_ID)) { log.push(`⏭️ ${u.nickname||u.id.slice(0,8)} → 已擁有`); continue; }
                 current.push(EARLY_BADGE_ID);
                 await fetch(`tables/user_stats/${stats.id}`, {
-                    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                    method: 'PATCH', headers: getAuthHeaders(),
                     body: JSON.stringify({ unlocked_badges: current })
                 });
                 grantedCount++;

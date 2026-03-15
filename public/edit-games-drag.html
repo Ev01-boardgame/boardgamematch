@@ -164,6 +164,28 @@
         }
         .tag-pin-btn:hover { transform: scale(1.2); }
         .game-tag-draggable.pinned .tag-pin-btn { color: #f59e0b; }
+        /* 刪除按鈕（右上角小叉叉，在 pin 左側） */
+        .tag-del-btn {
+            position: absolute;
+            top: -6px;
+            right: 14px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.35);
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: background 0.15s, transform 0.15s;
+        }
+        .tag-del-btn:hover { background: rgba(220,38,38,0.9); transform: scale(1.15); }
         /* 手機版 pin 按鈕 */
         .mobile-pin-btn {
             font-size: 0.78rem;
@@ -176,6 +198,22 @@
             transition: all 0.15s;
         }
         .mobile-pin-btn.pinned { color: #f59e0b; border-color: #f59e0b; }
+        .mobile-del-btn {
+            font-size: 1rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.06);
+            color: var(--text-light);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background 0.15s, color 0.15s;
+        }
+        .mobile-del-btn:hover { background: rgba(220,38,38,0.15); color: #dc2626; }
         .pin-panel { display: none !important; } /* 舊樣式徹底隱藏 */
         .game-tag-draggable:hover {
             transform: translateY(-2px);
@@ -261,6 +299,21 @@
             color: var(--text-light);
             font-size: 0.9rem;
         }
+
+        .list-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
+        }
+        .list-toolbar input { margin: 0; }
+        .list-pagination {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        .list-pagination .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; margin-left: 0.25rem; }
         
         .drag-hint {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
@@ -288,7 +341,7 @@
         @media (max-width: 768px) {
             /* 手機版停用拖曳提示，改顯示點按提示 */
             .drag-hint .drag-hint-text::before {
-                content: '📱 點選右側按鈕可在六個分類之間移動遊戲（如需刪除請聯絡管理員）。';
+                content: '📱 點選右側按鈕可在六個分類之間移動遊戲；點 × 可刪除。';
             }
             .drag-hint .drag-hint-original { display: none; }
 
@@ -374,7 +427,7 @@
     <div class="container">
         <div class="page-header">
             <h1 class="page-title">✏️ 編輯我的桌遊</h1>
-            <p class="page-subtitle">拖放遊戲來重新分類，或新增遊戲（如需刪除遊戲請聯絡管理員）</p>
+            <p class="page-subtitle">拖放遊戲來重新分類，或新增遊戲；點標籤上的 × 可刪除該遊戲</p>
         </div>
 
         <!-- 拖放提示 -->
@@ -382,7 +435,7 @@
             <div class="drag-hint-icon">👆</div>
             <div class="drag-hint-text">
                 <strong>操作說明</strong><br>
-                <span class="drag-hint-original">按住遊戲標籤並拖動到其他區域，即可改變評價分類。遊戲可在六個分類之間自由移動（如需刪除遊戲請聯絡管理員）。</span>
+                <span class="drag-hint-original">按住遊戲標籤並拖動到其他區域，即可改變評價分類；點標籤右上角 × 可刪除該遊戲。</span>
             </div>
         </div>
 
@@ -393,6 +446,11 @@
                 <div class="drop-zone-header" style="background:#fce7f3;">
                     <span>🤩 超喜歡的桌遊</span>
                     <span class="drop-zone-count" id="super_liked-count">0 款</span>
+                </div>
+                <div class="list-toolbar" id="super_liked-toolbar" style="display: none;">
+                    <input type="text" id="super_liked-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off" oninput="onZoneFilterInput('super_liked', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="super_liked-pagination" class="list-pagination"></span>
                 </div>
                 <div class="game-tags-container-drag" id="super_liked-games">
                     <div class="empty-state-drag">尚無遊戲</div>
@@ -415,11 +473,17 @@
                 </div>
             </div>
 
-            <!-- 喜歡的桌遊 -->
+            <!-- 喜歡的桌遊（範例：搜尋 + 分頁，數量多時只顯示一頁） -->
             <div class="drop-zone" id="liked-zone" data-type="liked">
                 <div class="drop-zone-header">
                     <span>😍 喜歡的桌遊</span>
                     <span class="drop-zone-count" id="liked-count">0 款</span>
+                </div>
+                <div class="list-toolbar" id="liked-toolbar" style="display: none;">
+                    <input type="text" id="liked-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off"
+                        oninput="onZoneFilterInput('liked', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="liked-pagination" class="list-pagination"></span>
                 </div>
                 <div class="game-tags-container-drag" id="liked-games">
                     <div class="empty-state-drag">尚無遊戲</div>
@@ -448,6 +512,11 @@
                     <span>😐 普通的桌遊</span>
                     <span class="drop-zone-count" id="neutral-count">0 款</span>
                 </div>
+                <div class="list-toolbar" id="neutral-toolbar" style="display: none;">
+                    <input type="text" id="neutral-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off" oninput="onZoneFilterInput('neutral', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="neutral-pagination" class="list-pagination"></span>
+                </div>
                 <div class="game-tags-container-drag" id="neutral-games">
                     <div class="empty-state-drag">尚無遊戲</div>
                 </div>
@@ -474,6 +543,11 @@
                 <div class="drop-zone-header" style="background:#fee2e2;">
                     <span>😕 不喜歡的桌遊</span>
                     <span class="drop-zone-count" id="disliked-count">0 款</span>
+                </div>
+                <div class="list-toolbar" id="disliked-toolbar" style="display: none;">
+                    <input type="text" id="disliked-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off" oninput="onZoneFilterInput('disliked', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="disliked-pagination" class="list-pagination"></span>
                 </div>
                 <div class="game-tags-container-drag" id="disliked-games">
                     <div class="empty-state-drag">尚無遊戲</div>
@@ -502,6 +576,11 @@
                     <span>⭐ 想玩的桌遊</span>
                     <span class="drop-zone-count" id="wishlist-count">0 款</span>
                 </div>
+                <div class="list-toolbar" id="wishlist-toolbar" style="display: none;">
+                    <input type="text" id="wishlist-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off" oninput="onZoneFilterInput('wishlist', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="wishlist-pagination" class="list-pagination"></span>
+                </div>
                 <div class="game-tags-container-drag" id="wishlist-games">
                     <div class="empty-state-drag">尚無遊戲</div>
                 </div>
@@ -528,6 +607,11 @@
                 <div class="drop-zone-header">
                     <span>🚫 沒興趣的桌遊</span>
                     <span class="drop-zone-count" id="no_interest-count">0 款</span>
+                </div>
+                <div class="list-toolbar" id="no_interest-toolbar" style="display: none;">
+                    <input type="text" id="no_interest-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off" oninput="onZoneFilterInput('no_interest', this)"
+                        style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
+                    <span id="no_interest-pagination" class="list-pagination"></span>
                 </div>
                 <div class="game-tags-container-drag" id="no_interest-games">
                     <div class="empty-state-drag">尚無遊戲</div>
@@ -584,6 +668,10 @@
         let noInterestGames = [];
         // 各分類的置頂遊戲（最多 10 款，用遊戲名稱陣列記錄）
         const pinnedGames = { super_liked:[], liked:[], neutral:[], disliked:[], wishlist:[], no_interest:[] };
+        // 各區：篩選 + 分頁（每頁筆數）
+        const LIST_PAGE_SIZE = 24;
+        const zoneFilter = { super_liked: '', liked: '', neutral: '', disliked: '', wishlist: '', no_interest: '' };
+        const zonePage  = { super_liked: 0, liked: 0, neutral: 0, disliked: 0, wishlist: 0, no_interest: 0 };
         let draggedElement = null;
         let draggedGame = null;
         let sourceType = null;
@@ -621,9 +709,8 @@
             return _acLoadPromise;
         }
 
-        // 頁面載入：同時啟動遊戲清單載入（背景執行，不阻塞 UI）
+        // 頁面載入（新增遊戲改為搜尋 API，不再預載全庫）
         window.addEventListener('DOMContentLoaded', async () => {
-            loadAcGames(); // 背景預載，不 await
             await loadUserData();
         });
 
@@ -695,19 +782,71 @@
             }
         }
 
-        // 渲染所有遊戲
+        // 渲染所有遊戲（六區皆用篩選 + 分頁）
         function renderAllGames() {
-            renderGames('super_liked', superLikedGames);
-            renderGames('liked', likedGames);
-            renderGames('neutral', neutralGames);
-            renderGames('disliked', dislikedGames);
-            renderGames('wishlist', wishlistGames);
-            renderGames('no_interest', noInterestGames);
+            ALL_TYPES.forEach(type => renderZone(type));
             ALL_TYPES.forEach(t => updatePinCountLabel(t));
             updateCounts();
         }
 
-        // 渲染遊戲列表
+        function setZonePage(type, p) {
+            const list = getList(type);
+            const q = (zoneFilter[type] || '').trim().toLowerCase();
+            const filtered = q ? list.filter(g => String(g).toLowerCase().includes(q)) : list;
+            const totalPages = Math.max(1, Math.ceil(filtered.length / LIST_PAGE_SIZE));
+            zonePage[type] = Math.max(0, Math.min(p, totalPages - 1));
+            renderZone(type);
+        }
+
+        function onZoneFilterInput(type, el) {
+            zoneFilter[type] = el ? el.value : (document.getElementById(type + '-filter') && document.getElementById(type + '-filter').value) || '';
+            zonePage[type] = 0;
+            renderZone(type);
+        }
+
+        async function renderZone(type) {
+            const container = document.getElementById(`${type}-games`);
+            const toolbar = document.getElementById(`${type}-toolbar`);
+            const paginationEl = document.getElementById(`${type}-pagination`);
+            if (!container || !toolbar) return;
+
+            const list = getList(type);
+            const q = (zoneFilter[type] || '').trim().toLowerCase();
+            const filtered = q ? list.filter(g => String(g).toLowerCase().includes(q)) : list;
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
+            if (zonePage[type] >= totalPages) zonePage[type] = Math.max(0, totalPages - 1);
+            const start = zonePage[type] * LIST_PAGE_SIZE;
+            const slice = filtered.slice(start, start + LIST_PAGE_SIZE);
+
+            toolbar.style.display = list.length > 0 ? 'flex' : 'none';
+            const filterEl = document.getElementById(type + '-filter');
+            if (filterEl) filterEl.value = zoneFilter[type] || '';
+
+            if (total === 0) {
+                if (paginationEl) paginationEl.innerHTML = '';
+            } else if (paginationEl) {
+                const end = Math.min(start + LIST_PAGE_SIZE, total);
+                const prev = zonePage[type] <= 0;
+                const next = zonePage[type] >= totalPages - 1;
+                paginationEl.innerHTML = `顯示 ${start + 1}-${end} / 共 ${total} 款
+                    <button type="button" class="btn btn-sm btn-secondary" ${prev ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] - 1})">上一頁</button>
+                    <button type="button" class="btn btn-sm btn-secondary" ${next ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] + 1})">下一頁</button>`;
+            }
+
+            await GameNames.load();
+            if (slice.length === 0) {
+                container.innerHTML = '<div class="empty-state-drag">' + (q ? '沒有符合「' + (zoneFilter[type] || '').trim() + '」的遊戲' : '尚無遊戲') + '</div>';
+            } else {
+                container.innerHTML = slice.map(game => createGameTag(game, type)).join('');
+                container.querySelectorAll('.game-tag-draggable').forEach(tag => {
+                    tag.addEventListener('dragstart', handleDragStart);
+                    tag.addEventListener('dragend', handleDragEnd);
+                });
+            }
+        }
+
+        // 渲染遊戲列表（僅在未使用 renderZone 時用，目前六區皆用 renderZone）
         async function renderGames(type, games) {
             const container = document.getElementById(`${type}-games`);
             await GameNames.load();
@@ -746,6 +885,8 @@
                 <!-- 電腦版：拖曳標籤 -->
                 <div class="game-tag-draggable ${typeClass} ${pinnedClass}" draggable="true" data-game="${gameName}" data-type="${type}">
                     ${GameNames.formatTag(gameName)}
+                    <button class="tag-del-btn" title="刪除此遊戲"
+                        onclick="removeGame('${type}','${safeGame}');event.stopPropagation();event.preventDefault();">×</button>
                     <button class="tag-pin-btn" title="${pinTitle}"
                         onclick="togglePin('${type}','${safeGame}',this.closest('.game-tag-draggable'));event.stopPropagation();event.preventDefault();">
                         ${pinIcon}
@@ -758,6 +899,7 @@
                         <button class="mobile-pin-btn ${isPinned ? 'pinned' : ''}"
                             onclick="togglePin('${type}','${safeGame}',this);event.stopPropagation();"
                             title="${pinTitle}">${pinIcon}</button>
+                        <button class="mobile-del-btn" title="刪除此遊戲" onclick="removeGame('${type}','${safeGame}');event.stopPropagation();">×</button>
                         ${mobileMoveBtns}
                     </div>
                 </div>
@@ -887,78 +1029,79 @@
             renderAllGames();
         }
 
+        /** 從該分類刪除遊戲（並從釘選移除），然後重繪 */
+        function removeGame(type, gameNameEscaped) {
+            const gameName = (gameNameEscaped || '').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+            const list = getList(type);
+            if (!list) return;
+            const next = list.filter(g => g !== gameName);
+            if (next.length === list.length) return;
+            setList(type, next);
+            if (pinnedGames[type]) pinnedGames[type] = pinnedGames[type].filter(g => g !== gameName);
+            renderAllGames();
+        }
+
         // ════════════════════════════════════════════
-        // ── 新增遊戲 Autocomplete ──
+        // ── 新增遊戲：搜尋 API（不再載入全庫 8000 筆）──
         // ════════════════════════════════════════════
+        let _acDebounceTimer = null;
+        const AC_DEBOUNCE_MS = 280;
 
         function onGameAcInput(inputEl, dropId) {
-            const query = inputEl.value.trim().toLowerCase();
             const drop = document.getElementById(dropId);
             if (!drop) return;
 
-            if (!query) {
+            const raw = inputEl.value.trim();
+            if (!raw) {
                 drop.classList.remove('open');
+                if (_acDebounceTimer) { clearTimeout(_acDebounceTimer); _acDebounceTimer = null; }
                 return;
             }
 
-            // 直接用獨立的 _acGames（已在背景預載）
-            loadAcGames().then(() => {
-                if (_acGames.length === 0) { drop.classList.remove('open'); return; }
+            if (_acDebounceTimer) clearTimeout(_acDebounceTimer);
+            _acDebounceTimer = setTimeout(() => {
+                _acDebounceTimer = null;
+                const query = inputEl.value.trim();
+                if (!query) { drop.classList.remove('open'); return; }
 
-                // 計算每筆的相關性分數（考慮匹配比例，字數少的優先）
-                function matchScore(g) {
-                    const zh = (g.name_zh || '').toLowerCase();
-                    const en = (g.name_en || '').toLowerCase();
-                    const ja = (g.name_ja || '').toLowerCase();
-
-                    // 計算某個名稱的分數：基礎分 × 匹配比例（query長度/名稱長度）
-                    function nameScore(name) {
-                        if (!name) return 0;
-                        const ratio = query.length / name.length; // 比例：越接近1分數越高
-                        if (name === query) return 100;
-                        if (name.startsWith(query)) return 70 * (0.5 + ratio * 0.5);
-                        if (name.includes(query)) return 40 * (0.3 + ratio * 0.7);
-                        return 0;
-                    }
-
-                    // 取中英日最高分，中文額外加成
-                    const zhScore = nameScore(zh) * 1.2; // 中文加20%權重
-                    const enScore = nameScore(en);
-                    const jaScore = nameScore(ja);
-                    return Math.max(zhScore, enScore, jaScore);
-                }
-
-                const results = _acGames
-                    .map(g => ({ g, score: matchScore(g) }))
-                    .filter(x => x.score > 0)
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 12)
-                    .map(x => x.g);
-
-                if (results.length === 0) { drop.classList.remove('open'); return; }
-
-                // 防止過時結果（使用者已改變輸入）
-                if (inputEl.value.trim().toLowerCase() !== query) return;
-
-                drop.innerHTML = results.map(g => {
-                    const displayName = g.name_zh || g.name_en;
-                    const subName = g.name_zh && g.name_en ? g.name_en : '';
-                    const safe = displayName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                    const imgHtml = g.image_url
-                        ? `<img src="${g.image_url}" onerror="this.style.display='none'">`
-                        : `<div style="width:28px;height:28px;background:var(--border-color);border-radius:0.3rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🎲</div>`;
-                    return `<div class="add-game-ac-item"
-                        onmousedown="onGameAcSelect('${inputEl.id}', '${dropId}', '${safe}')">
-                        ${imgHtml}
-                        <div class="ac-name">
-                            <div class="ac-name-zh">${g.name_zh || g.name_en}</div>
-                            ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
-                        </div>
-                        <span class="add-game-ac-badge">資料庫</span>
-                    </div>`;
-                }).join('');
-                drop.classList.add('open');
-            });
+                const url = `tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`;
+                fetch(url)
+                    .then(r => r.json())
+                    .then(data => {
+                        const results = (data.data || []).slice(0, 20);
+                        if (inputEl.value.trim() !== query) return;
+                        if (results.length === 0) {
+                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">找不到符合的遊戲，可改關鍵字或到遊戲管理新增</div>';
+                            drop.classList.add('open');
+                            return;
+                        }
+                        drop.innerHTML = results.map(g => {
+                            const displayName = g.name_zh || g.name_en || g.name_ja || '';
+                            const subName = (g.name_zh && g.name_en ? g.name_en : (g.name_ja && displayName !== g.name_ja ? g.name_ja : '')) || '';
+                            const safe = displayName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                            const imgHtml = g.image_url
+                                ? `<img src="${g.image_url}" onerror="this.style.display='none'">`
+                                : `<div style="width:28px;height:28px;background:var(--border-color);border-radius:0.3rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🎲</div>`;
+                            return `<div class="add-game-ac-item"
+                                onmousedown="onGameAcSelect('${inputEl.id}', '${dropId}', '${safe}')">
+                                ${imgHtml}
+                                <div class="ac-name">
+                                    <div class="ac-name-zh">${displayName}</div>
+                                    ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
+                                </div>
+                                <span class="add-game-ac-badge">資料庫</span>
+                            </div>`;
+                        }).join('');
+                        drop.classList.add('open');
+                    })
+                    .catch(err => {
+                        console.warn('[AC] 搜尋失敗', err);
+                        if (inputEl.value.trim() === query) {
+                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
+                            drop.classList.add('open');
+                        }
+                    });
+            }, AC_DEBOUNCE_MS);
         }
 
         function onGameAcSelect(inputId, dropId, value) {

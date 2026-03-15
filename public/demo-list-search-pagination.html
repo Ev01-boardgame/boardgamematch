@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本機測試：搜尋 + 分頁範例（無需資料庫）</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --border-color: #e2e8f0;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --bg-color: #f8fafc;
+            --card-bg: #fff;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-color); color: var(--text-color); padding: 1.5rem; margin: 0; }
+        h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-light); font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .zone {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            max-width: 640px;
+        }
+        .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-weight: 600; }
+        .list-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+        .list-toolbar input {
+            padding: 0.4rem 0.65rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.4rem;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 220px;
+        }
+        .list-pagination { font-size: 0.85rem; color: var(--text-light); }
+        .list-pagination .btn {
+            padding: 0.3rem 0.65rem;
+            font-size: 0.8rem;
+            margin-left: 0.35rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.4rem;
+            background: var(--card-bg);
+            cursor: pointer;
+        }
+        .list-pagination .btn:hover:not(:disabled) { background: var(--bg-color); }
+        .list-pagination .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tags-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            min-height: 80px;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: linear-gradient(135deg, var(--primary-color), #2563eb);
+            color: white;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+        .tag { cursor: default; }
+        .tag .pin-btn { cursor: pointer; font-size: 0.85rem; opacity: 0.9; margin-left: 0.15rem; user-select: none; }
+        .tag .pin-btn:hover { opacity: 1; }
+        .tag.pinned .pin-btn { opacity: 1; }
+        .pin-count-label { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.5rem; }
+        .empty { color: var(--text-light); font-size: 0.9rem; padding: 1.5rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🧪 本機測試：搜尋 + 分頁</h1>
+    <p class="subtitle">模擬 edit-games-drag「喜歡」區，無需資料庫、無需後端。可篩選、分頁看效果。</p>
+
+    <div class="zone">
+        <div class="zone-header">
+            <span>😍 喜歡的桌遊</span>
+            <span id="total-count">0 款</span>
+        </div>
+        <div class="pin-count-label" id="pin-info"></div>
+        <div class="list-toolbar" id="toolbar">
+            <input type="text" id="filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off">
+            <span id="pagination" class="list-pagination"></span>
+        </div>
+        <div class="tags-wrap" id="list"></div>
+    </div>
+
+    <script>
+        // 假資料：約 80 筆，本機測試用
+        const MOCK_GAMES = [
+            '卡坦島', 'Catan', '花磚物語', 'Azul', '卡卡頌', 'Carcassonne', '璀璨寶石', 'Splendor',
+            '矮人礦坑', 'Saboteur', '狼人殺', 'Werewolf', '阿瓦隆', 'The Resistance: Avalon',
+            '瘟疫危機', 'Pandemic', '東京之王', 'King of Tokyo', '情書', 'Love Letter',
+            '爆炸貓', 'Exploding Kittens', '說書人', 'Dixit', '拉密', 'Rummikub',
+            '卡斯卡迪亞之旅', 'Cascadia', '和睦相處', 'Harmonies', '拼布對決', 'Patchwork',
+            '戰爭之匣', 'War Chest', '聖家族大教堂', 'Sagrada', '花磚物語: 夏日行宮', 'Azul: Summer Pavilion',
+            '貓毯', 'Calico', 'Santorini', '陰陽師之戰', 'Onitama', 'Project L',
+            '花磚物語: 琉璃之光', 'Azul: Stained Glass of Sintra', '曼荼羅', 'Mandala',
+            '新月任務', 'Nova Luna', '沙皇棋', 'TZAAR', '花磚物語: 花園宮殿', 'Azul: Queen\'s Garden',
+            '花磚物語: 巧奪天工', 'Azul: Master Chocolatier', '塔魯瓦', 'Taluva', '光合作用', 'Photosynthesis',
+            '塔什卡拉爾競技場', 'Tash-Kalar: Arena of Legends', '星際大戰：帝國 Assault', 'Star Wars: Imperial Assault',
+            '幽港迷城', 'Gloomhaven', '魔戒：中洲征途', 'The Lord of the Rings: Journeys in Middle-Earth',
+            '七大奇蹟', '7 Wonders', '七大奇蹟：對決', '7 Wonders Duel', '殖民火星', 'Terraforming Mars',
+            '翼盟天下', 'Wingspan', '根', 'Root', '靈跡島', 'Spirit Island',
+            '大西部之路', 'Great Western Trail', '歷史巨輪', 'Through the Ages', '農家樂', 'Agricola',
+            '電力公司', 'Power Grid', '波多黎各', 'Puerto Rico', '石器時代', 'Stone Age',
+            '富饒之城', 'Citadels', '車票之旅', 'Ticket to Ride', '鐵道任務', 'Ticket to Ride: Europe',
+            '仙境幽谷', 'Everdell', '奧丁的盛宴', 'A Feast for Odin', '馬可波羅', 'The Voyages of Marco Polo',
+        ];
+
+        const PAGE_SIZE = 24;
+        const MAX_PIN = 10;
+        let currentPage = 0;
+        let filterQuery = '';
+        let pinned = new Set();
+
+        function getFiltered() {
+            const q = filterQuery.trim().toLowerCase();
+            if (!q) return MOCK_GAMES.slice();
+            return MOCK_GAMES.filter(name => String(name).toLowerCase().includes(q));
+        }
+
+        function render() {
+            const filtered = getFiltered();
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+            const start = currentPage * PAGE_SIZE;
+            const slice = filtered.slice(start, start + PAGE_SIZE);
+
+            document.getElementById('total-count').textContent = total + ' 款';
+
+            const pinCount = pinned.size;
+            const pinEl = document.getElementById('pin-info');
+            pinEl.textContent = pinCount > 0 ? '📌 已釘選 ' + pinCount + '/' + MAX_PIN + ' 款（顯示於檔案頁）' : '';
+            pinEl.style.display = total > 0 ? 'block' : 'none';
+
+            const toolbar = document.getElementById('toolbar');
+            toolbar.style.display = total > 0 ? 'flex' : 'none';
+
+            const paginationEl = document.getElementById('pagination');
+            if (total === 0) {
+                paginationEl.innerHTML = '';
+            } else {
+                const end = Math.min(start + PAGE_SIZE, total);
+                paginationEl.innerHTML = `顯示 ${start + 1}-${end} / 共 ${total} 款
+                    <button type="button" class="btn" ${currentPage <= 0 ? 'disabled' : ''} onclick="setPage(${currentPage - 1})">上一頁</button>
+                    <button type="button" class="btn" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="setPage(${currentPage + 1})">下一頁</button>`;
+            }
+
+            const listEl = document.getElementById('list');
+            if (slice.length === 0) {
+                listEl.innerHTML = '<div class="empty">' + (filterQuery.trim() ? '沒有符合「' + filterQuery.trim() + '」的遊戲' : '尚無遊戲') + '</div>';
+            } else {
+                listEl.innerHTML = slice.map(name => {
+                    const isPinned = pinned.has(name);
+                    const icon = isPinned ? '📌' : '○';
+                    const title = isPinned ? '取消在檔案頁顯示' : '釘選到檔案頁顯示（最多10款）';
+                    return `<span class="tag ${isPinned ? 'pinned' : ''}" data-game="${escapeAttr(name)}">
+                        <span class="pin-btn" title="${title}" data-pin="1">${icon}</span>
+                        ${escapeHtml(name)}
+                    </span>`;
+                }).join('');
+            }
+        }
+
+        function escapeAttr(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML.replace(/"/g, '&quot;');
+        }
+
+        function togglePin(name) {
+            if (pinned.has(name)) {
+                pinned.delete(name);
+            } else {
+                if (pinned.size >= MAX_PIN) return;
+                pinned.add(name);
+            }
+            render();
+        }
+
+        document.getElementById('list').addEventListener('click', function(e) {
+            const btn = e.target.closest('.pin-btn[data-pin]');
+            if (!btn) return;
+            const tag = btn.closest('.tag');
+            if (tag && tag.dataset.game) togglePin(tag.dataset.game);
+        });
+
+        function setPage(p) {
+            const filtered = getFiltered();
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            currentPage = Math.max(0, Math.min(p, totalPages - 1));
+            render();
+        }
+
+        function onFilterInput(el) {
+            filterQuery = el.value;
+            currentPage = 0;
+            render();
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        document.getElementById('filter').addEventListener('input', e => onFilterInput(e.target));
+        render();
+    </script>
+</body>
+</html>

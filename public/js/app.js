@@ -341,7 +341,8 @@ async function updateUser(userId, userData) {
 async function deleteUser(userId) {
     try {
         const response = await fetch(`${API_BASE}/${userId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error('無法刪除使用者');
         return true;
@@ -549,7 +550,7 @@ async function getUserStats(userId) {
                 console.warn(`⚠️ user_stats 重複 ${matched.length} 筆，自動清除多餘紀錄`);
                 const keepId = matched[0].id;
                 matched.slice(1).forEach(dup => {
-                    fetch(`tables/user_stats/${dup.id}`, { method: 'DELETE' })
+                    fetch(`tables/user_stats/${dup.id}`, { method: 'DELETE', headers: getAuthHeaders() })
                         .catch(() => {});
                 });
             }
@@ -681,7 +682,7 @@ async function getAllAchievements() {
         if (dupes.length > 0) {
             console.warn(`⚠️ achievements 發現 ${dupes.length} 筆重複，自動清除:`, dupes.map(d => d.id));
             dupes.forEach(d => {
-                fetch(`tables/achievements/${d.id}`, { method: 'DELETE' }).catch(() => {});
+                fetch(`tables/achievements/${d.id}`, { method: 'DELETE', headers: getAuthHeaders() }).catch(() => {});
             });
         }
 

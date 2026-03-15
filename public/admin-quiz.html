@@ -411,11 +411,11 @@
         };
         try {
             if (id) {
-                await fetch(`tables/quiz_collections/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                await fetch(`tables/quiz_collections/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify(payload) });
                 alert('✅ 清單更新成功！');
             } else {
                 payload.created_at = Date.now();
-                await fetch('tables/quiz_collections', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                await fetch('tables/quiz_collections', { method:'POST', headers: getAuthHeaders(), body:JSON.stringify(payload) });
                 alert('✅ 清單新增成功！');
             }
             closeCollectionModal();
@@ -425,13 +425,13 @@
     }
 
     async function toggleCollectionActive(id, currentActive) {
-        await fetch(`tables/quiz_collections/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_active:!currentActive}) });
+        await fetch(`tables/quiz_collections/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify({is_active:!currentActive}) });
         await loadMasterData(); loadCollectionList();
     }
 
     async function deleteCollection(id, title) {
         if (!confirm(`確定刪除清單「${title}」？\n注意：清單內的題目不會自動刪除。`)) return;
-        await fetch(`tables/quiz_collections/${id}`, { method:'DELETE' });
+        await fetch(`tables/quiz_collections/${id}`, { method:'DELETE', headers: getAuthHeaders() });
         await loadMasterData(); loadCollectionList();
     }
 
@@ -539,12 +539,12 @@
         };
         try {
             if (id) {
-                await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify(payload) });
                 alert('✅ 題目更新成功！');
             } else {
                 payload.created_at  = Date.now();
                 payload.submitted_by = 'admin';
-                await fetch('tables/quiz_questions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                await fetch('tables/quiz_questions', { method:'POST', headers: getAuthHeaders(), body:JSON.stringify(payload) });
                 alert('✅ 題目新增成功！');
             }
             closeQuestionModal();
@@ -555,17 +555,17 @@
     }
 
     async function approveQuestion(id) {
-        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'approved'}) });
+        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify({status:'approved'}) });
         await loadMasterData(); loadQuestions(); checkPendingCount();
     }
     async function rejectQuestion(id) {
         if (!confirm('確定要拒絕此題目？')) return;
-        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'rejected'}) });
+        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify({status:'rejected'}) });
         await loadMasterData(); loadQuestions(); checkPendingCount();
     }
     async function deleteQuestion(id) {
         if (!confirm('確定要刪除此題目？')) return;
-        await fetch(`tables/quiz_questions/${id}`, { method:'DELETE' });
+        await fetch(`tables/quiz_questions/${id}`, { method:'DELETE', headers: getAuthHeaders() });
         await loadMasterData(); loadQuestions(); checkPendingCount();
     }
 
@@ -608,12 +608,12 @@
     }
 
     async function approveFromPending(id) {
-        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'approved'}) });
+        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify({status:'approved'}) });
         await loadMasterData(); loadPending(); checkPendingCount();
     }
     async function rejectFromPending(id) {
         if (!confirm('確定要拒絕此題目？')) return;
-        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'rejected'}) });
+        await fetch(`tables/quiz_questions/${id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify({status:'rejected'}) });
         await loadMasterData(); loadPending(); checkPendingCount();
     }
 
