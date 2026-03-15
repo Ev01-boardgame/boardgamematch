@@ -485,12 +485,20 @@
         .random-mode-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 2px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-color); cursor: pointer; transition: all 0.2s; }
         .random-mode-option:hover { border-color: var(--primary-color); }
         .random-mode-option.selected { border-color: var(--primary-color); background: rgba(102,126,234,0.1); }
-        .random-result-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+        .random-result-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
         .random-result-card { background: var(--card-bg); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
         .random-result-card-cover { aspect-ratio: 1; background: var(--border-color); background-size: cover; background-position: center; }
         .random-result-card-body { padding: 0.6rem; }
         .random-result-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-color); line-height: 1.3; }
         .random-result-card-score { font-size: 0.75rem; color: var(--primary-color); margin-top: 0.25rem; }
+        /* 隨機推薦：與主題清單同款遊戲卡（含評價按鈕） */
+        .random-game-card { min-width: 0; }
+        .random-game-card .card-cover { aspect-ratio: 1; background-size: cover; background-position: center; }
+        .random-game-card .card-body { padding: 0.65rem; }
+        .random-game-card .rating-buttons { margin-top: 0.5rem; gap: 0.25rem; }
+        .random-game-card .recommendation-btn { padding: 0.3rem 0.35rem; font-size: 1.1rem; }
+        .random-game-card .recommendation-btn .btn-label { font-size: 0.58rem; }
+        .random-game-card .rated-badge { margin-top: 0.4rem; font-size: 0.75rem; color: var(--primary-color); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -865,6 +873,10 @@
                 return sorted.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
             }
 
+            function escapeAttr(s) {
+                if (s == null) return '';
+                return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
             function renderList(list) {
                 if (!list || list.length === 0) {
                     cardsEl.innerHTML = '';
@@ -874,14 +886,28 @@
                     emptyEl.style.display = 'block';
                 } else {
                     emptyEl.style.display = 'none';
-                    cardsEl.innerHTML = list.map(item => {
+                    cardsEl.innerHTML = list.map((item, idx) => {
                         const g = item.game;
-                        const name = getDisplayName(g);
+                        const name = getDisplayName(g) || '桌遊';
                         let img = getImageUrl(g);
                         if (!img && localGetImageUrl) img = localGetImageUrl(name);
-                        const urlStyle = img ? 'background-image:url("' + String(img).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")' : '';
                         const scoreHtml = item.scoreLabel ? '<div class="random-result-card-score">' + item.scoreLabel + '</div>' : '';
-                        return '<div class="random-result-card"><div class="random-result-card-cover" style="' + urlStyle + '"></div><div class="random-result-card-body"><div class="random-result-card-name">' + (name || '桌遊').replace(/</g, '&lt;') + '</div>' + scoreHtml + '</div></div>';
+                        const oldRating = typeof getOldRating === 'function' ? getOldRating(name) : null;
+                        const ratedBadge = oldRating ? '<div class="rated-badge">' + { super_like: '🤩 超喜歡', like: '👍 喜歡', neutral: '😐 普普', dislike: '👎 不喜歡', wishlist: '⭐ 想玩', no_interest: '🚫 沒興趣' }[oldRating] + '</div>' : '';
+                        const coverHtml = img ? '<div class="card-cover"><div class="card-cover-bg" style="background-image:url(\'' + String(img).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"></div><img class="card-cover-img" src="' + String(img).replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="this.closest(\'.card-cover\').style.display=\'none\'"></div>' : '';
+                        const nameHtml = typeof localFormatCard === 'function' ? localFormatCard(name) : (name.replace(/</g, '&lt;'));
+                        const dataGame = escapeAttr(name);
+                        const btnsHtml = oldRating
+                            ? ratedBadge
+                            : '<div class="rating-buttons">' +
+                                '<button type="button" class="recommendation-btn btn-super-like" data-game="' + dataGame + '" data-rating="super_like" onclick="rateGameFromRandom(this)" title="超喜歡">🤩<span class="btn-label">超喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-like" data-game="' + dataGame + '" data-rating="like" onclick="rateGameFromRandom(this)" title="喜歡">👍<span class="btn-label">喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-neutral" data-game="' + dataGame + '" data-rating="neutral" onclick="rateGameFromRandom(this)" title="普普">😐<span class="btn-label">普普</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-dislike" data-game="' + dataGame + '" data-rating="dislike" onclick="rateGameFromRandom(this)" title="不喜歡">👎<span class="btn-label">不喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-wishlist" data-game="' + dataGame + '" data-rating="wishlist" onclick="rateGameFromRandom(this)" title="想玩">⭐<span class="btn-label">想玩</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-no-interest" data-game="' + dataGame + '" data-rating="no_interest" onclick="rateGameFromRandom(this)" title="沒興趣">🚫<span class="btn-label">沒興趣</span></button>' +
+                                '</div>';
+                        return '<div class="random-game-card game-card" id="random-card-' + idx + '">' + coverHtml + '<div class="' + (img ? 'card-body' : 'card-body-no-cover') + '"><div class="game-name-row"><div class="game-name">' + nameHtml + '</div></div>' + scoreHtml + btnsHtml + '</div></div>';
                     }).join('');
                 }
                 if (btn) btn.disabled = false;
@@ -1455,6 +1481,57 @@
             if ((currentUser.wishlist || []).includes(gameName)) return 'wishlist';
             if ((currentUser.no_interest_games || []).includes(gameName)) return 'no_interest';
             return null;
+        }
+
+        // 隨機推薦區的評價（與主題清單同邏輯，但不更新 collection_game_stats）
+        async function rateGameFromRandom(btn) {
+            const gameName = btn.getAttribute('data-game');
+            const rating = btn.getAttribute('data-rating');
+            if (!gameName || !rating) return;
+            if (!currentUser || !currentUser.id) {
+                if (typeof showNotification === 'function') showNotification('請先登入', '登入後才能為遊戲評分，系統會根據你的喜好推薦桌遊。', '🔒', 'info');
+                return;
+            }
+            const card = btn.closest('.random-game-card');
+            if (card) card.querySelectorAll('.rating-buttons button').forEach(b => b.disabled = true);
+
+            if (rating === 'super_like') {
+                if (!currentUser.super_liked_games) currentUser.super_liked_games = [];
+                currentUser.super_liked_games.push(gameName);
+            } else if (rating === 'like') {
+                if (!currentUser.liked_games) currentUser.liked_games = [];
+                currentUser.liked_games.push(gameName);
+            } else if (rating === 'neutral') {
+                if (!currentUser.neutral_games) currentUser.neutral_games = [];
+                currentUser.neutral_games.push(gameName);
+            } else if (rating === 'dislike') {
+                if (!currentUser.disliked_games) currentUser.disliked_games = [];
+                currentUser.disliked_games.push(gameName);
+            } else if (rating === 'wishlist') {
+                if (!currentUser.wishlist) currentUser.wishlist = [];
+                currentUser.wishlist.push(gameName);
+            } else if (rating === 'no_interest') {
+                if (!currentUser.no_interest_games) currentUser.no_interest_games = [];
+                currentUser.no_interest_games.push(gameName);
+            }
+
+            const label = { super_like: '🤩 超喜歡', like: '👍 喜歡', neutral: '😐 普普', dislike: '👎 不喜歡', wishlist: '⭐ 想玩', no_interest: '🚫 沒興趣' }[rating] || rating;
+            if (card) {
+                const wrap = card.querySelector('.rating-buttons');
+                if (wrap) wrap.outerHTML = '<div class="rated-badge">' + label + '</div>';
+            }
+
+            try {
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage({ game: gameName, rating, timestamp: Date.now() });
+                const isFirst = typeof checkAndWriteGameVote === 'function' ? await checkAndWriteGameVote(gameName, rating, '') : true;
+                if (typeof saveRatingToDatabase === 'function') await saveRatingToDatabase(gameName, rating);
+                if (isFirst && typeof GameMBTI !== 'undefined' && GameMBTI.addXP) {
+                    const result = await GameMBTI.addXP(currentUser.id, 10, '評價遊戲：' + gameName);
+                    if (result && typeof console !== 'undefined') console.log('✅ 評價「' + gameName + '」獲得 +10 XP', result);
+                }
+            } catch (e) {
+                if (typeof console !== 'undefined') console.error('❌ 隨機推薦評價儲存失敗:', e);
+            }
         }
 
         // 維持原評：直接跳過此張（不更新任何資料）
