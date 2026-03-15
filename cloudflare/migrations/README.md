@@ -51,3 +51,29 @@ npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/remove_x
 ```
 
 執行前會提示確認，輸入 `y` 後會對**遠端** D1 執行。
+
+---
+
+## add_users_region_want_contact.sql
+
+為 `users` 表新增 `region`（地區，存 JSON 陣列）、`want_contact`（是否想被桌友連絡）。  
+**未執行前**：個人頁編輯簡介的地區與「願意被桌友連絡」不會真正寫入，儲存後重新整理會消失。
+
+### 方式一：Cloudflare 主控台
+
+1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. **Workers & Pages** → **D1** → 選 **boardgame-match-db**
+3. 分頁選 **Console**
+4. **一次貼上一行**執行：
+   ```sql
+   ALTER TABLE users ADD COLUMN region TEXT;
+   ALTER TABLE users ADD COLUMN want_contact INTEGER DEFAULT 0;
+   ```
+5. 按 **Run**
+
+### 方式二：本機 wrangler（遠端 DB）
+
+```bash
+cd cloudflare
+npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_users_region_want_contact.sql
+```

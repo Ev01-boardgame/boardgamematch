@@ -564,13 +564,13 @@
                 if (existing) {
                     await fetch(`tables/site_stats/${existing.id}`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify({ total_games: total, updated_at_iso: new Date().toISOString() })
                     });
                 } else {
                     await fetch('tables/site_stats', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify({ id: 'global', total_games: total, updated_at_iso: new Date().toISOString() })
                     });
                 }
@@ -908,7 +908,7 @@
                     // 更新
                     const response = await fetch(`tables/game_database/${gameId}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify(gameData)
                     });
                     
@@ -921,7 +921,7 @@
                     
                     const response = await fetch('tables/game_database', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify(gameData)
                     });
                     
@@ -1295,7 +1295,7 @@
 
                 const res = await fetch('tables/game_database', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(gameData)
                 });
                 if (!res.ok) throw new Error('新增失敗');
@@ -1348,7 +1348,8 @@
             
             try {
                 const response = await fetch(`tables/game_database/${gameId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
                 });
                 
                 if (!response.ok) throw new Error('刪除失敗');
@@ -1481,13 +1482,13 @@
                         }
                     }
                     if (changed) {
-                        await fetch(`tables/users/${user.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch) });
+                        await fetch(`tables/users/${user.id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify(patch) });
                         updatedCount++;
                     }
                 }
 
                 // 刪除重複條目
-                await fetch(`tables/game_database/${deleteId}`, { method:'DELETE' });
+                await fetch(`tables/game_database/${deleteId}`, { method:'DELETE', headers: getAuthHeaders() });
                 // 清除 GameNames 快取，讓下次開頁面能讀到最新遊戲庫
                 if (window.GameNames && GameNames.clearCache) GameNames.clearCache();
                 await refreshSiteStats();
@@ -1582,14 +1583,14 @@
                             }
                         }
                         if (changed) {
-                            await fetch(`tables/users/${user.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch) });
+                            await fetch(`tables/users/${user.id}`, { method:'PATCH', headers: getAuthHeaders(), body:JSON.stringify(patch) });
                             totalUserUpdated++;
                         }
                     }
 
                     // 刪除多餘的
                     for (const dg of deleteGames) {
-                        await fetch(`tables/game_database/${dg.id}`, { method:'DELETE' });
+                        await fetch(`tables/game_database/${dg.id}`, { method:'DELETE', headers: getAuthHeaders() });
                         totalDeleted++;
                     }
 

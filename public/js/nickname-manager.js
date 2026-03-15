@@ -316,9 +316,12 @@ const NicknameManager = {
                 nickname: nickname
             };
             
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) headers['Authorization'] = 'Bearer ' + token;
             const response = await fetch(`tables/users/${user.id}`, {
                 method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
+                headers,
                 body: JSON.stringify(updateData)
             });
             

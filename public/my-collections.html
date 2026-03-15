@@ -777,7 +777,7 @@
     async function confirmDelete() {
         if (!deletingId) return;
         try {
-            const res = await fetch(`tables/${TABLE}/${deletingId}`, { method: 'DELETE' });
+            const res = await fetch(`tables/${TABLE}/${deletingId}`, { method: 'DELETE', headers: getAuthHeaders() });
             if (!res.ok) throw new Error();
             closeDeleteModal();
             await loadMyCollections();

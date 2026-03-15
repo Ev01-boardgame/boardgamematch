@@ -220,6 +220,13 @@ let previewData = [];         // 預覽用資料 [{action, row}]
 // ════════════════════════════════════════
 // 工具函式
 // ════════════════════════════════════════
+function authHeaders() {
+    const h = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('google_id_token');
+    if (token) h['Authorization'] = 'Bearer ' + token;
+    return h;
+}
+
 function setStatus(id, msg, type = 'info') {
     const el = document.getElementById(id);
     el.textContent = msg;
@@ -533,13 +540,13 @@ async function confirmImport() {
                 if (!payload.id) delete payload.id;
                 await fetch('tables/game_database', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders(),
                     body: JSON.stringify(payload)
                 });
             } else if (action === 'update') {
                 await fetch(`tables/game_database/${payload.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders(),
                     body: JSON.stringify(payload)
                 });
             }

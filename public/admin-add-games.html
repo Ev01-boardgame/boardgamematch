@@ -1242,7 +1242,7 @@
 
                 const resp = await fetch('tables/game_database', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(payload)
                 });
                 if (resp.ok || resp.status === 201) {

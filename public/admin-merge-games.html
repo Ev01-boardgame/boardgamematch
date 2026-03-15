@@ -399,6 +399,13 @@
         let selectedGames = new Set();
         let inputMode = 'select'; // 'select' or 'input'
 
+        function authHeaders() {
+            const h = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
+
         // 切換輸入模式
         function switchInputMode(mode) {
             inputMode = mode;
@@ -673,7 +680,7 @@
                     if (needUpdate) {
                         await fetch(`tables/users/${user.id}`, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders(),
                             body: JSON.stringify(user)
                         });
                         updatedUsersCount++;
@@ -693,7 +700,7 @@
                             
                             await fetch(`tables/game_votes/${vote.id}`, {
                                 method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: authHeaders(),
                                 body: JSON.stringify(vote)
                             });
                             updatedVotesCount++;
@@ -726,7 +733,7 @@
                             if (needUpdate) {
                                 await fetch(`tables/game_collections/${collection.id}`, {
                                     method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: authHeaders(),
                                     body: JSON.stringify(collection)
                                 });
                                 updatedCollectionsCount++;
@@ -766,7 +773,7 @@
                             alias.updated_at = new Date().toISOString();
                             await fetch(`tables/game_aliases/${alias.id}`, {
                                 method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: authHeaders(),
                                 body: JSON.stringify(alias)
                             });
                             updatedAliasesCount++;

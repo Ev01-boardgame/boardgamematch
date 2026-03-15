@@ -537,6 +537,13 @@
         let allGames = [];
         let currentTab = 'unintegrated';
 
+        function authHeaders() {
+            const h = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
+
         // 頁面載入
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
@@ -1097,7 +1104,7 @@
                 if (changed) {
                     await fetch(`tables/users/${user.id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify(patch)
                     });
                     updatedCount++;
@@ -1147,7 +1154,7 @@
                     if (resolvedBggId && !existingRecord.bgg_id) patchBody.bgg_id = resolvedBggId;
                     const response = await fetch(`tables/game_aliases/${existingRecord.id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify(patchBody)
                     });
                     if (!response.ok) throw new Error('更新失敗');
@@ -1157,7 +1164,7 @@
                     if (resolvedBggId) postBody.bgg_id = resolvedBggId;
                     const response = await fetch('tables/game_aliases', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify(postBody)
                     });
                     if (!response.ok) throw new Error('新增失敗');
@@ -1206,12 +1213,12 @@
                     // 舊記錄還有其他別名，只更新
                     await fetch(`tables/game_aliases/${aliasId}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify({ aliases: oldAliases })
                     });
                 } else {
                     // 舊記錄清空了，刪除它
-                    await fetch(`tables/game_aliases/${aliasId}`, { method: 'DELETE' });
+                    await fetch(`tables/game_aliases/${aliasId}`, { method: 'DELETE', headers: authHeaders() });
                 }
 
                 // 加入新記錄
@@ -1226,7 +1233,7 @@
                     if (editBggId && !newRecord.bgg_id) editPatchBody.bgg_id = editBggId;
                     await fetch(`tables/game_aliases/${newRecord.id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify(editPatchBody)
                     });
                 } else {
@@ -1234,7 +1241,7 @@
                     if (editBggId) editPostBody.bgg_id = editBggId;
                     await fetch('tables/game_aliases', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify(editPostBody)
                     });
                 }
@@ -1264,13 +1271,14 @@
                     // 還有其他別名，只更新陣列
                     response = await fetch(`tables/game_aliases/${aliasId}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: authHeaders(),
                         body: JSON.stringify({ aliases: updatedAliases })
                     });
                 } else {
                     // 已無別名，刪除整筆記錄
                     response = await fetch(`tables/game_aliases/${aliasId}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: authHeaders()
                     });
                 }
 
@@ -1501,7 +1509,7 @@
                     if (changed) {
                         await fetch(`tables/users/${user.id}`, {
                             method: 'PATCH',
-                            headers: {'Content-Type': 'application/json'},
+                            headers: authHeaders(),
                             body: JSON.stringify(patch)
                         });
                         updatedUsers++;
@@ -1518,13 +1526,13 @@
                     // 找出哪些 record 的所有 aliases 都在 noImpact 中（即整筆記錄都無人使用）
                     for (const record of allAliasRecords) {
                         if (!Array.isArray(record.aliases) || record.aliases.length === 0) {
-                            await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE' });
+                            await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE', headers: authHeaders() });
                             deletedAliases++;
                             continue;
                         }
                         const allUnused = record.aliases.every(a => noImpactAliasNames.has(a));
                         if (allUnused) {
-                            await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE' });
+                            await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE', headers: authHeaders() });
                             deletedAliases++;
                         }
                     }
@@ -1621,7 +1629,7 @@
 
                 let deleted = 0;
                 for (const record of toDelete) {
-                    await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE' });
+                    await fetch(`tables/game_aliases/${record.id}`, { method: 'DELETE', headers: authHeaders() });
                     deleted++;
                     resultEl.textContent = `刪除中 ${deleted}/${toDelete.length}...`;
                 }
