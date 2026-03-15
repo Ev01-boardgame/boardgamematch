@@ -621,7 +621,7 @@
                     ].join(' ').toLowerCase();
                     if (!hay.includes(q)) return false;
                 }
-                // 篩選：待補充 = 名稱或 BGG ID 不完整
+                // 篩選：待補充 = 缺 BGG ID 或英文名稱
                 if (currentSource === 'pending') return isPending(g);
                 return true;
             });
@@ -780,9 +780,9 @@
             `).join('');
         }
 
-        // 判斷遊戲是否「待補充」：名稱或 BGG ID 不完整
+        // 判斷遊戲是否「待補充」：缺 BGG ID 或英文名稱
         function isPending(game) {
-            return !game.bgg_id || !game.name_zh || !game.name_en;
+            return !game.bgg_id || !game.name_en;
         }
 
         // filterGames 已在上方定義（伺服器端分頁 + 前端來源篩選）
