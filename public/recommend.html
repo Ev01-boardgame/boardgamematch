@@ -491,14 +491,24 @@
         .random-result-card-body { padding: 0.6rem; }
         .random-result-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-color); line-height: 1.3; }
         .random-result-card-score { font-size: 0.75rem; color: var(--primary-color); margin-top: 0.25rem; }
-        /* 隨機推薦：與主題清單同款遊戲卡（含評價按鈕） */
+        /* 隨機推薦：與主題清單同款遊戲卡（含評價按鈕），但用網格排列、不疊在一起 */
+        .random-result-cards .random-game-card {
+            position: static !important;
+            width: auto !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+        }
         .random-game-card { min-width: 0; }
         .random-game-card .card-cover { aspect-ratio: 1; background-size: cover; background-position: center; }
         .random-game-card .card-body { padding: 0.65rem; }
+        .random-game-card .game-name-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
         .random-game-card .rating-buttons { margin-top: 0.5rem; gap: 0.25rem; }
         .random-game-card .recommendation-btn { padding: 0.3rem 0.35rem; font-size: 1.1rem; }
         .random-game-card .recommendation-btn .btn-label { font-size: 0.58rem; }
-        .random-game-card .rated-badge { margin-top: 0.4rem; font-size: 0.75rem; color: var(--primary-color); font-weight: 600; }
+        .random-game-card .rated-badge,
+        .random-game-card .skipped-badge { margin-top: 0.4rem; font-size: 0.75rem; color: var(--primary-color); font-weight: 600; }
+        .random-game-card .skipped-badge { color: var(--text-light); }
     </style>
 </head>
 <body>
@@ -897,6 +907,7 @@
                         const coverHtml = img ? '<div class="card-cover"><div class="card-cover-bg" style="background-image:url(\'' + String(img).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"></div><img class="card-cover-img" src="' + String(img).replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="this.closest(\'.card-cover\').style.display=\'none\'"></div>' : '';
                         const nameHtml = typeof localFormatCard === 'function' ? localFormatCard(name) : (name.replace(/</g, '&lt;'));
                         const dataGame = escapeAttr(name);
+                        const skipBtn = !oldRating ? '<button type="button" class="skip-btn" onclick="skipGameFromRandom(this)" title="跳過這款">⏭ 跳過</button>' : '';
                         const btnsHtml = oldRating
                             ? ratedBadge
                             : '<div class="rating-buttons">' +
@@ -907,7 +918,7 @@
                                 '<button type="button" class="recommendation-btn btn-wishlist" data-game="' + dataGame + '" data-rating="wishlist" onclick="rateGameFromRandom(this)" title="想玩">⭐<span class="btn-label">想玩</span></button>' +
                                 '<button type="button" class="recommendation-btn btn-no-interest" data-game="' + dataGame + '" data-rating="no_interest" onclick="rateGameFromRandom(this)" title="沒興趣">🚫<span class="btn-label">沒興趣</span></button>' +
                                 '</div>';
-                        return '<div class="random-game-card game-card" id="random-card-' + idx + '">' + coverHtml + '<div class="' + (img ? 'card-body' : 'card-body-no-cover') + '"><div class="game-name-row"><div class="game-name">' + nameHtml + '</div></div>' + scoreHtml + btnsHtml + '</div></div>';
+                        return '<div class="random-game-card game-card" id="random-card-' + idx + '">' + coverHtml + '<div class="' + (img ? 'card-body' : 'card-body-no-cover') + '"><div class="game-name-row"><div class="game-name">' + nameHtml + '</div>' + skipBtn + '</div>' + scoreHtml + btnsHtml + '</div></div>';
                     }).join('');
                 }
                 if (btn) btn.disabled = false;
@@ -1010,6 +1021,9 @@
                 const tabs = document.querySelectorAll('#recommend-filter-tabs .btn[data-tab]');
                 const panels = document.querySelectorAll('.recommend-panel');
                 function switchTab(tabKey) {
+                    var leavingPanel = document.querySelector('.recommend-panel.active');
+                    var leavingId = leavingPanel ? leavingPanel.id : '';
+
                     tabs.forEach(btn => {
                         if (btn.dataset.tab === tabKey) {
                             btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
@@ -1020,6 +1034,19 @@
                     panels.forEach(panel => {
                         panel.classList.toggle('active', panel.id === 'panel-' + tabKey);
                     });
+
+                    // 切到其它分類時，關掉上一個分頁的卡片
+                    if (leavingId === 'panel-random') {
+                        var wrap = document.getElementById('random-result-wrap');
+                        if (wrap) wrap.style.display = 'none';
+                    } else if (leavingId && ['panel-limited', 'panel-permanent', 'panel-publisher', 'panel-yearly'].indexOf(leavingId) !== -1 && leavingPanel) {
+                        var containers = leavingPanel.querySelectorAll('.game-cards-container');
+                        containers.forEach(function(c) {
+                            if (c.id && c.id.indexOf('cards-container-') === 0) {
+                                c.innerHTML = '<div class="empty-state"><div class="icon">🎮</div><p>點擊「開始評價」來探索遊戲</p></div>';
+                            }
+                        });
+                    }
                 }
                 tabs.forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -1532,6 +1559,17 @@
             } catch (e) {
                 if (typeof console !== 'undefined') console.error('❌ 隨機推薦評價儲存失敗:', e);
             }
+        }
+
+        // 隨機推薦區的「跳過」：不評價、不儲存，只隱藏按鈕並顯示已跳過
+        function skipGameFromRandom(btn) {
+            var card = btn && btn.closest('.random-game-card');
+            if (!card) return;
+            var row = card.querySelector('.game-name-row');
+            var skipBtn = card.querySelector('.skip-btn');
+            var ratingWrap = card.querySelector('.rating-buttons');
+            if (skipBtn) skipBtn.remove();
+            if (ratingWrap) ratingWrap.outerHTML = '<div class="skipped-badge">⏭ 已跳過</div>';
         }
 
         // 維持原評：直接跳過此張（不更新任何資料）
