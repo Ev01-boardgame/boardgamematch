@@ -71,6 +71,12 @@
 
     <script>
         const escape = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+        function authHeaders() {
+            const h = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
         async function loadAll(url, limit = 500) {
             let list = [], page = 1;
             while (true) {
@@ -129,16 +135,16 @@
 
         async function toggleWl(type, id, currentActive) {
             try {
-                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !currentActive }) });
-                if (!r.ok) throw new Error('更新失敗');
+                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ is_active: !currentActive }) });
+                if (!r.ok) throw new Error('更新失敗（請確認已登入後台）');
                 await refreshWhitelists();
             } catch (e) { alert('操作失敗：' + e.message); }
         }
         async function removeWl(type, id, name) {
             if (!confirm('確定要從白名單移除「' + name + '」？')) return;
             try {
-                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'DELETE' });
-                if (!r.ok) throw new Error('刪除失敗');
+                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (!r.ok) throw new Error('刪除失敗（請確認已登入後台）');
                 await refreshWhitelists();
             } catch (e) { alert('操作失敗：' + e.message); }
         }
@@ -177,7 +183,7 @@
                 const nickname = (document.getElementById('add-nickname').value || '').trim();
                 const notes = (document.getElementById('add-notes').value || '').trim();
                 fetch('tables/admin_whitelist', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: authHeaders(),
                     body: JSON.stringify({ google_id: '', email, nickname: nickname || email.split('@')[0], picture: '', role: 'admin', added_by: '報表頁', added_at: Date.now(), is_active: true, notes })
                 }).then(r => { if (!r.ok) throw new Error(r.statusText); return refreshWhitelists(); }).then(() => { closeAddModal(); alert('✅ 已新增管理員'); }).catch(e => { errEl.textContent = e.message; errEl.style.display = 'block'; });
             } else {
@@ -185,7 +191,7 @@
                 if (!google_id) { errEl.textContent = '請填寫 Google ID'; errEl.style.display = 'block'; return; }
                 const note = (document.getElementById('add-note').value || '').trim();
                 fetch('tables/' + TABLE[type], {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: authHeaders(),
                     body: JSON.stringify({ google_id, note, is_active: true })
                 }).then(r => { if (!r.ok) throw new Error(r.statusText); return refreshWhitelists(); }).then(() => { closeAddModal(); alert('✅ 已新增'); }).catch(e => { errEl.textContent = e.message; errEl.style.display = 'block'; });
             }
@@ -202,8 +208,10 @@
             if (!Array.isArray(arr)) arr = [];
             const updated = arr.filter(id => !data.guardianBadgeIds.includes(id));
             try {
-                const r = await fetch('tables/user_stats/' + statId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unlocked_badges: updated }) });
-                if (!r.ok) throw new Error('更新失敗');
+                const token = localStorage.getItem('google_id_token');
+                if (!token) { alert('收回失敗：請先登入後台（從任一管理頁登入後再來此頁操作）'); return; }
+                const r = await fetch('tables/user_stats/' + statId, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ unlocked_badges: updated }) });
+                if (!r.ok) throw new Error(r.status === 401 ? '請先登入後台' : '更新失敗');
                 await loadBadgeSection();
             } catch (e) { alert('收回失敗：' + e.message); }
         }
