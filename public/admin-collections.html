@@ -1023,15 +1023,25 @@
                     });
                 }
 
-                if (!response.ok) throw new Error('儲存失敗');
+                if (!response.ok) {
+                    // 讀取後端實際錯誤訊息，方便除錯
+                    const text = await response.text().catch(() => '');
+                    const msg = text ? `儲存失敗（${response.status}）：${text.slice(0,200)}` : `儲存失敗（${response.status}）`;
+                    throw new Error(msg);
+                }
 
-                const isNew = !editingId;
+                // 成功時解析回傳資料（特別是新增時取得真正的 id）
+                const saved = await response.json().catch(() => null);
+                const savedId = saved && saved.id ? saved.id : id;
+
                 alert(editingId ? '✅ 更新成功！' : '✅ 新增成功！');
                 closeModal();
                 loadCollections();
 
                 // 初始化 collection_game_stats（新增清單，或更新清單的遊戲列表有變化時）
-                await syncCollectionGameStats(id, games);
+                if (savedId) {
+                    await syncCollectionGameStats(savedId, games);
+                }
 
             } catch (error) {
                 console.error('儲存失敗:', error);
