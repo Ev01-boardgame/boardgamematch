@@ -128,7 +128,7 @@
             margin: 0.4rem 0 0.3rem 0.1rem;
             min-height: 1.2em;
         }
-        /* 置頂狀態的 tag：右上角顯示 📌 */
+        /* 置頂狀態的 tag：左上角顯示 📌（與 pin 按鈕同側） */
         .game-tag-draggable {
             position: relative !important;
         }
@@ -136,16 +136,16 @@
             content: '📌';
             position: absolute;
             top: -6px;
-            right: -6px;
+            left: -6px;
             font-size: 0.72em;
             line-height: 1;
             pointer-events: none;
         }
-        /* pin 按鈕（桌機版，顯示在 tag 右上） */
+        /* pin 按鈕（桌機版，顯示在 tag 左上：十款釘選在左邊） */
         .tag-pin-btn {
             position: absolute;
             top: -7px;
-            right: -7px;
+            left: -7px;
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -164,11 +164,11 @@
         }
         .tag-pin-btn:hover { transform: scale(1.2); }
         .game-tag-draggable.pinned .tag-pin-btn { color: #f59e0b; }
-        /* 刪除按鈕（右上角小叉叉，在 pin 左側） */
+        /* 刪除按鈕（右上角小叉叉，單獨在右邊） */
         .tag-del-btn {
             position: absolute;
             top: -6px;
-            right: 14px;
+            right: -7px;
             width: 18px;
             height: 18px;
             border-radius: 50%;
