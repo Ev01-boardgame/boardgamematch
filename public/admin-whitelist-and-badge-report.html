@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白名單與徽章調查 - 管理後台</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .report-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem 2rem; margin-bottom: 1.5rem; border-radius: 1rem; }
+        .report-header h1 { margin: 0 0 0.5rem 0; font-size: 1.4rem; }
+        .report-header a { color: rgba(255,255,255,0.95); text-decoration: underline; }
+        .report-section { background: var(--card-bg); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+        .report-section h2 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-color); border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+        .report-section .section-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .report-section table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .report-section th, .report-section td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .report-section th { background: var(--bg-light); font-weight: 600; }
+        .report-section .empty { color: var(--text-light); text-align: center; padding: 1rem; }
+        .report-section .loading { color: var(--text-light); text-align: center; padding: 1rem; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; border-radius: 0.4rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-light); }
+        .btn-sm:hover { background: var(--border-color); }
+        .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card-bg); border-radius: 1rem; padding: 1.5rem; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-content h3 { margin: 0 0 1rem 0; }
+        .modal-content label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
+        .modal-content input, .modal-content textarea { width: 100%; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+        .err-msg { color: #b91c1c; font-size: 0.85rem; margin-bottom: 0.5rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 960px; margin: 2rem auto;">
+        <div class="report-header">
+            <h1>📋 白名單與徽章調查</h1>
+            <p style="margin:0; opacity:0.9; font-size:0.9rem;">白名單名單可在此新增／停用／移除；守護者・傳說徽章可收回。完整授予請至 <a href="admin-badges.html">成就與白名單管理</a></p>
+        </div>
+        <div class="report-section">
+            <div class="section-actions"><h2 style="border:0; padding:0; margin:0;">🛡️ 管理員白名單 (admin_whitelist)</h2><button class="btn btn-primary" style="padding:0.4rem 0.9rem; font-size:0.85rem;" onclick="openAddModal('admin')">+ 新增管理員</button></div>
+            <div id="admin-list" class="loading">載入中...</div>
+        </div>
+        <div class="report-section">
+            <div class="section-actions"><h2 style="border:0; padding:0; margin:0;">🧪 測試人員白名單 (tester_whitelist)</h2><button class="btn btn-primary" style="padding:0.4rem 0.9rem; font-size:0.85rem;" onclick="openAddModal('tester')">+ 新增測試人員</button></div>
+            <div id="tester-list" class="loading">載入中...</div>
+        </div>
+        <div class="report-section">
+            <div class="section-actions"><h2 style="border:0; padding:0; margin:0;">🌟 桌遊圈內紅人白名單 (influencer_whitelist)</h2><button class="btn btn-primary" style="padding:0.4rem 0.9rem; font-size:0.85rem;" onclick="openAddModal('influencer')">+ 新增紅人</button></div>
+            <div id="influencer-list" class="loading">載入中...</div>
+        </div>
+        <div class="report-section">
+            <h2>🏆 成就「守護者・傳說」持有者</h2>
+            <p style="margin:0 0 0.75rem 0; font-size:0.85rem; color:var(--text-light);">name_zh 含「守護者」且 rarity 傳說；可在此收回徽章，或至 <a href="admin-badges.html">成就與白名單管理</a> 授予</p>
+            <div id="badge-owners" class="loading">載入中...</div>
+        </div>
+        <p style="margin-top:1rem;"><a href="admin.html" style="color:var(--primary-color);">← 回管理後台</a></p>
+    </div>
+
+    <!-- 新增白名單彈窗 -->
+    <div class="modal" id="add-modal">
+        <div class="modal-content">
+            <h3 id="add-modal-title">新增</h3>
+            <p class="err-msg" id="add-err"></p>
+            <div id="add-form-body"></div>
+            <div class="modal-actions">
+                <button class="btn-sm" onclick="closeAddModal()">取消</button>
+                <button class="btn btn-primary" id="add-submit-btn">送出</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const escape = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+        async function loadAll(url, limit = 500) {
+            let list = [], page = 1;
+            while (true) {
+                const r = await fetch(url + (url.includes('?') ? '&' : '?') + `page=${page}&limit=${limit}`);
+                if (!r.ok) return [];
+                const data = await r.json();
+                const rows = data.data || [];
+                list = list.concat(rows);
+                if (rows.length < limit) break;
+                page++;
+            }
+            return list;
+        }
+        const TABLE = { admin: 'admin_whitelist', tester: 'tester_whitelist', influencer: 'influencer_whitelist' };
+        let data = { adminWl: [], testerWl: [], influencerWl: [], guardianBadgeIds: [], owners: [], allStats: [] };
+
+        function renderAdminList() {
+            const list = data.adminWl;
+            const el = document.getElementById('admin-list');
+            if (list.length === 0) { el.innerHTML = '<p class="empty">尚無資料</p>'; return; }
+            el.innerHTML = '<table><thead><tr><th>#</th><th>暱稱</th><th>email</th><th>google_id</th><th>啟用</th><th>操作</th></tr></thead><tbody>' +
+                list.map((r, i) => '<tr><td>' + (i+1) + '</td><td>' + escape(r.nickname) + '</td><td>' + escape(r.email) + '</td><td style="font-size:0.8rem;">' + escape(r.google_id) + '</td><td>' + (r.is_active !== false ? '✓' : '—') + '</td><td>' +
+                '<button class="btn-sm" onclick="toggleWl(\'admin\',\'' + r.id + '\',' + (r.is_active !== false) + ')" title="' + (r.is_active !== false ? '停用' : '啟用') + '">' + (r.is_active !== false ? '⏸' : '▶') + '</button> ' +
+                '<button class="btn-sm btn-danger" onclick="removeWl(\'admin\',\'' + r.id + '\',\'' + escape(r.nickname || r.email || r.id) + '\')">移除</button></td></tr>').join('') + '</tbody></table>';
+        }
+        function renderTesterList() {
+            const list = data.testerWl;
+            const el = document.getElementById('tester-list');
+            if (list.length === 0) { el.innerHTML = '<p class="empty">尚無資料</p>'; return; }
+            el.innerHTML = '<table><thead><tr><th>#</th><th>備註</th><th>google_id</th><th>啟用</th><th>操作</th></tr></thead><tbody>' +
+                list.map((r, i) => '<tr><td>' + (i+1) + '</td><td>' + escape(r.note) + '</td><td style="font-size:0.8rem;">' + escape(r.google_id) + '</td><td>' + (r.is_active !== false ? '✓' : '—') + '</td><td>' +
+                '<button class="btn-sm" onclick="toggleWl(\'tester\',\'' + r.id + '\',' + (r.is_active !== false) + ')">' + (r.is_active !== false ? '⏸' : '▶') + '</button> ' +
+                '<button class="btn-sm btn-danger" onclick="removeWl(\'tester\',\'' + r.id + '\',\'' + escape(r.note || r.google_id) + '\')">移除</button></td></tr>').join('') + '</tbody></table>';
+        }
+        function renderInfluencerList() {
+            const list = data.influencerWl;
+            const el = document.getElementById('influencer-list');
+            if (list.length === 0) { el.innerHTML = '<p class="empty">尚無資料</p>'; return; }
+            el.innerHTML = '<table><thead><tr><th>#</th><th>備註</th><th>google_id</th><th>啟用</th><th>操作</th></tr></thead><tbody>' +
+                list.map((r, i) => '<tr><td>' + (i+1) + '</td><td>' + escape(r.note) + '</td><td style="font-size:0.8rem;">' + escape(r.google_id) + '</td><td>' + (r.is_active !== false ? '✓' : '—') + '</td><td>' +
+                '<button class="btn-sm" onclick="toggleWl(\'influencer\',\'' + r.id + '\',' + (r.is_active !== false) + ')">' + (r.is_active !== false ? '⏸' : '▶') + '</button> ' +
+                '<button class="btn-sm btn-danger" onclick="removeWl(\'influencer\',\'' + r.id + '\',\'' + escape(r.note || r.google_id) + '\')">移除</button></td></tr>').join('') + '</tbody></table>';
+        }
+        function renderBadgeOwners() {
+            const el = document.getElementById('badge-owners');
+            if (data.guardianBadgeIds.length === 0) {
+                el.innerHTML = '<p class="empty">成就表內沒有「name_zh 含守護者且 rarity 傳說」的徽章。</p>'; return;
+            }
+            if (data.owners.length === 0) {
+                el.innerHTML = '<p class="empty">目前沒有人擁有該徽章。</p>'; return;
+            }
+            const badgeNames = (window.guardianLegendaryAchievements || []).map(a => a.name_zh).join('、');
+            el.innerHTML = '<p style="font-size:0.85rem; color:var(--text-light); margin-bottom:0.5rem;">符合徽章：' + escape(badgeNames) + '</p><table><thead><tr><th>#</th><th>暱稱</th><th>email</th><th>user_id</th><th>操作</th></tr></thead><tbody>' +
+                data.owners.map((o, i) => '<tr><td>' + (i+1) + '</td><td>' + escape(o.username) + '</td><td>' + escape(o.email) + '</td><td style="font-size:0.8rem;">' + escape(o.user_id) + '</td><td><button class="btn-sm btn-danger" data-stat-id="' + escape(o.stat_id) + '" data-username="' + escape(o.username) + '" onclick="revokeBadge(this)">收回徽章</button></td></tr>').join('') + '</tbody></table>';
+        }
+
+        async function toggleWl(type, id, currentActive) {
+            try {
+                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !currentActive }) });
+                if (!r.ok) throw new Error('更新失敗');
+                await refreshWhitelists();
+            } catch (e) { alert('操作失敗：' + e.message); }
+        }
+        async function removeWl(type, id, name) {
+            if (!confirm('確定要從白名單移除「' + name + '」？')) return;
+            try {
+                const r = await fetch('tables/' + TABLE[type] + '/' + id, { method: 'DELETE' });
+                if (!r.ok) throw new Error('刪除失敗');
+                await refreshWhitelists();
+            } catch (e) { alert('操作失敗：' + e.message); }
+        }
+        async function refreshWhitelists() {
+            const [a, t, i] = await Promise.all([loadAll('tables/admin_whitelist?limit=200'), loadAll('tables/tester_whitelist?limit=200'), loadAll('tables/influencer_whitelist?limit=200')]);
+            data.adminWl = a; data.testerWl = t; data.influencerWl = i;
+            renderAdminList(); renderTesterList(); renderInfluencerList();
+        }
+
+        function openAddModal(type) {
+            const titles = { admin: '新增管理員', tester: '新增測試人員', influencer: '新增桌遊圈內紅人' };
+            document.getElementById('add-modal-title').textContent = titles[type];
+            document.getElementById('add-err').style.display = 'none';
+            if (type === 'admin') {
+                document.getElementById('add-form-body').innerHTML =
+                    '<label>Google Email *</label><input type="email" id="add-email" placeholder="example@gmail.com">' +
+                    '<label>顯示名稱</label><input type="text" id="add-nickname" placeholder="例如：小明">' +
+                    '<label>備註說明</label><input type="text" id="add-notes" placeholder="例如：負責遊戲管理">';
+            } else {
+                document.getElementById('add-form-body').innerHTML =
+                    '<label>Google ID (sub) *</label><input type="text" id="add-google-id" placeholder="數字字串，登入後可從後台取得">' +
+                    '<label>備註</label><input type="text" id="add-note" placeholder="例如：測試員 A">';
+            }
+            document.getElementById('add-modal').classList.add('active');
+            document.getElementById('add-submit-btn').onclick = () => submitAdd(type);
+        }
+        function closeAddModal() { document.getElementById('add-modal').classList.remove('active'); }
+        function submitAdd(type) {
+            const errEl = document.getElementById('add-err');
+            errEl.style.display = 'none';
+            if (type === 'admin') {
+                const email = (document.getElementById('add-email').value || '').trim();
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    errEl.textContent = '請輸入有效的 Email'; errEl.style.display = 'block'; return;
+                }
+                const nickname = (document.getElementById('add-nickname').value || '').trim();
+                const notes = (document.getElementById('add-notes').value || '').trim();
+                fetch('tables/admin_whitelist', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ google_id: '', email, nickname: nickname || email.split('@')[0], picture: '', role: 'admin', added_by: '報表頁', added_at: Date.now(), is_active: true, notes })
+                }).then(r => { if (!r.ok) throw new Error(r.statusText); return refreshWhitelists(); }).then(() => { closeAddModal(); alert('✅ 已新增管理員'); }).catch(e => { errEl.textContent = e.message; errEl.style.display = 'block'; });
+            } else {
+                const google_id = (document.getElementById('add-google-id').value || '').trim();
+                if (!google_id) { errEl.textContent = '請填寫 Google ID'; errEl.style.display = 'block'; return; }
+                const note = (document.getElementById('add-note').value || '').trim();
+                fetch('tables/' + TABLE[type], {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ google_id, note, is_active: true })
+                }).then(r => { if (!r.ok) throw new Error(r.statusText); return refreshWhitelists(); }).then(() => { closeAddModal(); alert('✅ 已新增'); }).catch(e => { errEl.textContent = e.message; errEl.style.display = 'block'; });
+            }
+        }
+
+        async function revokeBadge(btn) {
+            const statId = btn.getAttribute('data-stat-id');
+            const username = btn.getAttribute('data-username') || '';
+            if (!confirm('確定要收回「' + username + '」的守護者・傳說徽章？')) return;
+            const stat = data.allStats.find(s => s.id === statId);
+            if (!stat) { alert('找不到該筆資料'); return; }
+            let arr = stat.unlocked_badges;
+            if (typeof arr === 'string') try { arr = JSON.parse(arr); } catch(e) { arr = []; }
+            if (!Array.isArray(arr)) arr = [];
+            const updated = arr.filter(id => !data.guardianBadgeIds.includes(id));
+            try {
+                const r = await fetch('tables/user_stats/' + statId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unlocked_badges: updated }) });
+                if (!r.ok) throw new Error('更新失敗');
+                await loadBadgeSection();
+            } catch (e) { alert('收回失敗：' + e.message); }
+        }
+        async function loadBadgeSection() {
+            const achievements = await loadAll('tables/achievements?limit=200');
+            const guardianLegendary = achievements.filter(a =>
+                (a.name_zh && a.name_zh.includes('守護者')) &&
+                (a.rarity === 'legendary' || (a.rarity && (a.rarity.toLowerCase().includes('legend') || a.rarity.includes('傳說'))))
+            );
+            window.guardianLegendaryAchievements = guardianLegendary;
+            data.guardianBadgeIds = guardianLegendary.map(a => a.id);
+            const allStats = await loadAll('tables/user_stats?limit=500');
+            const allUsers = await loadAll('tables/users?limit=500');
+            data.allStats = allStats;
+            const userMap = new Map(allUsers.map(u => [u.id, u]));
+            const owners = [];
+            for (const stat of allStats) {
+                let arr = stat.unlocked_badges;
+                if (typeof arr === 'string') try { arr = JSON.parse(arr); } catch(e) { arr = []; }
+                if (!Array.isArray(arr)) arr = [];
+                if (!data.guardianBadgeIds.some(id => arr.includes(id))) continue;
+                const u = userMap.get(stat.user_id);
+                owners.push({ stat_id: stat.id, user_id: stat.user_id, username: u ? (u.username || u.nickname || u.email) : stat.user_id, email: u ? u.email : '' });
+            }
+            data.owners = owners;
+            renderBadgeOwners();
+        }
+
+        (async function() {
+            const [adminWl, testerWl, influencerWl] = await Promise.all([
+                loadAll('tables/admin_whitelist?limit=200'),
+                loadAll('tables/tester_whitelist?limit=200'),
+                loadAll('tables/influencer_whitelist?limit=200')
+            ]);
+            data.adminWl = adminWl; data.testerWl = testerWl; data.influencerWl = influencerWl;
+            renderAdminList(); renderTesterList(); renderInfluencerList();
+            await loadBadgeSection();
+        })();
+        document.getElementById('add-modal').addEventListener('click', function(e) { if (e.target === this) closeAddModal(); });
+    </script>
+</body>
+</html>
