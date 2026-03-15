@@ -125,6 +125,9 @@
                     <div class="stat-label">最多玩家類型</div>
                 </div>
             </div>
+            <p id="stats-load-hint" style="display: none; margin-top: 1rem; font-size: 0.9rem; color: var(--text-light);">
+                💡 若你預期應有資料卻顯示 0，請重新整理頁面或稍後再試；若持續發生請聯絡站長。
+            </p>
         </section>
 
         <!-- MBTI 類型選擇 -->
@@ -827,6 +830,14 @@
                 displayGlobalGames();
             } catch (error) {
                 console.error('Error loading data:', error);
+                showStatus('無法載入總覽資料，請重新整理頁面；若持續發生請檢查網路或稍後再試。', true);
+            }
+            // 若兩項都是 0，可能是 API 連線問題（例如入口 Worker 未正確轉發）
+            var tu = document.getElementById('total-users');
+            var tg = document.getElementById('total-games');
+            if (tu && tg && tu.textContent === '0' && tg.textContent === '0') {
+                var hint = document.getElementById('stats-load-hint');
+                if (hint) hint.style.display = 'block';
             }
         }
         
