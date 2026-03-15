@@ -568,6 +568,14 @@
         let collections = [];
         let editingId = null;
 
+        // 寫入 API 時須帶 Google JWT（後端 401 = Authentication required）
+        function authHeaders() {
+            const h = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
+
         // 頁面載入
         window.addEventListener('DOMContentLoaded', () => {
             loadCollections();
@@ -1011,14 +1019,14 @@
                     // 更新
                     response = await fetch(`tables/game_collections/${id}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify(data)
                     });
                 } else {
                     // 新增
                     response = await fetch('tables/game_collections', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify(data)
                     });
                 }
@@ -1071,7 +1079,7 @@
                 await Promise.all(missing.map(gameName =>
                     fetch('tables/collection_game_stats', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify({
                             id: `cgs_${collectionId.slice(-6)}_${gameName.slice(0,6).replace(/\s/g,'')}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
                             collection_id: collectionId,
@@ -1094,7 +1102,7 @@
             try {
                 const response = await fetch(`tables/game_collections/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders(),
                     body: JSON.stringify({ is_active: isActive })
                 });
 
@@ -1117,7 +1125,8 @@
 
             try {
                 const response = await fetch(`tables/game_collections/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: authHeaders()
                 });
 
                 if (!response.ok) throw new Error('刪除失敗');
