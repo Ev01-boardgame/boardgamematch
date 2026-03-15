@@ -673,10 +673,8 @@
                 max_players:  null,
                 playing_time: null,
                 complexity:   null,
-                description:  '',
                 image_url:    imageUrl,
                 bgg_id:       bggId,
-                source:       'BGG',
             };
 
             // ════════════════════════════════════════════════
@@ -710,15 +708,10 @@
                 const playTime  = xmlItem.querySelector('maxplaytime')?.getAttribute('value')
                                || xmlItem.querySelector('playingtime')?.getAttribute('value');
                 const weightVal = xmlItem.querySelector('averageweight')?.getAttribute('value');
-                const rawDesc   = xmlItem.querySelector('description')?.textContent || '';
                 if (minP)      game.min_players  = parseInt(minP);
                 if (maxP)      game.max_players  = parseInt(maxP);
                 if (playTime)  game.playing_time = parseInt(playTime);
                 if (weightVal) game.complexity   = Math.round(parseFloat(weightVal) * 100) / 100;
-                if (rawDesc)   game.description  = rawDesc
-                    .replace(/&#10;/g, '\n').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-                    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#9;/g, ' ')
-                    .replace(/\n\s*\n/g, '\n').trim().slice(0, 500);
 
                 console.log(`[BGG ${bggId}] XML 補充完成`);
             } catch(xmlErr) {
@@ -848,49 +841,11 @@
                                  && !u.includes('thumb'))
             || candidates[0] || '';
 
-        // ── 簡介 ──
-        // BGG 頁面的 ### Description 下面只有 "Edit" 按鈕，
-        // 真正描述在更後面的長段落（通常 > 100 字）
-        let description = '';
-
-        // 輔助函式：清理一行文字並判斷是否為有效描述行
-        const isValidDescLine = (raw) => {
-            const l = raw
-                .replace(/!\[.*?\]\(.*?\)/g, '')        // 移除圖片
-                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除連結，保留文字
-                .replace(/[*_`\[\]]/g, '')               // 移除 Markdown 符號
-                .trim();
-            if (l.length < 60) return '';               // 太短
-            if (/^https?:\/\//.test(l)) return '';      // 純 URL
-            if (/^[#\-\*\|>]/.test(l)) return '';       // 標題/清單/表格
-            if (/^[=\-_~]{5,}/.test(l)) return '';      // ====== 或 ------ 裝飾線
-            if (/^[=\-_~\s]+$/.test(l)) return '';      // 整行都是裝飾符號
-            if (/^\W{10,}$/.test(l)) return '';         // 整行都是非字母符號
-            return l;
-        };
-
-        // 策略 1：找 ### Description 後的第一個有效段落
-        const descSectionMatch = text.match(/###\s*[Dd]escription[^\n]*\n+([\s\S]+?)(?=\n###\s|\n---|\n\*\*\*|$)/);
-        if (descSectionMatch) {
-            for (const ln of descSectionMatch[1].split('\n')) {
-                const valid = isValidDescLine(ln);
-                if (valid) { description = valid.slice(0, 500); break; }
-            }
-        }
-
-        // 策略 2：全文找第一個 >= 100 字的有效段落
-        if (!description) {
-            for (const line of lines) {
-                const valid = isValidDescLine(line);
-                if (valid && valid.length >= 100) { description = valid.slice(0, 500); break; }
-            }
-        }
-
         return {
             name_en: nameEn, name_zh: nameZh, name_ja: nameJa, year,
             min_players: minPlayers, max_players: maxPlayers,
             playing_time: playingTime, complexity, image_url: imageUrl,
-            description, bgg_id: bggId, source: 'BGG'
+            bgg_id: bggId
         };
     }
 
@@ -1072,9 +1027,7 @@
                 playing_time: parseInt(r.playingtime) || null,
                 complexity:   parseFloat(r.avgweight) ? Math.round(parseFloat(r.avgweight)*100)/100 : null,
                 image_url:    imageUrl,
-                description:  '',
                 bgg_id:       bggId,
-                source:       'BGG'
             };
             fetchedGames.push({
                 bggId,

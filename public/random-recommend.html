@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隨機推薦 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .page-hero-fix {
+            color: white;
+            padding: 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .page-hero-fix h1 { margin: 0 0 0.5rem; font-size: 1.75rem; font-weight: 700; }
+        .page-hero-fix p { margin: 0; opacity: 0.9; font-size: 0.95rem; }
+        .mode-section {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .mode-section h2 { font-size: 1.1rem; margin: 0 0 1rem; color: var(--text-color); }
+        .mode-options { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .mode-option {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            background: var(--bg-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-option:hover { border-color: var(--primary-color); }
+        .mode-option.selected { border-color: var(--primary-color); background: rgba(102,126,234,0.1); }
+        .mode-option input { margin: 0; }
+        .btn-recommend {
+            padding: 0.9rem 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+        }
+        .btn-recommend:hover { opacity: 0.95; transform: translateY(-1px); }
+        .btn-recommend:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .result-section { margin-top: 2rem; }
+        .result-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+        .result-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        .result-card-cover {
+            aspect-ratio: 1;
+            background: var(--border-color);
+            background-size: cover;
+            background-position: center;
+        }
+        .result-card-body { padding: 0.6rem; }
+        .result-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-color); line-height: 1.3; }
+        .result-card-score { font-size: 0.75rem; color: var(--primary-color); margin-top: 0.25rem; }
+        .result-empty { text-align: center; padding: 2rem; color: var(--text-light); }
+        .result-hint { font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="random-recommend.html" class="active">隨機推薦</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌遊人格測驗</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-hero-fix" style="background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #4f46e5 100%);">
+            <h1>🎲 隨機推薦</h1>
+            <p>選擇推薦方式，取得 10 款桌遊（可依 MBTI 或桌遊偏好）</p>
+        </div>
+
+        <div class="mode-section">
+            <h2>推薦方式</h2>
+            <div class="mode-options">
+                <label class="mode-option" data-mode="random">
+                    <input type="radio" name="mode" value="random" checked>
+                    <span>純隨機</span>
+                </label>
+                <label class="mode-option" data-mode="mbti">
+                    <input type="radio" name="mode" value="mbti">
+                    <span>依 MBTI 性格</span>
+                </label>
+                <label class="mode-option" data-mode="axis">
+                    <input type="radio" name="mode" value="axis">
+                    <span>依桌遊偏好</span>
+                </label>
+                <label class="mode-option" data-mode="both">
+                    <input type="radio" name="mode" value="both">
+                    <span>依 MBTI + 桌遊偏好</span>
+                </label>
+            </div>
+            <p class="result-hint">純隨機不依個人資料；MBTI 依同類型玩家喜好；桌遊偏好依你的偏好輪廓與遊戲的匹配度。</p>
+        </div>
+
+        <div style="text-align: center;">
+            <button type="button" class="btn-recommend" id="btn-recommend">推薦 10 款</button>
+        </div>
+
+        <section class="result-section" id="result-section" style="display: none;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-color);">推薦結果</h3>
+            <div id="result-cards" class="result-cards"></div>
+            <div id="result-empty" class="result-empty" style="display: none;">尚無資料，請改用「純隨機」或稍後再試。</div>
+        </section>
+    </div>
+
+    <script src="js/api-base.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/match-score.js"></script>
+    <script src="js/game-names.js"></script>
+    <script>
+    (function() {
+        var POOL_SIZE = 400;
+        var RESULT_COUNT = 10;
+        var gamePool = [];
+        var gameMapByName = {};
+        var allUsers = [];
+        var currentUser = null;
+        var userProfile = null;
+
+        function getMode() {
+            var r = document.querySelector('input[name="mode"]:checked');
+            return r ? r.value : 'random';
+        }
+
+        document.querySelectorAll('.mode-option').forEach(function(el) {
+            el.addEventListener('click', function() {
+                document.querySelectorAll('.mode-option').forEach(function(o) { o.classList.remove('selected'); });
+                this.classList.add('selected');
+            });
+        });
+        document.querySelector('.mode-option[data-mode="random"]').classList.add('selected');
+
+        function getGameDisplayName(g) {
+            if (!g) return '';
+            return g.name_zh || g.name_en || g.name_ja || (typeof g === 'string' ? g : '') || '';
+        }
+
+        function getGameImageUrl(g) {
+            if (!g) return '';
+            if (typeof g === 'object' && g.image_url) return g.image_url;
+            if (typeof window.getGameImageUrl === 'function') return window.getGameImageUrl(getGameDisplayName(g)) || '';
+            return '';
+        }
+
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+
+        function loadGamePool() {
+            return fetchAllPages('tables/game_database', POOL_SIZE).then(function(rows) {
+                gamePool = (rows || []).filter(function(r) { return (r.name_zh || r.name_en); });
+                gameMapByName = {};
+                gamePool.forEach(function(g) {
+                    ['name_zh', 'name_en', 'name_ja'].forEach(function(k) {
+                        var n = (g[k] || '').trim();
+                        if (n && !gameMapByName[n]) gameMapByName[n] = g;
+                    });
+                });
+                return gamePool;
+            });
+        }
+
+        function ensureData() {
+            var mode = getMode();
+            var needUsers = (mode === 'mbti' || mode === 'both');
+            var needProfile = (mode === 'axis' || mode === 'both');
+            var needGames = true;
+
+            var p = loadGamePool();
+            if (needUsers) {
+                p = p.then(function() {
+                    return typeof getAllUsers === 'function' ? getAllUsers() : [];
+                }).then(function(u) {
+                    allUsers = u || [];
+                    return gamePool;
+                });
+            }
+            if (needProfile && typeof getCurrentUser === 'function') {
+                currentUser = getCurrentUser();
+                if (currentUser && currentUser.id) {
+                    var headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                    p = p.then(function() {
+                        return fetch('tables/user_preference_profiles/' + currentUser.id, { headers: headers })
+                            .then(function(r) { return r.status === 200 ? r.json() : null; });
+                    }).then(function(prof) {
+                        userProfile = prof;
+                        return gamePool;
+                    });
+                }
+            } else if (needProfile) {
+                currentUser = null;
+                userProfile = null;
+            }
+            return p;
+        }
+
+        function runRandom() {
+            var pool = shuffle(gamePool).slice(0, RESULT_COUNT);
+            return pool.map(function(g) { return { game: g, score: null }; });
+        }
+
+        function runMBTI() {
+            if (!currentUser || !currentUser.mbti_type || !allUsers.length) return runRandom();
+            var typeUsers = allUsers.filter(function(u) { return u.mbti_type === currentUser.mbti_type; });
+            var gameCount = {};
+            typeUsers.forEach(function(u) {
+                (u.super_liked_games || []).forEach(function(game) {
+                    gameCount[game] = (gameCount[game] || 0) + 2;
+                });
+                (u.liked_games || []).forEach(function(game) {
+                    gameCount[game] = (gameCount[game] || 0) + 1;
+                });
+            });
+            var ranked = Object.entries(gameCount)
+                .map(function(e) { return { game: e[0], score: e[1] }; })
+                .sort(function(a, b) { return b.score - a.score; });
+            if (ranked.length === 0) return runRandom();
+            var top = ranked.slice(0, 50);
+            var picked = shuffle(top).slice(0, RESULT_COUNT);
+            return picked.map(function(p) {
+                var g = gameMapByName[p.game] || { name_zh: p.game, name_en: p.game };
+                return { game: g, score: p.score, scoreLabel: '同類型 ' + p.score + ' 分' };
+            }).filter(function(x) { return x.game; });
+        }
+
+        function runAxis() {
+            if (!userProfile || !window.MatchScore) return runRandom();
+            var withAxis = gamePool.filter(function(g) {
+                return g.axis_conflict != null || g.axis_strategy != null;
+            });
+            if (withAxis.length === 0) return runRandom();
+            var playerAxes = {
+                conflict: userProfile.conflict, strategy: userProfile.strategy,
+                social_fun: userProfile.social_fun, immersion: userProfile.immersion,
+                accessibility: userProfile.accessibility, manipulation: userProfile.manipulation,
+                coop: userProfile.coop, luck: userProfile.luck
+            };
+            var scored = withAxis.map(function(g) {
+                var s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);
+                return { game: g, score: s, scoreLabel: '偏好匹配 ' + s + '%' };
+            });
+            scored.sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+            return scored.slice(0, RESULT_COUNT);
+        }
+
+        function runBoth() {
+            if (!currentUser || !allUsers.length && !userProfile) return runRandom();
+            var mbtiList = runMBTI();
+            var axisList = runAxis();
+            if (mbtiList.length === 0 && axisList.length === 0) return runRandom();
+            var byGame = {};
+            function add(list, weight) {
+                list.forEach(function(x, i) {
+                    var name = getGameDisplayName(x.game);
+                    if (!name) return;
+                    var rank = 1 - (i / Math.max(list.length, 1));
+                    if (!byGame[name]) byGame[name] = { game: x.game, combined: 0 };
+                    byGame[name].combined += weight * rank;
+                });
+            }
+            add(mbtiList, 0.5);
+            add(axisList, 0.5);
+            var merged = Object.values(byGame).sort(function(a, b) { return b.combined - a.combined; }).slice(0, RESULT_COUNT);
+            return merged.map(function(x) {
+                return { game: x.game, score: Math.round(x.combined * 100), scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' };
+            });
+        }
+
+        function runRecommend() {
+            var mode = getMode();
+            if (mode === 'mbti' && typeof getCurrentUser === 'function') currentUser = getCurrentUser();
+            if ((mode === 'axis' || mode === 'both') && typeof getCurrentUser === 'function' && !currentUser) currentUser = getCurrentUser();
+
+            var btn = document.getElementById('btn-recommend');
+            if (btn) btn.disabled = true;
+            document.getElementById('result-section').style.display = 'block';
+            document.getElementById('result-cards').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;">載入中...</div>';
+            document.getElementById('result-empty').style.display = 'none';
+
+            ensureData().then(function() {
+                var list = [];
+                if (mode === 'random') list = runRandom();
+                else if (mode === 'mbti') list = runMBTI();
+                else if (mode === 'axis') list = runAxis();
+                else if (mode === 'both') list = runBoth();
+
+                var cardsEl = document.getElementById('result-cards');
+                var emptyEl = document.getElementById('result-empty');
+                if (!list || list.length === 0) {
+                    cardsEl.innerHTML = '';
+                    emptyEl.style.display = 'block';
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                cardsEl.innerHTML = list.map(function(item) {
+                    var g = item.game;
+                    var name = getGameDisplayName(g);
+                    var img = getGameImageUrl(g);
+                    var scoreHtml = item.scoreLabel ? '<div class="result-card-score">' + item.scoreLabel + '</div>' : '';
+                    return '<div class="result-card">' +
+                        '<div class="result-card-cover" style="' + (img ? 'background-image:url(' + JSON.stringify(img) + ')' : '') + '"></div>' +
+                        '<div class="result-card-body"><div class="result-card-name">' + (name || '桌遊').replace(/</g, '&lt;') + '</div>' + scoreHtml + '</div></div>';
+                }).join('');
+                if (btn) btn.disabled = false;
+            }).catch(function(e) {
+                document.getElementById('result-cards').innerHTML = '';
+                document.getElementById('result-empty').textContent = '載入失敗：' + (e && e.message ? e.message : '請稍後再試');
+                document.getElementById('result-empty').style.display = 'block';
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        document.getElementById('btn-recommend').addEventListener('click', runRecommend);
+    })();
+    </script>
+</body>
+</html>

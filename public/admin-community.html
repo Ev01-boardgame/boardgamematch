@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>桌遊社群管理 - MBTI × 桌遊配對</title>
+    <title>揪桌趣處管理 - MBTI × 桌遊配對</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/hourglass-simple.css">
     <style>
@@ -46,7 +46,7 @@
                 <li><a href="recommend.html">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
-                <li><a href="community.html">桌遊社群</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
             </ul>
         </div>
@@ -54,8 +54,8 @@
 
     <div class="container">
         <div class="admin-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);">
-            <h2>👥 桌遊社群管理</h2>
-            <p>管理 Line / Discord / FB / 自架網站等社群連結，分類為討論、地區、平台、揪團</p>
+            <h2>👥 揪桌趣處管理</h2>
+            <p>管理 Line / Discord / FB / 自架網站、店家（Google Map）等連結，分類為討論、地區、平台、揪團、店家</p>
             <a href="admin.html" class="back-btn">← 返回管理後台</a>
         </div>
 
@@ -77,7 +77,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">連結 *</label>
-                <input type="url" id="edit-url" class="form-input" required placeholder="https://...">
+                <input type="url" id="edit-url" class="form-input" required placeholder="https://...（店家請貼 Google 地圖連結）">
             </div>
             <div class="form-group">
                 <label class="form-label">標籤（來源）*</label>
@@ -86,6 +86,7 @@
                     <option value="Discord">Discord</option>
                     <option value="FB">FB</option>
                     <option value="自架網站">自架網站</option>
+                    <option value="Google Map">Google Map</option>
                     <option value="其他">其他</option>
                 </select>
             </div>
@@ -105,6 +106,7 @@
                 <div class="checkbox-group" style="margin-top: 0.5rem;">
                     <label><input type="checkbox" id="cat-discussion"> 討論（綜合）</label>
                     <label><input type="checkbox" id="cat-meetup"> 揪團</label>
+                    <label><input type="checkbox" id="cat-store"> 店家（連結請填 Google 地圖）</label>
                 </div>
                 <div class="form-label" style="margin-top: 0.75rem;">地區</div>
                 <div class="checkbox-group">
@@ -161,6 +163,7 @@
                         const tags = [];
                         if (row.category_discussion === 1 || row.category_discussion === '1') tags.push('討論');
                         if (row.category_meetup === 1 || row.category_meetup === '1') tags.push('揪團');
+                        if (row.category_store === 1 || row.category_store === '1') tags.push('店家');
                         return '<div class="community-row">' +
                             '<div class="info">' +
                             '<div class="name">' + escapeHtml(row.name) + ' <span class="badge ' + (active ? '' : 'badge-off') + '">' + (active ? '上架' : '下架') + '</span></div>' +
@@ -197,6 +200,7 @@
                 document.getElementById('edit-is_active').checked = row.is_active !== 0 && row.is_active !== '0';
                 document.getElementById('cat-discussion').checked = row.category_discussion === 1 || row.category_discussion === '1';
                 document.getElementById('cat-meetup').checked = row.category_meetup === 1 || row.category_meetup === '1';
+                document.getElementById('cat-store').checked = row.category_store === 1 || row.category_store === '1';
                 const regions = parseJson(row.category_regions);
                 document.querySelectorAll('.cat-region').forEach(cb => { cb.checked = regions.includes(cb.value); });
                 const platforms = parseJson(row.category_platforms);
@@ -210,6 +214,7 @@
                 document.getElementById('edit-is_active').checked = true;
                 document.getElementById('cat-discussion').checked = false;
                 document.getElementById('cat-meetup').checked = false;
+                document.getElementById('cat-store').checked = false;
                 document.querySelectorAll('.cat-region').forEach(cb => { cb.checked = false; });
                 document.querySelectorAll('.cat-platform').forEach(cb => { cb.checked = false; });
             }
@@ -238,6 +243,7 @@
                 is_active: document.getElementById('edit-is_active').checked ? 1 : 0,
                 category_discussion: document.getElementById('cat-discussion').checked ? 1 : 0,
                 category_meetup: document.getElementById('cat-meetup').checked ? 1 : 0,
+                category_store: document.getElementById('cat-store').checked ? 1 : 0,
                 category_regions: JSON.stringify(regions),
                 category_platforms: JSON.stringify(platforms)
             };

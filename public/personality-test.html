@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌遊人格測驗 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .page-hero-fix {
+            color: white;
+            padding: 2.5rem 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .page-hero-fix h1 { margin: 0 0 0.5rem; font-size: 2rem; font-weight: 700; color: white; background: none; -webkit-text-fill-color: white; }
+        .page-hero-fix p { margin: 0; opacity: 0.9; font-size: 1rem; color: white; }
+        .test-list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+            max-width: 900px;
+            margin: 0 auto 2rem;
+        }
+        .test-list-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .test-list-card:hover { border-color: var(--primary-color); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .test-list-card .card-emoji { font-size: 2rem; margin-bottom: 0.5rem; }
+        .test-list-card .card-title { font-size: 1.15rem; font-weight: 700; color: var(--text-color); margin-bottom: 0.4rem; }
+        .test-list-card .card-desc { font-size: 0.88rem; color: var(--text-light); line-height: 1.5; }
+        #test-intro { display: none; text-align: center; max-width: 520px; margin: 0 auto 2rem; }
+        #test-intro p { color: var(--text-light); line-height: 1.7; margin-bottom: 1.5rem; }
+        .test-start-btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .test-start-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .test-back-link { display: inline-block; margin-bottom: 1rem; color: var(--text-light); font-size: 0.9rem; cursor: pointer; text-decoration: underline; }
+        .test-back-link:hover { color: var(--primary-color); }
+        #test-questions { display: none; }
+        .test-questions-layout { display: flex; gap: 1.5rem; align-items: flex-start; max-width: 960px; margin: 0 auto; }
+        .test-questions-main { flex: 1; min-width: 0; }
+        .test-live-result {
+            width: 260px; flex-shrink: 0;
+            position: sticky; top: 1rem;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.85rem;
+        }
+        .test-live-result h3 { margin: 0 0 0.75rem; font-size: 0.95rem; color: var(--text-light); font-weight: 600; }
+        .test-live-result .live-dim { margin-bottom: 0.6rem; }
+        .test-live-result .live-dim-label { font-weight: 600; color: var(--text-color); }
+        .test-live-result .live-dim-bar { height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-top: 0.25rem; }
+        .test-live-result .live-dim-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .test-live-result .live-type { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); font-weight: 700; color: var(--primary-color); }
+        .test-live-result .live-preview { margin-top: 0.5rem; padding: 0.5rem; background: #f0f9ff; border-radius: 0.5rem; color: var(--text-color); font-size: 0.8rem; }
+        .test-live-result .live-scores { margin-bottom: 0.5rem; }
+        .test-live-result .live-scores span { display: block; margin-bottom: 0.25rem; }
+        @media (max-width: 768px) {
+            .test-questions-layout { flex-direction: column; }
+            .test-live-result { width: 100%; position: static; }
+        }
+        .test-progress-wrap { margin-bottom: 1.5rem; }
+        .test-progress-text { font-size: 0.9rem; color: var(--text-light); margin-bottom: 0.5rem; }
+        .test-progress-bar { height: 8px; background: var(--border-color); border-radius: 1rem; overflow: hidden; }
+        .test-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 1rem; transition: width 0.4s ease; }
+        .test-q-card {
+            background: var(--card-bg);
+            border-radius: 1.25rem;
+            padding: 1.75rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1.5rem;
+        }
+        .test-q-num { font-size: 0.8rem; font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem; }
+        .test-q-text { font-size: 1.1rem; font-weight: 600; line-height: 1.6; color: var(--text-color); margin-bottom: 1.25rem; }
+        .test-options { display: grid; gap: 0.75rem; }
+        .test-opt-btn {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            background: var(--card-bg);
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        .test-opt-btn:hover { border-color: var(--primary-color); background: #f0f9ff; }
+        .test-opt-btn.selected { border-color: var(--primary-color); background: #e0f2fe; color: var(--primary-color); font-weight: 600; }
+        .test-next-wrap { margin-top: 1.5rem; }
+        .test-next-btn {
+            padding: 0.9rem 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .test-next-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .test-next-btn:not(:disabled):hover { opacity: 0.95; }
+        #test-result { display: none; text-align: center; max-width: 560px; margin: 0 auto; }
+        .result-type-badge {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-md);
+        }
+        .result-desc {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+            color: var(--text-color);
+            text-align: left;
+        }
+        .result-mbti-badge { font-size: 2rem; font-weight: 800; letter-spacing: 0.2em; margin-bottom: 0.75rem; color: var(--primary-color); }
+        .result-retry-btn {
+            display: inline-block;
+            padding: 0.75rem 1.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            background: transparent;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .result-retry-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .result-radar-wrap {
+            max-width: 300px;
+            margin: 1rem auto 1.5rem;
+        }
+        .result-radar-wrap .result-radar-svg {
+            width: 100%;
+            height: auto;
+            display: block;
+            aspect-ratio: 1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html" class="active">桌遊人格測驗</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-hero-fix" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);">
+            <h1>🎭 桌遊人格測驗</h1>
+            <p>選一個測驗，找出你的風格（可離線、可重測）</p>
+        </div>
+
+        <!-- 測驗列表（二選一） -->
+        <section id="test-list">
+            <div class="test-list-grid">
+                <div class="test-list-card" data-test="mbti">
+                    <div class="card-emoji">📋</div>
+                    <div class="card-title">MBTI 風格</div>
+                    <div class="card-desc">24 題「同意／不同意」，得出四維度（E/I、S/N、T/F、J/P）組合。</div>
+                </div>
+                <div class="test-list-card" data-test="preference">
+                    <div class="card-emoji">🎯</div>
+                    <div class="card-title">桌遊偏好</div>
+                    <div class="card-desc">54 題，桌遊偏好。題數加倍為求精準，產出雷達圖與分數。</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 單一測驗的開場（選測驗後顯示） -->
+        <section id="test-intro">
+            <a class="test-back-link" id="link-back">← 回測驗列表</a>
+            <p id="intro-desc"></p>
+            <button type="button" class="test-start-btn" id="btn-start">開始測驗</button>
+        </section>
+
+        <!-- 題目區 -->
+        <section id="test-questions">
+            <div class="test-questions-layout">
+                <div class="test-questions-main">
+                    <a class="test-back-link" id="link-back-from-q">← 回測驗列表</a>
+                    <div class="test-progress-wrap">
+                        <div class="test-progress-text" id="progress-text">第 1 / 6 題</div>
+                        <div class="test-progress-bar">
+                            <div class="test-progress-fill" id="progress-fill" style="width: 16.67%;"></div>
+                        </div>
+                    </div>
+                    <div class="test-q-card">
+                        <div class="test-q-num" id="q-num">題目 1</div>
+                        <div class="test-q-text" id="q-text"></div>
+                        <div class="test-options" id="q-options"></div>
+                        <div class="test-next-wrap">
+                            <button type="button" class="test-next-btn" id="btn-next" disabled>下一題</button>
+                        </div>
+                    </div>
+                </div>
+                <aside class="test-live-result" id="live-result-panel">
+                    <h3>即時結果（測試用）</h3>
+                    <div id="live-result-content"></div>
+                </aside>
+            </div>
+        </section>
+
+        <!-- 結果區 -->
+        <section id="test-result">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;" id="result-emoji"></div>
+            <div class="result-mbti-badge" id="result-mbti-badge" style="display:none;"></div>
+            <div class="result-type-badge" id="result-type-name"></div>
+            <div id="result-radar-wrap" class="result-radar-wrap" style="display:none;"></div>
+            <div class="result-desc" id="result-desc"></div>
+            <button type="button" class="result-retry-btn" id="btn-retry">🔄 再測一次</button>
+            <div id="result-save-wrap" style="display:none; margin-top: 1rem;">
+                <button type="button" class="test-start-btn" id="btn-save-profile" style="margin-right: 0.5rem;">💾 儲存到我的檔案</button>
+            </div>
+            <p id="result-save-hint" style="display:none; margin-top: 1rem; color: var(--text-light); font-size: 0.9rem;">登入後可將結果儲存到「我的檔案」</p>
+            <div style="margin-top: 1rem;"><a class="test-back-link" id="link-back-from-result">← 回測驗列表</a></div>
+        </section>
+    </div>
+
+    <script src="js/api-base.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // ---------- MBTI 風格（同意/不同意，四維度） ----------
+        // 維度：E/I, S/N, T/F, J/P。每題選「同意」給左邊 +1，「不同意」給右邊 +1
+        var DIMENSIONS_MBTI = [
+            ['E', 'I', '外向', '內向'],
+            ['S', 'N', '實感', '直覺'],
+            ['T', 'F', '思考', '情感'],
+            ['J', 'P', '計劃', '隨性']
+        ];
+        var QUESTIONS_MBTI = [
+            // E/I 維度（6 題）
+            { text: '別人經常說我我行我素。', agree: 'I', disagree: 'E' },
+            { text: '我喜歡一個人獨處。', agree: 'I', disagree: 'E' },
+            { text: '我喜歡成為眾人矚目的焦點。', agree: 'E', disagree: 'I' },
+            { text: '聚會時我常是主動找人聊天的那個。', agree: 'E', disagree: 'I' },
+            { text: '我比較喜歡小圈子、少數人深聊。', agree: 'I', disagree: 'E' },
+            { text: '獨處一陣子後我會想找朋友見面。', agree: 'E', disagree: 'I' },
+            // S/N 維度（6 題）
+            { text: '比起天馬行空，我更喜歡具體的事實。', agree: 'S', disagree: 'N' },
+            { text: '我很容易被新的可能性與點子吸引。', agree: 'N', disagree: 'S' },
+            { text: '我重視實際經驗與親身嘗試。', agree: 'S', disagree: 'N' },
+            { text: '我常會想像「如果……會怎樣」的各種可能。', agree: 'N', disagree: 'S' },
+            { text: '做決定時我比較依賴過去的經驗與數據。', agree: 'S', disagree: 'N' },
+            { text: '我對抽象概念與符號意義很有興趣。', agree: 'N', disagree: 'S' },
+            // T/F 維度（6 題）
+            { text: '我擅長體會對方的心情。', agree: 'F', disagree: 'T' },
+            { text: '為事物下決斷時，我重視數據與資料。', agree: 'T', disagree: 'F' },
+            { text: '別人總是覺得我冷淡。', agree: 'T', disagree: 'F' },
+            { text: '做決定時我優先考慮「這樣合理嗎」。', agree: 'T', disagree: 'F' },
+            { text: '我常會顧慮別人的感受再說話。', agree: 'F', disagree: 'T' },
+            { text: '我認為公平與邏輯比和諧更重要。', agree: 'T', disagree: 'F' },
+            // J/P 維度（6 題）
+            { text: '我很守時，不會遲到。', agree: 'J', disagree: 'P' },
+            { text: '我做事喜歡事先規劃好再行動。', agree: 'J', disagree: 'P' },
+            { text: '我喜歡彈性、隨興，不愛被行程綁住。', agree: 'P', disagree: 'J' },
+            { text: '我喜歡行程表清楚、事先排好。', agree: 'J', disagree: 'P' },
+            { text: '臨時改變計劃會讓我有點煩。', agree: 'J', disagree: 'P' },
+            { text: '我常常「先做了再說」、邊做邊調整。', agree: 'P', disagree: 'J' }
+        ];
+        var MBTI_DESCRIPTIONS = {
+            INTJ: '建築師：富有想像力與戰略性，一切皆在計劃之中。',
+            INTP: '邏輯學家：創新、對知識有不可遏止的渴望。',
+            ENTJ: '指揮官：大膽、意志強大的領導者。',
+            ENTP: '辯論家：聰明好奇，無法抗拒智力挑戰。',
+            INFJ: '提倡者：安靜而神秘，鼓舞人心的理想主義者。',
+            INFP: '調停者：詩意、善良的利他主義者。',
+            ENFJ: '主人公：富有魅力、鼓舞人心的領導者。',
+            ENFP: '競選者：熱情、有創造力、社交能力強。',
+            ISTJ: '物流師：實際且注重事實，可靠性高。',
+            ISFJ: '守衛者：專注而溫暖的守護者。',
+            ESTJ: '總經理：出色的管理者。',
+            ESFJ: '執政官：極有同情心、關懷他人。',
+            ISTP: '鑑賞家：大膽且實際的實驗者。',
+            ISFP: '探險家：靈活且有魅力的藝術家。',
+            ESTP: '企業家：聰明、精力充沛、享受刺激。',
+            ESFP: '表演者：自發性、熱情的表演者。'
+        };
+
+        // ---------- 桌遊偏好（8 軸 QF×BGG 風格，54 題：每軸 6 題 + 6 題取捨） ----------
+        // 8 軸：conflict, strategy, social_fun, immersion, accessibility, manipulation, coop, luck
+        var PREFERENCE_LABELS = {
+            conflict: '衝突', strategy: '策略', social_fun: '社交樂趣', immersion: '沉浸感',
+            accessibility: '易學', manipulation: '操控心機', coop: '合作', luck: '運氣'
+        };
+        var PREFERENCE_GROUPS = { all: ['conflict', 'strategy', 'social_fun', 'immersion', 'accessibility', 'manipulation', 'coop', 'luck'] };
+        var QUESTIONS_PREFERENCE = [
+            { text: '遊戲中有人「直接針對你」或「把你打爆」時，你通常？', options: [
+                { text: '覺得很刺激、這樣才好玩', scores: { conflict: 2 } },
+                { text: '可以接受，本來就是競爭', scores: { conflict: 1 } },
+                { text: '不太喜歡，希望少一點針對', scores: { coop: 1 } },
+                { text: '很不喜歡，偏好大家各算各的', scores: {} }
+            ]},
+            { text: '你比較喜歡「大家各玩各的、最後比總分」還是「有直接衝突、可以打人」？', options: [
+                { text: '各玩各的、比總分', scores: {} },
+                { text: '有衝突、可以打人', scores: { conflict: 2 } },
+                { text: '看遊戲，兩種都可以', scores: { conflict: 1 } }
+            ]},
+            { text: '對於「可以打人、搶地盤、軍事對抗」的遊戲，你的感覺是？', options: [
+                { text: '很愛，會主動找', scores: { conflict: 2 } },
+                { text: '喜歡，有就玩', scores: { conflict: 1 } },
+                { text: '普通', scores: {} },
+                { text: '不太喜歡', scores: {} }
+            ]},
+            { text: '你喜歡「需要長遠規劃、多步思考」的遊戲嗎？', options: [
+                { text: '非常喜歡，享受燒腦', scores: { strategy: 2 } },
+                { text: '喜歡', scores: { strategy: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好不用想太多', scores: {} }
+            ]},
+            { text: '遊戲結束後，你會不會常回想「哪步走錯了、下次可以怎麼優化」？', options: [
+                { text: '會，很常檢討', scores: { strategy: 2 } },
+                { text: '偶爾會', scores: { strategy: 1 } },
+                { text: '很少，玩完就過了', scores: {} }
+            ]},
+            { text: '對於「規則書很厚、要學一陣子」的遊戲，你的態度是？', options: [
+                { text: '願意花時間學，值得', scores: { strategy: 2 } },
+                { text: '可以接受，但偏好中等複雜', scores: { strategy: 1 } },
+                { text: '比較偏好規則簡單、好上手', scores: { accessibility: 2 } }
+            ]},
+            { text: '朋友聚會時，你比較常想開哪一類遊戲？', options: [
+                { text: '規則簡單、大家都能很快上手的', scores: { social_fun: 1, accessibility: 1 } },
+                { text: '有策略、要動腦、想贏要算的', scores: { strategy: 2 } },
+                { text: '大家一起合作破關的', scores: { coop: 2 } },
+                { text: '有故事、有角色、能代入的', scores: { immersion: 2 } },
+                { text: '規則少、節奏快、笑聲多的', scores: { social_fun: 2 } }
+            ]},
+            { text: '遊戲結束後，你比較會因為什麼而滿足？', options: [
+                { text: '大家笑成一團、氣氛很好', scores: { social_fun: 2 } },
+                { text: '我算對了、贏了或雖敗猶榮', scores: { strategy: 2 } },
+                { text: '我們一起過關了', scores: { coop: 2 } },
+                { text: '故事或角色很投入', scores: { immersion: 2 } }
+            ]},
+            { text: '你對「派對遊戲、炒氣氛、笑鬧」的態度？', options: [
+                { text: '超愛，常開', scores: { social_fun: 2 } },
+                { text: '喜歡', scores: { social_fun: 1 } },
+                { text: '偶爾可以', scores: {} },
+                { text: '比較少主動選', scores: {} }
+            ]},
+            { text: '你喜歡「有故事、有角色、能代入」的遊戲嗎？', options: [
+                { text: '非常喜歡', scores: { immersion: 2 } },
+                { text: '喜歡', scores: { immersion: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好機制、不重主題', scores: {} }
+            ]},
+            { text: '買桌遊時，「有完整劇情與角色」會吸引你嗎？', options: [
+                { text: '會，很常被吸引', scores: { immersion: 2 } },
+                { text: '有點會', scores: { immersion: 1 } },
+                { text: '還好', scores: {} }
+            ]},
+            { text: '遊戲結束後，你會不會常回想「故事／角色有沒有代入感」？', options: [
+                { text: '會', scores: { immersion: 2 } },
+                { text: '偶爾', scores: { immersion: 1 } },
+                { text: '很少', scores: {} }
+            ]},
+            { text: '你比較喜歡的遊戲時長是？', options: [
+                { text: '一局 15–30 分鐘，快節奏', scores: { accessibility: 1, social_fun: 1 } },
+                { text: '一局 45 分鐘–1 小時，剛剛好', scores: {} },
+                { text: '一局 1.5–2 小時以上，可以沉進去', scores: { strategy: 1, immersion: 1 } }
+            ]},
+            { text: '對於「規則簡單、5 分鐘能講完」的遊戲，你的態度是？', options: [
+                { text: '很愛，常開', scores: { accessibility: 2 } },
+                { text: '喜歡', scores: { accessibility: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好有深度的', scores: {} }
+            ]},
+            { text: '帶新手玩時，你比較偏好？', options: [
+                { text: '選規則簡單、好上手的', scores: { accessibility: 2 } },
+                { text: '選我喜歡的，再慢慢教', scores: { strategy: 1 } },
+                { text: '都可以', scores: {} }
+            ]},
+            { text: '遊戲中有「談判、交易、結盟」時，你的感覺是？', options: [
+                { text: '很享受，會主動談', scores: { manipulation: 2 } },
+                { text: '可以接受，有加分', scores: { manipulation: 1 } },
+                { text: '普通', scores: {} },
+                { text: '不喜歡，想專心算自己的', scores: {} }
+            ]},
+            { text: '「隱藏身份、陣營、說謊、騙人」類的遊戲，你喜歡嗎？', options: [
+                { text: '非常喜歡', scores: { manipulation: 2 } },
+                { text: '喜歡', scores: { manipulation: 1 } },
+                { text: '普通／不喜歡', scores: {} }
+            ]},
+            { text: '你喜歡遊戲中有「嘴砲、討價還價、心理戰」嗎？', options: [
+                { text: '非常喜歡', scores: { manipulation: 2 } },
+                { text: '喜歡', scores: { manipulation: 1 } },
+                { text: '普通／不喜歡', scores: {} }
+            ]},
+            { text: '「合作遊戲」和「競爭遊戲」你更常選？', options: [
+                { text: '更常選合作', scores: { coop: 2 } },
+                { text: '更常選競爭', scores: { conflict: 1 } },
+                { text: '差不多，看場合', scores: {} }
+            ]},
+            { text: '多人遊戲時，你比較享受？', options: [
+                { text: '各自算自己的，最後比誰分高', scores: {} },
+                { text: '可以打來打去、針對、結盟', scores: { conflict: 1, manipulation: 1 } },
+                { text: '大家一起討論、合作過關', scores: { coop: 2 } }
+            ]},
+            { text: '買桌遊時，「純合作、一起解謎」會吸引你嗎？', options: [
+                { text: '會，很常被吸引', scores: { coop: 2 } },
+                { text: '有點會', scores: { coop: 1 } },
+                { text: '還好', scores: {} }
+            ]},
+            { text: '你對「擲骰、抽牌」這種運氣成分的接受度？', options: [
+                { text: '很接受，有驚喜感', scores: { luck: 2 } },
+                { text: '可以接受，但不要太多', scores: { luck: 1 } },
+                { text: '偏好少一點運氣', scores: {} },
+                { text: '不喜歡，喜歡可計算', scores: {} }
+            ]},
+            { text: '你比較喜歡「靠運氣逆轉」還是「靠計算碾壓」？', options: [
+                { text: '靠運氣逆轉、有驚喜', scores: { luck: 2 } },
+                { text: '靠計算、步步為營', scores: {} },
+                { text: '都可以', scores: { luck: 1 } }
+            ]},
+            { text: '關鍵時刻「骰子搞砸」或「抽牌爆掉」，你的反應通常是？', options: [
+                { text: '覺得很好笑、這就是遊戲', scores: { luck: 2 } },
+                { text: '可以接受，下次再來', scores: { luck: 1 } },
+                { text: '會有點煩', scores: {} },
+                { text: '很不喜歡，偏好可計算', scores: {} }
+            ]},
+            { text: '輸了的時候，你比較會想？', options: [
+                { text: '再戰一局、討回來', scores: { conflict: 2 } },
+                { text: '沒關係，下次再來', scores: {} },
+                { text: '會檢討哪裡可以更好', scores: { strategy: 1 } }
+            ]},
+            { text: '你喜歡「零和、有人贏就有人輸」的遊戲嗎？', options: [
+                { text: '很喜歡', scores: { conflict: 2 } },
+                { text: '喜歡', scores: { conflict: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較喜歡大家都能有成就感', scores: { coop: 1 } }
+            ]},
+            { text: '遊戲中有「攻擊、破壞對手」的機制時，你的感覺？', options: [
+                { text: '很享受', scores: { conflict: 2 } },
+                { text: '可以接受', scores: { conflict: 1 } },
+                { text: '不太喜歡', scores: {} }
+            ]},
+            { text: '你喜歡「多種路線、要取捨」的遊戲嗎？', options: [
+                { text: '非常喜歡', scores: { strategy: 2 } },
+                { text: '喜歡', scores: { strategy: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好直覺簡單', scores: { accessibility: 1 } }
+            ]},
+            { text: '有人長考時，你通常？', options: [
+                { text: '可以等，我也會想', scores: { strategy: 2 } },
+                { text: '可以等，但希望別太久', scores: { strategy: 1 } },
+                { text: '會有點不耐煩', scores: { social_fun: 1 } }
+            ]},
+            { text: '買桌遊時，「策略深度高、重開性強」會吸引你嗎？', options: [
+                { text: '會，很常被吸引', scores: { strategy: 2 } },
+                { text: '有點會', scores: { strategy: 1 } },
+                { text: '還好', scores: {} }
+            ]},
+            { text: '你喜歡「人數多、熱鬧」的遊戲嗎？', options: [
+                { text: '超愛', scores: { social_fun: 2 } },
+                { text: '喜歡', scores: { social_fun: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好少人、安靜思考', scores: { strategy: 1 } }
+            ]},
+            { text: '遊戲中大家笑成一團時，你通常？', options: [
+                { text: '很享受，會一起鬧', scores: { social_fun: 2 } },
+                { text: '喜歡', scores: { social_fun: 1 } },
+                { text: '普通', scores: {} }
+            ]},
+            { text: '你比較喜歡「一局很快、可以連開好幾局」還是「一局較久、一局定勝負」？', options: [
+                { text: '很快、連開好幾局', scores: { social_fun: 1, accessibility: 1 } },
+                { text: '一局較久、一局定勝負', scores: { strategy: 1 } },
+                { text: '都可以', scores: {} }
+            ]},
+            { text: '你會在遊戲中「加戲、代入角色」嗎？', options: [
+                { text: '會，常這樣做', scores: { immersion: 2 } },
+                { text: '偶爾會', scores: { immersion: 1 } },
+                { text: '很少', scores: {} }
+            ]},
+            { text: '買桌遊時，主題／美術對你的影響？', options: [
+                { text: '很大，會因為主題或美術買', scores: { immersion: 2 } },
+                { text: '有點影響', scores: { immersion: 1 } },
+                { text: '還好，機制比較重要', scores: {} }
+            ]},
+            { text: '你喜歡「有劇情戰役、多局延續成故事」的遊戲嗎？', options: [
+                { text: '非常喜歡', scores: { immersion: 2 } },
+                { text: '喜歡', scores: { immersion: 1 } },
+                { text: '普通／不喜歡', scores: {} }
+            ]},
+            { text: '對於「說明書 2 頁就講完」的遊戲，你的態度？', options: [
+                { text: '很愛，常開', scores: { accessibility: 2 } },
+                { text: '喜歡', scores: { accessibility: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好有深度的', scores: { strategy: 1 } }
+            ]},
+            { text: '你願意花多少時間學一款新遊戲？', options: [
+                { text: '超過 1 小時也 OK', scores: { strategy: 2 } },
+                { text: '半小時內較好', scores: { accessibility: 1 } },
+                { text: '10 分鐘內最好', scores: { accessibility: 2 } }
+            ]},
+            { text: '帶完全沒玩過桌遊的人時，你會選？', options: [
+                { text: '規則最簡單的', scores: { accessibility: 2 } },
+                { text: '我喜歡的，再慢慢教', scores: { strategy: 1 } },
+                { text: '看場合', scores: {} }
+            ]},
+            { text: '你喜歡「可以騙人、唬人」的遊戲嗎？', options: [
+                { text: '非常喜歡', scores: { manipulation: 2 } },
+                { text: '喜歡', scores: { manipulation: 1 } },
+                { text: '普通／不喜歡', scores: {} }
+            ]},
+            { text: '遊戲中有人跟你討價還價時，你通常？', options: [
+                { text: '很享受、會認真談', scores: { manipulation: 2 } },
+                { text: '可以配合', scores: { manipulation: 1 } },
+                { text: '不太喜歡', scores: {} }
+            ]},
+            { text: '「陣營對抗、要猜誰是隊友」的遊戲，你喜歡嗎？', options: [
+                { text: '很愛', scores: { manipulation: 2 } },
+                { text: '喜歡', scores: { manipulation: 1 } },
+                { text: '普通／不喜歡', scores: {} }
+            ]},
+            { text: '你喜歡「大家一起討論、一起決策」的遊戲嗎？', options: [
+                { text: '非常喜歡', scores: { coop: 2 } },
+                { text: '喜歡', scores: { coop: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較偏好自己決策', scores: { strategy: 1 } }
+            ]},
+            { text: '對於「沒有個人輸贏、只有團隊成敗」的遊戲，你的態度？', options: [
+                { text: '很愛', scores: { coop: 2 } },
+                { text: '喜歡', scores: { coop: 1 } },
+                { text: '普通', scores: {} },
+                { text: '比較喜歡有個人勝負', scores: { conflict: 1 } }
+            ]},
+            { text: '遊戲中有人拖慢節奏時，你比較在意？', options: [
+                { text: '團隊一起過關比較重要', scores: { coop: 2 } },
+                { text: '希望節奏順一點', scores: { strategy: 1 } },
+                { text: '看情況', scores: {} }
+            ]},
+            { text: '對於「高隨機、每局差異很大」的遊戲，你的態度是？', options: [
+                { text: '很愛，每局都不一樣', scores: { luck: 2 } },
+                { text: '可以接受', scores: { luck: 1 } },
+                { text: '比較偏好可預期', scores: {} }
+            ]},
+            { text: '「關鍵一抽／關鍵一骰」決定勝負時，你通常？', options: [
+                { text: '覺得很刺激、這就是醍醐味', scores: { luck: 2 } },
+                { text: '可以接受', scores: { luck: 1 } },
+                { text: '會有點不甘心', scores: {} }
+            ]},
+            { text: '你喜歡「手牌／牌組有隨機性」的遊戲嗎？', options: [
+                { text: '很喜歡，有驚喜', scores: { luck: 2 } },
+                { text: '喜歡', scores: { luck: 1 } },
+                { text: '普通／偏好可計算', scores: {} }
+            ]},
+            { text: '以下兩種，你比較偏好？', options: [
+                { text: '輕快、大家笑鬧、規則簡單', scores: { social_fun: 2, accessibility: 1 } },
+                { text: '有深度、要動腦、規則可以複雜', scores: { strategy: 2 } }
+            ]},
+            { text: '選遊戲時，「大家都能參與、不冷場」和「策略深度、重開性」哪個較重要？', options: [
+                { text: '大家都能參與、不冷場', scores: { social_fun: 2, coop: 1 } },
+                { text: '策略深度、重開性', scores: { strategy: 2 } },
+                { text: '都重要，看場合', scores: { social_fun: 1, strategy: 1 } }
+            ]},
+            { text: '「靠運氣逆轉」和「靠規劃碾壓」你比較享受哪一種？', options: [
+                { text: '靠運氣逆轉', scores: { luck: 2 } },
+                { text: '靠規劃碾壓', scores: { strategy: 2 } },
+                { text: '兩種都行', scores: { luck: 1, strategy: 1 } }
+            ]},
+            { text: '「直接對抗、打來打去」和「一起合作破關」你更常想選？', options: [
+                { text: '直接對抗、打來打去', scores: { conflict: 2 } },
+                { text: '一起合作破關', scores: { coop: 2 } },
+                { text: '輪流選', scores: { conflict: 1, coop: 1 } }
+            ]},
+            { text: '「有故事、能代入」和「機制純粹、不重主題」你比較被哪種吸引？', options: [
+                { text: '有故事、能代入', scores: { immersion: 2 } },
+                { text: '機制純粹、不重主題', scores: { strategy: 2 } },
+                { text: '都會', scores: { immersion: 1, strategy: 1 } }
+            ]},
+            { text: '「規則 5 分鐘講完」和「規則要學一陣子但深度高」你比較偏好？', options: [
+                { text: '規則 5 分鐘講完', scores: { accessibility: 2 } },
+                { text: '規則要學一陣子但深度高', scores: { strategy: 2 } },
+                { text: '看當天心情', scores: { accessibility: 1, strategy: 1 } }
+            ]}
+        ];
+
+        // ---------- 測驗設定 ----------
+        var TEST_CONFIG = {
+            mbti: {
+                name: 'MBTI 風格',
+                shortDesc: '24 題「同意／不同意」，得出四維度（外向/內向、實感/直覺、思考/情感、計劃/隨性）組成的類型。',
+                questions: QUESTIONS_MBTI,
+                resultType: 'mbti'
+            },
+            preference: {
+                name: '桌遊偏好',
+                shortDesc: '54 題，桌遊偏好（衝突、策略、社交樂趣、沉浸感、易學、操控心機、合作、運氣）。題多一點、輪廓更準，產出雷達圖與分數。',
+                questions: QUESTIONS_PREFERENCE,
+                resultType: 'preference'
+            }
+        };
+
+        var state = { testId: null, scores: {}, dimensionScores: { E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0 }, currentIndex: 0, selectedIndex: -1 };
+        var elList = document.getElementById('test-list');
+        var elIntro = document.getElementById('test-intro');
+        var elIntroDesc = document.getElementById('intro-desc');
+        var elQuestions = document.getElementById('test-questions');
+        var elResult = document.getElementById('test-result');
+        var elProgressText = document.getElementById('progress-text');
+        var elProgressFill = document.getElementById('progress-fill');
+        var elQNum = document.getElementById('q-num');
+        var elQText = document.getElementById('q-text');
+        var elQOptions = document.getElementById('q-options');
+        var elBtnNext = document.getElementById('btn-next');
+        var elResultEmoji = document.getElementById('result-emoji');
+        var elResultMbtiBadge = document.getElementById('result-mbti-badge');
+        var elResultTypeName = document.getElementById('result-type-name');
+        var elResultDesc = document.getElementById('result-desc');
+
+        function shuffleArray(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+
+        function getCurrentQuestions() {
+            var c = TEST_CONFIG[state.testId];
+            if (!c) return [];
+            if (c.resultType === 'mbti') return c.questions;
+            if (c.resultType === 'preference' && state.preferenceOrder) {
+                return state.preferenceOrder.map(function(i) { return c.questions[i]; });
+            }
+            return c.questions;
+        }
+
+        function getTotalQuestions() {
+            return getCurrentQuestions().length;
+        }
+
+        function showList() {
+            state.testId = null;
+            elList.style.display = 'block';
+            elIntro.style.display = 'none';
+            elQuestions.style.display = 'none';
+            elResult.style.display = 'none';
+        }
+
+        // 若網址帶 ?test=mbti 或 ?test=preference，直接進入該測驗開場
+        (function checkUrlTest() {
+            var params = new URLSearchParams(window.location.search);
+            var t = params.get('test');
+            if (t === 'mbti' || t === 'preference') {
+                showIntro(t);
+            }
+        })();
+
+        function showIntro(testId) {
+            state.testId = testId;
+            state.scores = {};
+            state.dimensionScores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+            state.currentIndex = 0;
+            state.selectedIndex = -1;
+            state.preferenceOrder = null;
+            var c = TEST_CONFIG[testId];
+            if (c && c.resultType === 'preference' && c.questions) {
+                var len = c.questions.length;
+                state.preferenceOrder = shuffleArray(Array.from({ length: len }, function(_, i) { return i; }));
+            }
+            elIntroDesc.textContent = c.shortDesc;
+            elList.style.display = 'none';
+            elIntro.style.display = 'block';
+            elQuestions.style.display = 'none';
+            elResult.style.display = 'none';
+        }
+
+        function showQuestions() {
+            elList.style.display = 'none';
+            elIntro.style.display = 'none';
+            elQuestions.style.display = 'block';
+            elResult.style.display = 'none';
+            renderQuestion();
+            updateLiveResult();
+        }
+
+        function getMbtiCode(d) {
+            return (d.E >= d.I ? 'E' : 'I') + (d.S >= d.N ? 'S' : 'N') + (d.T >= d.F ? 'T' : 'F') + (d.J >= d.P ? 'J' : 'P');
+        }
+
+        function updateLiveResult() {
+            var panel = document.getElementById('live-result-content');
+            if (!panel) return;
+            var c = TEST_CONFIG[state.testId];
+            if (!c) { panel.innerHTML = ''; return; }
+
+            var questions = getCurrentQuestions();
+            var q = questions[state.currentIndex];
+            var html = '';
+
+            if (c.resultType === 'mbti') {
+                var d = state.dimensionScores;
+                // 若已選此題，顯示「若選此選項」的預測
+                if (q && state.selectedIndex >= 0) {
+                    var hypo = { E: d.E, I: d.I, S: d.S, N: d.N, T: d.T, F: d.F, J: d.J, P: d.P };
+                    if (state.selectedIndex === 0) hypo[q.agree]++;
+                    else hypo[q.disagree]++;
+                    var code = getMbtiCode(hypo);
+                    html += '<div class="live-preview">此題選「' + (state.selectedIndex === 0 ? '同意' : '不同意') + '」→ 預測類型：<strong>' + code + '</strong></div>';
+                }
+                DIMENSIONS_MBTI.forEach(function(dim) {
+                    var left = dim[0], right = dim[1], leftName = dim[2], rightName = dim[3];
+                    var lv = d[left] || 0, rv = d[right] || 0;
+                    var total = lv + rv || 1;
+                    var pctLeft = (lv / total) * 100;
+                    html += '<div class="live-dim"><span class="live-dim-label">' + leftName + ' ' + lv + ' : ' + rv + ' ' + rightName + '</span>';
+                    html += '<div class="live-dim-bar"><div class="live-dim-fill" style="width:' + pctLeft + '%;background:var(--primary-color);"></div></div></div>';
+                });
+                var code = getMbtiCode(d);
+                html += '<div class="live-type">目前預測：' + code + '</div>';
+            } else if (c.resultType === 'preference') {
+                var scores = state.scores;
+                var keys = PREFERENCE_GROUPS.all;
+                var parts = [];
+                keys.forEach(function(k) {
+                    var v = scores[k] || 0;
+                    if (v > 0) parts.push(PREFERENCE_LABELS[k] + ' ' + v);
+                });
+                if (parts.length) html += '<div class="live-scores"><span class="live-dim-label">偏好</span> ' + parts.join('、') + '</div>';
+                var sorted = Object.keys(scores).filter(function(k) { return (scores[k] || 0) > 0; }).sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+                var top3 = sorted.slice(0, 3);
+                if (top3.length) html += '<div class="live-type">目前最高：' + top3.map(function(k) { return PREFERENCE_LABELS[k] + ' ' + (scores[k] || 0); }).join('、') + '</div>';
+                if (q && state.selectedIndex >= 0 && q.options && q.options[state.selectedIndex]) {
+                    var hypo = {};
+                    Object.keys(scores).forEach(function(k) { hypo[k] = scores[k] || 0; });
+                    var chosen = q.options[state.selectedIndex];
+                    if (chosen.scores) Object.keys(chosen.scores).forEach(function(k) { hypo[k] = (hypo[k] || 0) + chosen.scores[k]; });
+                    var sortedHypo = Object.keys(hypo).filter(function(k) { return (hypo[k] || 0) > 0; }).sort(function(a, b) { return (hypo[b] || 0) - (hypo[a] || 0); });
+                    var top3Hypo = sortedHypo.slice(0, 3);
+                    if (top3Hypo.length) html += '<div class="live-preview">此題選此選項 → 最高會是：' + top3Hypo.map(function(k) { return PREFERENCE_LABELS[k]; }).join('、') + '</div>';
+                }
+            }
+            panel.innerHTML = html;
+        }
+
+        function addScores(types) {
+            Object.keys(types).forEach(function(k) {
+                state.scores[k] = (state.scores[k] || 0) + types[k];
+            });
+        }
+
+        function renderQuestion() {
+            var questions = getCurrentQuestions();
+            var total = questions.length;
+            var q = questions[state.currentIndex];
+            var pct = ((state.currentIndex + 1) / total) * 100;
+            elProgressText.textContent = '第 ' + (state.currentIndex + 1) + ' / ' + total + ' 題';
+            elProgressFill.style.width = pct + '%';
+            elQNum.textContent = '題目 ' + (state.currentIndex + 1);
+            elQText.textContent = q.text;
+            elQOptions.innerHTML = '';
+            state.selectedIndex = -1;
+            elBtnNext.disabled = true;
+
+            var c = TEST_CONFIG[state.testId];
+            if (c.resultType === 'mbti') {
+                var agreeBtn = document.createElement('button');
+                agreeBtn.type = 'button';
+                agreeBtn.className = 'test-opt-btn';
+                agreeBtn.textContent = '同意';
+                agreeBtn.dataset.choice = 'agree';
+                var disBtn = document.createElement('button');
+                disBtn.type = 'button';
+                disBtn.className = 'test-opt-btn';
+                disBtn.textContent = '不同意';
+                disBtn.dataset.choice = 'disagree';
+                [agreeBtn, disBtn].forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        elQOptions.querySelectorAll('.test-opt-btn').forEach(function(b) { b.classList.remove('selected'); });
+                        btn.classList.add('selected');
+                        state.selectedIndex = btn.dataset.choice === 'agree' ? 0 : 1;
+                        elBtnNext.disabled = false;
+                        updateLiveResult();
+                    });
+                    elQOptions.appendChild(btn);
+                });
+            } else {
+                q.options.forEach(function(opt, i) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'test-opt-btn';
+                    btn.textContent = opt.text;
+                    btn.dataset.index = i;
+                    btn.addEventListener('click', function() {
+                        elQOptions.querySelectorAll('.test-opt-btn').forEach(function(b) { b.classList.remove('selected'); });
+                        btn.classList.add('selected');
+                        state.selectedIndex = i;
+                        elBtnNext.disabled = false;
+                        updateLiveResult();
+                    });
+                    elQOptions.appendChild(btn);
+                });
+            }
+            updateLiveResult();
+        }
+
+        function nextQuestion() {
+            var questions = getCurrentQuestions();
+            var q = questions[state.currentIndex];
+            var c = TEST_CONFIG[state.testId];
+
+            if (c.resultType === 'mbti') {
+                if (state.selectedIndex === 0) state.dimensionScores[q.agree]++;
+                else state.dimensionScores[q.disagree]++;
+            } else {
+                var chosen = q.options[state.selectedIndex];
+                if (c.resultType === 'preference' && chosen.scores) addScores(chosen.scores);
+                else if (chosen.types) addScores(chosen.types);
+            }
+
+            state.currentIndex++;
+            if (state.currentIndex >= questions.length) {
+                showResult();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        function buildPreferenceRadar(scores) {
+            var axes = [
+                { key: 'conflict', label: '衝突' },
+                { key: 'strategy', label: '策略' },
+                { key: 'social_fun', label: '社交' },
+                { key: 'immersion', label: '沉浸' },
+                { key: 'accessibility', label: '易學' },
+                { key: 'manipulation', label: '心機' },
+                { key: 'coop', label: '合作' },
+                { key: 'luck', label: '運氣' }
+            ];
+            var size = 280;
+            var cx = size / 2, cy = size / 2;
+            var rMax = 88;
+            var rLabel = 98;
+            var n = axes.length;
+            var values = axes.map(function(a) { return Math.max(0, scores[a.key] || 0); });
+            var maxVal = Math.max.apply(null, values.concat([1]));
+            var normalized = values.map(function(v) { return (v / maxVal) * 100; });
+            var toPos = function(angle, radius) {
+                var x = cx + radius * Math.cos(angle);
+                var y = cy - radius * Math.sin(angle);
+                return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+            };
+            var points = [];
+            for (var i = 0; i < n; i++) {
+                var angle = -Math.PI / 2 + (i * 2 * Math.PI / n);
+                var r = (normalized[i] / 100) * rMax;
+                var p = toPos(angle, r);
+                points.push(p.x + ',' + p.y);
+            }
+            var polygonPoints = points.join(' ');
+            var grid = '';
+            for (var level = 1; level <= 5; level++) {
+                var rr = (level / 5) * rMax;
+                var pts = [];
+                for (var j = 0; j < n; j++) {
+                    var ang = -Math.PI / 2 + (j * 2 * Math.PI / n);
+                    var q = toPos(ang, rr);
+                    pts.push(q.x + ',' + q.y);
+                }
+                grid += '<polygon fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1" points="' + pts.join(' ') + '"/>';
+            }
+            var axisLines = '';
+            for (var k = 0; k < n; k++) {
+                var a = -Math.PI / 2 + (k * 2 * Math.PI / n);
+                var end = toPos(a, rMax);
+                axisLines += '<line x1="' + cx + '" y1="' + cy + '" x2="' + end.x + '" y2="' + end.y + '" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>';
+            }
+            var labels = '';
+            for (var m = 0; m < n; m++) {
+                var ang = -Math.PI / 2 + (m * 2 * Math.PI / n);
+                var pos = toPos(ang, rLabel);
+                var anchor = 'middle';
+                if (Math.abs(Math.cos(ang)) > 0.1) anchor = Math.cos(ang) > 0 ? 'start' : 'end';
+                labels += '<text x="' + pos.x + '" y="' + pos.y + '" text-anchor="' + anchor + '" dominant-baseline="middle" font-size="12" font-weight="500" fill="var(--text-color)">' + axes[m].label + '</text>';
+            }
+            return '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" class="result-radar-svg">' +
+                grid + axisLines +
+                '<polygon fill="rgba(5,150,105,0.28)" stroke="#059669" stroke-width="2" stroke-linejoin="round" points="' + polygonPoints + '"/>' +
+                labels + '</svg>';
+        }
+
+        function showResult() {
+            elList.style.display = 'none';
+            elIntro.style.display = 'none';
+            elQuestions.style.display = 'none';
+            elResult.style.display = 'block';
+            elResultEmoji.style.display = '';
+            elResultMbtiBadge.style.display = 'none';
+            elResultTypeName.style.display = '';
+            var elRadarWrap = document.getElementById('result-radar-wrap');
+            if (elRadarWrap) elRadarWrap.style.display = 'none';
+
+            var c = TEST_CONFIG[state.testId];
+            if (c.resultType === 'mbti') {
+                var d = state.dimensionScores;
+                var code = (d.E >= d.I ? 'E' : 'I') + (d.S >= d.N ? 'S' : 'N') + (d.T >= d.F ? 'T' : 'F') + (d.J >= d.P ? 'J' : 'P');
+                var desc = MBTI_DESCRIPTIONS[code] || '你的類型是 ' + code + '。';
+                elResultEmoji.style.display = 'none';
+                elResultMbtiBadge.style.display = 'block';
+                elResultMbtiBadge.textContent = code;
+                elResultTypeName.style.display = 'none';
+                elResultDesc.textContent = desc;
+            } else if (c.resultType === 'preference') {
+                var scores = state.scores;
+                elResultEmoji.style.display = 'none';
+                elResultMbtiBadge.style.display = 'none';
+                elResultTypeName.textContent = '你的桌遊偏好輪廓';
+                elResultTypeName.style.background = 'linear-gradient(135deg, #059669, #047857)';
+                elResultTypeName.style.display = 'inline-block';
+                if (elRadarWrap) {
+                    elRadarWrap.innerHTML = buildPreferenceRadar(scores);
+                    elRadarWrap.style.display = 'block';
+                }
+                var keys = PREFERENCE_GROUPS.all;
+                var lines = keys.map(function(k) { return PREFERENCE_LABELS[k] + '：' + (scores[k] || 0); });
+                var sorted = keys.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
+                var top5 = sorted.slice(0, 5);
+                var descParts = [];
+                if (top5.length) descParts.push('<strong>前五維度</strong><br>' + top5.map(function(k, i) { return (i + 1) + '. ' + PREFERENCE_LABELS[k] + '（' + (scores[k] || 0) + '）'; }).join(' '));
+                descParts.push('<strong>偏好分數</strong><br>' + lines.join('、'));
+                elResultDesc.innerHTML = descParts.join('<br><br>');
+            }
+            // 顯示/隱藏「儲存到我的檔案」（僅登入顯示按鈕）
+            var saveWrap = document.getElementById('result-save-wrap');
+            var saveHint = document.getElementById('result-save-hint');
+            if (saveWrap && saveHint) {
+                var currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                if (currentUser && currentUser.id) {
+                    saveWrap.style.display = 'block';
+                    saveHint.style.display = 'none';
+                } else {
+                    saveWrap.style.display = 'none';
+                    saveHint.style.display = 'block';
+                }
+            }
+        }
+
+        function startTest() {
+            showQuestions();
+        }
+
+        function retry() {
+            showIntro(state.testId);
+        }
+
+        function saveToProfile() {
+            var user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+            if (!user || !user.id) {
+                alert('請先登入後再儲存');
+                return;
+            }
+            var c = TEST_CONFIG[state.testId];
+            if (!c) return;
+            var btn = document.getElementById('btn-save-profile');
+            if (btn) btn.disabled = true;
+            var done = function(msg, isErr) {
+                if (btn) btn.disabled = false;
+                alert(msg);
+            };
+            if (c.resultType === 'mbti') {
+                var code = getMbtiCode(state.dimensionScores);
+                updateUser(user.id, { mbti_type: code }).then(function() {
+                    done('已將 MBTI 類型 ' + code + ' 儲存到我的檔案');
+                }).catch(function(e) {
+                    done('儲存失敗：' + (e && e.message ? e.message : '請稍後再試'), true);
+                });
+                return;
+            }
+            if (c.resultType === 'preference') {
+                var scores = state.scores || {};
+                var body = {
+                    user_id: user.id,
+                    conflict: Math.round(Number(scores.conflict) || 0),
+                    strategy: Math.round(Number(scores.strategy) || 0),
+                    social_fun: Math.round(Number(scores.social_fun) || 0),
+                    immersion: Math.round(Number(scores.immersion) || 0),
+                    accessibility: Math.round(Number(scores.accessibility) || 0),
+                    manipulation: Math.round(Number(scores.manipulation) || 0),
+                    coop: Math.round(Number(scores.coop) || 0),
+                    luck: Math.round(Number(scores.luck) || 0)
+                };
+                var headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+                fetch('tables/user_preference_profiles/' + user.id, { method: 'GET', headers: headers })
+                    .then(function(r) {
+                        var method = r.status === 404 ? 'POST' : 'PUT';
+                        var url = method === 'POST' ? 'tables/user_preference_profiles' : 'tables/user_preference_profiles/' + user.id;
+                        return fetch(url, { method: method, headers: headers, body: JSON.stringify(body) });
+                    })
+                    .then(function(r) {
+                        if (!r.ok) throw new Error(r.statusText || '儲存失敗');
+                        done('已將桌遊偏好儲存到我的檔案');
+                    })
+                    .catch(function(e) {
+                        done('儲存失敗：' + (e && e.message ? e.message : '請稍後再試'), true);
+                    });
+            }
+        }
+
+        document.querySelectorAll('.test-list-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                showIntro(card.dataset.test);
+            });
+        });
+        document.getElementById('btn-start').addEventListener('click', startTest);
+        document.getElementById('link-back').addEventListener('click', showList);
+        document.getElementById('link-back-from-q').addEventListener('click', showList);
+        document.getElementById('link-back-from-result').addEventListener('click', showList);
+        document.getElementById('btn-next').addEventListener('click', nextQuestion);
+        document.getElementById('btn-retry').addEventListener('click', retry);
+        var btnSave = document.getElementById('btn-save-profile');
+        if (btnSave) btnSave.addEventListener('click', saveToProfile);
+    })();
+    </script>
+</body>
+</html>
