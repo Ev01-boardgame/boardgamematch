@@ -1,5 +1,26 @@
 # D1 Migrations
 
+## add_user_preference_profiles.sql
+
+建立 `user_preference_profiles` 表，供「桌友適性」→ 桌遊偏好測驗結果儲存。  
+若未建立，點「儲存到我的檔案」會出現 **Table "user_preference_profiles" not found**。
+
+### 方式一：Cloudflare 主控台
+
+1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. **Workers & Pages** → **D1** → 選你的 D1 資料庫（例如 boardgame-match-db）
+3. 分頁選 **Console**
+4. 貼上 `migrations/add_user_preference_profiles.sql` 內容，按 **Run**
+
+### 方式二：本機 wrangler（遠端 DB）
+
+```bash
+cd cloudflare
+npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_user_preference_profiles.sql
+```
+
+---
+
 ## remove_xp_level.sql
 
 移除 `user_stats` 的 `xp`、`level`、`total_xp` 三欄，減輕儲存空間。  

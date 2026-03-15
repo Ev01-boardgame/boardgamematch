@@ -289,7 +289,9 @@ export default {
           const parsedRows = rows.map(row => parseJsonFields(row));
           const countResult = await db.prepare(`SELECT COUNT(*) as total FROM ${tableName}${whereBase}`).first();
           const total = countResult?.total || 0;
-          return jsonResponse({ data: parsedRows, total, table: tableName }, 200, origin, env);
+          const headers = corsHeaders(origin, env);
+          headers['Cache-Control'] = 'no-store';
+          return new Response(JSON.stringify({ data: parsedRows, total, table: tableName }), { status: 200, headers });
         }
 
         const page = parseInt(url.searchParams.get('page') || '1');
