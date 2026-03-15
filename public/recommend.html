@@ -709,13 +709,17 @@
                 return a;
             }
 
-            // 純隨機做法一：後端支援 ?random=10 時一次請求取 10 筆（Worker 用 seq 或 ORDER BY RANDOM()）
+            // 純隨機做法一：後端支援 ?random=10 時一次請求取 10 筆（Worker 用 ORDER BY RANDOM()）
             async function fetchTenRandomOneRequest() {
-                const res = await fetch('tables/game_database?random=' + RANDOM_RESULT_COUNT);
+                const cacheBuster = '_=' + Date.now();
+                const res = await fetch('tables/game_database?random=' + RANDOM_RESULT_COUNT + '&' + cacheBuster);
                 if (!res.ok) return null;
                 const data = await res.json();
                 const list = (data.data != null ? data.data : Array.isArray(data) ? data : []).filter(g => g && (g.name_zh || g.name_en));
-                return list.length >= RANDOM_RESULT_COUNT ? list.slice(0, RANDOM_RESULT_COUNT) : null;
+                if (list.length < RANDOM_RESULT_COUNT) return null;
+                const games = list.slice(0, RANDOM_RESULT_COUNT);
+                mergeGamesIntoLocalMap(games);
+                return games;
             }
             // 純隨機 fallback：十次「隨機一頁 → 該頁隨機一款」（後端尚未支援 ?random=10 時）
             async function fetchTenRandomFromAllPages() {
@@ -784,8 +788,10 @@
 
             async function runRandom() {
                 const one = await fetchTenRandomOneRequest();
-                const games = one || await fetchTenRandomFromAllPages();
-                return (games || []).slice(0, RANDOM_RESULT_COUNT).map(g => ({ game: g, scoreLabel: null }));
+                let games = one || await fetchTenRandomFromAllPages();
+                games = (games || []).slice(0, RANDOM_RESULT_COUNT);
+                if (games.length) mergeGamesIntoLocalMap(games);
+                return games.map(g => ({ game: g, scoreLabel: null }));
             }
             // 是否為「已評價」：超喜歡、喜歡、普普、不喜歡（不含想玩、沒興趣、跳過）
             function isRatedGameName(name) {
@@ -1040,6 +1046,27 @@
         let _localGameMap = {}; // { normalizedName: { name_zh, name_en, name_ja, image_url } }
 
         function _normName(n) { return n ? n.trim().toLowerCase() : ''; }
+
+        function _gameDisplayName(g) {
+            if (!g) return '';
+            return (g.name_zh || g.name_en || g.name_ja || '').trim();
+        }
+        function mergeGamesIntoLocalMap(games) {
+            if (!Array.isArray(games)) return;
+            games.forEach(g => {
+                const name = _gameDisplayName(g);
+                if (!name) return;
+                const key = _normName(name);
+                const existing = _localGameMap[key];
+                const image_url = (g.image_url && g.image_url.startsWith('http')) ? g.image_url : (existing && existing.image_url) || '';
+                _localGameMap[key] = {
+                    name_zh: g.name_zh || '',
+                    name_en: g.name_en || '',
+                    name_ja: g.name_ja || '',
+                    image_url: image_url
+                };
+            });
+        }
 
         // BGG 預設佔位圖（無實際封面時 BGG 回傳的通用圖片）
         const BGG_PLACEHOLDER = 'pic1657689';
