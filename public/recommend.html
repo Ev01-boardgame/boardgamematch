@@ -509,6 +509,16 @@
         .random-game-card .rated-badge,
         .random-game-card .skipped-badge { margin-top: 0.4rem; font-size: 0.75rem; color: var(--primary-color); font-weight: 600; }
         .random-game-card .skipped-badge { color: var(--text-light); }
+        /* 評價或跳過後：卡片收合為單行 */
+        .random-game-card--closed .card-cover { display: none; }
+        .random-game-card--closed .card-body,
+        .random-game-card--closed .card-body-no-cover { padding: 0.5rem 0.65rem; }
+        .random-game-card--closed .game-name-row { margin-bottom: 0; }
+        .random-game-card--closed .rating-buttons { display: none; }
+        .random-game-card--closed .rated-badge,
+        .random-game-card--closed .skipped-badge { margin-top: 0.25rem; margin-bottom: 0; font-size: 0.8rem; }
+        .random-game-card--closed .random-result-card-score { display: none; }
+        .random-game-card--closed .skip-btn { display: none; }
     </style>
 </head>
 <body>
@@ -617,7 +627,7 @@
                     <p class="result-hint" style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">純隨機不依個人資料；MBTI 依同類型玩家喜好；桌遊偏好依你的偏好輪廓與遊戲的匹配度。</p>
                 </div>
                 <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <button type="button" class="btn btn-primary" id="btn-random-recommend" style="padding: 0.9rem 2rem;">推薦 10 款</button>
+                    <button type="button" class="btn btn-primary" id="btn-random-recommend" style="padding: 0.9rem 2rem;">推薦 8 款</button>
                 </div>
                 <div id="random-result-wrap" style="display: none;">
                     <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-color);">推薦結果</h3>
@@ -686,7 +696,7 @@
         // 隨機推薦用（與 random-recommend 同邏輯，用語改為「桌遊偏好」）
         const RANDOM_PAGE_SIZE = 100;   // 每頁筆數（與 API 一致）
         const RANDOM_POOL_SIZE = 1000;  // MBTI/軸線模式用的 pool 大小（只抓前 N 筆）
-        const RANDOM_RESULT_COUNT = 10;
+        const RANDOM_RESULT_COUNT = 8;
         let randomGamePool = [];
         let randomGameMapByName = {};
         let randomAllUsers = [];
@@ -1546,6 +1556,7 @@
             if (card) {
                 const wrap = card.querySelector('.rating-buttons');
                 if (wrap) wrap.outerHTML = '<div class="rated-badge">' + label + '</div>';
+                card.classList.add('random-game-card--closed');
             }
 
             try {
@@ -1561,15 +1572,15 @@
             }
         }
 
-        // 隨機推薦區的「跳過」：不評價、不儲存，只隱藏按鈕並顯示已跳過
+        // 隨機推薦區的「跳過」：不評價、不儲存，收合卡片並顯示已跳過
         function skipGameFromRandom(btn) {
             var card = btn && btn.closest('.random-game-card');
             if (!card) return;
-            var row = card.querySelector('.game-name-row');
             var skipBtn = card.querySelector('.skip-btn');
             var ratingWrap = card.querySelector('.rating-buttons');
             if (skipBtn) skipBtn.remove();
             if (ratingWrap) ratingWrap.outerHTML = '<div class="skipped-badge">⏭ 已跳過</div>';
+            card.classList.add('random-game-card--closed');
         }
 
         // 維持原評：直接跳過此張（不更新任何資料）
