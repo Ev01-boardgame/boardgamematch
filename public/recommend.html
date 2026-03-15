@@ -843,7 +843,8 @@
             }
 
             function runMBTI() {
-                if (!currentUser || !currentUser.mbti_type || !randomAllUsers.length) return runRandom();
+                if (!currentUser || !currentUser.mbti_type || !randomAllUsers.length)
+                    return { list: [], noMatch: true, message: '尚無 MBTI 或同類型玩家資料，請先設定 MBTI 或改用純隨機。' };
                 const typeUsers = randomAllUsers.filter(u => u.mbti_type === currentUser.mbti_type);
                 const gameCount = {};
                 typeUsers.forEach(u => {
@@ -851,8 +852,9 @@
                     (u.liked_games || []).forEach(game => { gameCount[game] = (gameCount[game] || 0) + 1; });
                 });
                 const ranked = Object.entries(gameCount).map(([game, score]) => ({ game, score })).sort((a, b) => b.score - a.score);
-                if (ranked.length === 0) return runRandom();
-                // 依相似度排序，排除已評價，取前 10（不 shuffle）
+                if (ranked.length === 0)
+                    return { list: [], noMatch: true, message: '尚無 MBTI 或同類型玩家資料，請先設定 MBTI 或改用純隨機。' };
+                // 依相似度排序，排除已評價，取前 N 款（不亂給隨機）
                 const filtered = ranked.filter(p => !isRatedGameName(p.game)).slice(0, RANDOM_RESULT_COUNT);
                 return filtered.map(p => {
                     const g = randomGameMapByName[p.game] || { name_zh: p.game, name_en: p.game };
@@ -860,9 +862,11 @@
                 }).filter(x => x.game);
             }
             function runAxis() {
-                if (!randomUserProfile || !window.MatchScore) return runRandom();
+                if (!randomUserProfile || !window.MatchScore)
+                    return { list: [], noMatch: true, message: '尚無桌遊偏好資料，請先完成桌友適性測驗並儲存偏好，或改用純隨機。' };
                 const withAxis = randomGamePool.filter(g => g.axis_conflict != null || g.axis_strategy != null);
-                if (withAxis.length === 0) return runRandom();
+                if (withAxis.length === 0)
+                    return { list: [], noMatch: true, message: '目前尚無遊戲的偏好軸資料，請改用純隨機或稍後再試。' };
                 const playerAxes = { conflict: randomUserProfile.conflict, strategy: randomUserProfile.strategy, social_fun: randomUserProfile.social_fun, immersion: randomUserProfile.immersion, accessibility: randomUserProfile.accessibility, manipulation: randomUserProfile.manipulation, coop: randomUserProfile.coop, luck: randomUserProfile.luck };
                 const scored = withAxis.map(g => {
                     const s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);
@@ -875,10 +879,13 @@
             function runBoth() {
                 const mbtiList = runMBTI();
                 const axisList = runAxis();
-                if (mbtiList.length === 0 && axisList.length === 0) return runRandom();
+                const mbtiArr = Array.isArray(mbtiList) ? mbtiList : (mbtiList && mbtiList.list) || [];
+                const axisArr = Array.isArray(axisList) ? axisList : (axisList && axisList.list) || [];
+                if (mbtiArr.length === 0 && axisArr.length === 0)
+                    return { list: [], noMatch: true, message: '尚無符合的推薦，請先完成桌友適性測驗／設定 MBTI 或改用純隨機。' };
                 const byGame = {};
                 function add(list, weight) {
-                    list.forEach((x, i) => {
+                    (list || []).forEach((x, i) => {
                         const name = getDisplayName(x.game);
                         if (!name) return;
                         const rank = 1 - (i / Math.max(list.length, 1));
@@ -886,10 +893,9 @@
                         byGame[name].combined += weight * rank;
                     });
                 }
-                add(mbtiList, 0.5);
-                add(axisList, 0.5);
+                add(mbtiArr, 0.5);
+                add(axisArr, 0.5);
                 const sorted = Object.values(byGame).sort((a, b) => b.combined - a.combined);
-                // 依相似度排序，排除已評價，取前 10
                 return sorted.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
             }
 
@@ -937,10 +943,17 @@
             ensureData().then(async () => {
                 let list = [];
                 if (mode === 'random') list = await runRandom();
-                else if (mode === 'mbti') list = runMBTI();
-                else if (mode === 'axis') list = runAxis();
-                else if (mode === 'both') list = runBoth();
-                renderList(list);
+                else if (mode === 'mbti') list = await Promise.resolve(runMBTI());
+                else if (mode === 'axis') list = await Promise.resolve(runAxis());
+                else if (mode === 'both') list = await Promise.resolve(runBoth());
+                if (list && list.noMatch === true) {
+                    cardsEl.innerHTML = '';
+                    emptyEl.textContent = list.message || '尚無符合的推薦，請改用純隨機或稍後再試。';
+                    emptyEl.style.display = 'block';
+                } else {
+                    if (!Array.isArray(list)) list = [];
+                    renderList(list);
+                }
             }).catch(e => {
                 cardsEl.innerHTML = '';
                 emptyEl.textContent = '載入失敗：' + (e && e.message ? e.message : '請稍後再試');
