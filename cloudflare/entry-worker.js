@@ -13,8 +13,8 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // 1. /tables/ → 轉發到 D1 API Worker
-    if (url.pathname.startsWith('/tables/')) {
+    // 1. /tables/、/api/、/avatars/ → 轉發到 D1 API Worker（含 R2 大頭貼）
+    if (url.pathname.startsWith('/tables/') || url.pathname.startsWith('/api/') || url.pathname.startsWith('/avatars/')) {
       const apiUrl = new URL(
         'https://mbti-boardgame-api.emailev01.workers.dev' +
           url.pathname +

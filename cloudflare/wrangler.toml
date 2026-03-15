@@ -11,7 +11,14 @@ binding = "DB"
 database_name = "boardgame-match-db"
 database_id = "f3387dc6-6fcb-4882-9a84-ddc4a40e6599"
 
+# 大頭貼圖片存 R2，D1 只存 URL（需先建立 bucket：npx wrangler r2 bucket create boardgamematch-avatars）
+[[r2_buckets]]
+binding = "AVATAR_BUCKET"
+bucket_name = "boardgamematch-avatars"
+
 [vars]
 GOOGLE_CLIENT_ID = "105319270176-djqr0n6r4l3mvmpalsqjn8kasqii9ukt.apps.googleusercontent.com"
 ALLOWED_ORIGINS = "https://boardgamematch.com.tw"
+# 大頭貼公開網址前綴（其他玩家用此 URL 讀圖）
+AVATAR_PUBLIC_BASE = "https://boardgamematch.com.tw"
 # API_SECRET 請透過 Cloudflare Dashboard Secrets 或 `wrangler secret put API_SECRET` 設定，勿寫在此檔
