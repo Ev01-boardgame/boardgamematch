@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_login INTEGER,
   bio TEXT,
   social_links TEXT,
+  region TEXT,
+  want_contact INTEGER DEFAULT 0,
   explore_list TEXT,
   explore_list_public INTEGER DEFAULT 1,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
@@ -359,3 +361,4 @@ CREATE TABLE IF NOT EXISTS user_preference_profiles (
 -- ALTER TABLE game_database ADD COLUMN axis_coop REAL;
 -- ALTER TABLE game_database ADD COLUMN axis_luck REAL;
 -- 既有 DB 若曾建 description/source，可移除：ALTER TABLE game_database DROP COLUMN description; ALTER TABLE game_database DROP COLUMN source;
+-- 既有 users 表補欄位（地區、是否想被桌友連絡）：ALTER TABLE users ADD COLUMN region TEXT; ALTER TABLE users ADD COLUMN want_contact INTEGER DEFAULT 0;
