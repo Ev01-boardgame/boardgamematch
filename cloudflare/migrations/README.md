@@ -3,7 +3,8 @@
 ## add_user_preference_profiles.sql
 
 建立 `user_preference_profiles` 表，供「桌友適性」→ 桌遊偏好測驗結果儲存。  
-若未建立，點「儲存到我的檔案」會出現 **Table "user_preference_profiles" not found**。
+若未建立，點「儲存到我的檔案」會出現 **Table "user_preference_profiles" not found**。  
+**若已建表仍報錯**：請看專案根目錄 `docs/troubleshoot-user-preference-profiles.md`，確認表是建在「生產 Worker 綁定的同一個 D1」。
 
 ### 方式一：Cloudflare 主控台
 

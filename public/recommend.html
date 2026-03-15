@@ -711,13 +711,14 @@
 
             // 純隨機做法一：後端支援 ?random=10 時一次請求取 10 筆（Worker 用 ORDER BY RANDOM()）
             async function fetchTenRandomOneRequest() {
-                const cacheBuster = '_=' + Date.now();
+                const cacheBuster = '_=' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
                 const res = await fetch('tables/game_database?random=' + RANDOM_RESULT_COUNT + '&' + cacheBuster);
                 if (!res.ok) return null;
                 const data = await res.json();
                 const list = (data.data != null ? data.data : Array.isArray(data) ? data : []).filter(g => g && (g.name_zh || g.name_en));
                 if (list.length < RANDOM_RESULT_COUNT) return null;
-                const games = list.slice(0, RANDOM_RESULT_COUNT);
+                let games = list.slice(0, RANDOM_RESULT_COUNT);
+                await fillMissingImageUrls(games);
                 mergeGamesIntoLocalMap(games);
                 return games;
             }
@@ -790,8 +791,17 @@
                 const one = await fetchTenRandomOneRequest();
                 let games = one || await fetchTenRandomFromAllPages();
                 games = (games || []).slice(0, RANDOM_RESULT_COUNT);
-                if (games.length) mergeGamesIntoLocalMap(games);
+                if (games.length) {
+                    if (!one) await fillMissingImageUrls(games);
+                    mergeGamesIntoLocalMap(games);
+                    console.log('隨機推薦本批:', games.map(g => getDisplayName(g)));
+                }
                 return games.map(g => ({ game: g, scoreLabel: null }));
+            }
+            async function fillMissingImageUrls(games) {
+                const need = (games || []).filter(g => g && g.id && !(g.image_url && g.image_url.startsWith('http')));
+                if (need.length === 0) return;
+                await Promise.all(need.map(g => fetch('tables/game_database/' + encodeURIComponent(g.id)).then(r => r.ok ? r.json() : null).then(row => { if (row && row.image_url) g.image_url = row.image_url; })));
             }
             // 是否為「已評價」：超喜歡、喜歡、普普、不喜歡（不含想玩、沒興趣、跳過）
             function isRatedGameName(name) {

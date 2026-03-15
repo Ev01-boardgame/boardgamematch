@@ -45,6 +45,23 @@ function getPkColumn(tableName) {
   return PK_COLUMN[tableName] || 'id';
 }
 
+// 若 D1 尚未建表，自動建立（新手免手動跑 migration）
+const USER_PREFERENCE_PROFILES_DDL = `CREATE TABLE IF NOT EXISTS user_preference_profiles (
+  user_id TEXT PRIMARY KEY,
+  conflict INTEGER DEFAULT 0,
+  strategy INTEGER DEFAULT 0,
+  social_fun INTEGER DEFAULT 0,
+  immersion INTEGER DEFAULT 0,
+  accessibility INTEGER DEFAULT 0,
+  manipulation INTEGER DEFAULT 0,
+  coop INTEGER DEFAULT 0,
+  luck INTEGER DEFAULT 0,
+  updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+)`;
+async function ensureUserPreferenceProfilesTable(db) {
+  await db.prepare(USER_PREFERENCE_PROFILES_DDL).run();
+}
+
 // ══ 權限矩陣 ══
 // public  = API Secret 即可（未登入可讀）
 // auth    = 需 JWT（已登入用戶）
@@ -246,6 +263,10 @@ export default {
     }
 
     const db = env.DB;
+
+    if (tableName === 'user_preference_profiles') {
+      await ensureUserPreferenceProfilesTable(db);
+    }
 
     // ── 2. 權限檢查 ──
     const requiredAuth = getRequiredAuth(method, tableName);
@@ -535,6 +556,7 @@ async function recalcGameAxes(db) {
   let updated = 0;
   let errors = 0;
   try {
+    await ensureUserPreferenceProfilesTable(db);
     const profilesRows = await db.prepare('SELECT user_id, conflict, strategy, social_fun, immersion, accessibility, manipulation, coop, luck FROM user_preference_profiles').all();
     const profiles = (profilesRows.results || []).map(r => ({
       user_id: r.user_id,
