@@ -294,11 +294,11 @@
             </div>
             <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 1rem; text-align: center;">
                 <div style="font-size: 2rem; font-weight: bold; color: #27ae60;" id="bgg-games">-</div>
-                <div style="color: var(--text-light);">BGG 遊戲</div>
+                <div style="color: var(--text-light);">有 BGG ID</div>
             </div>
             <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 1rem; text-align: center;">
                 <div style="font-size: 2rem; font-weight: bold; color: #e74c3c;" id="manual-games">-</div>
-                <div style="color: var(--text-light);">手動新增</div>
+                <div style="color: var(--text-light);">無 BGG ID</div>
             </div>
         </div>
 
@@ -306,9 +306,7 @@
         <div class="search-bar">
             <input type="text" id="search-input" placeholder="🔍 搜尋遊戲名稱..." onkeyup="filterGames()">
             <select id="source-filter" onchange="filterGames()">
-                <option value="">全部來源</option>
-                <option value="BGG">BGG</option>
-                <option value="manual">手動新增</option>
+                <option value="">全部</option>
                 <option value="pending">⚠️ 待補充</option>
             </select>
             <button onclick="showDuplicates()" class="btn btn-secondary" style="white-space:nowrap;">🔍 找重複遊戲</button>
@@ -342,7 +340,6 @@
                         <th class="col-players" style="width: 90px;">玩家數</th>
                         <th class="col-time" style="width: 80px;">時間</th>
                         <th class="col-complexity" style="width: 90px;">複雜度</th>
-                        <th class="col-source" style="width: 90px;">來源</th>
                         <th style="width: 120px;">操作</th>
                     </tr>
                 </thead>
@@ -376,7 +373,7 @@
                         </button>
                     </div>
                     <div style="margin-top:0.5rem; font-size:0.78rem; color:var(--text-light);">
-                        📋 可自動填入：英文名稱、發行年份、玩家數、遊戲時間、複雜度、封面圖片、遊戲描述、中文名稱（DuckDuckGo 搜尋）
+                        📋 可自動填入：英文名稱、發行年份、玩家數、遊戲時間、複雜度、封面圖片、中文名稱（DuckDuckGo 搜尋）
                     </div>
                     <div id="bgg-fetch-status" style="margin-top:0.4rem; font-size:0.85rem; color:var(--text-light); min-height:1.2em;"></div>
                     <div id="bgg-duplicate-warning" style="display:none; margin-top:0.5rem; padding:0.6rem 0.85rem; background:#fff3cd; border:1px solid #ffc107; border-radius:0.5rem; font-size:0.85rem; color:#856404;"></div>
@@ -441,20 +438,20 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>遊戲描述</label>
-                    <textarea id="game-description" rows="4"></textarea>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 8 軸狀態（桌遊偏好匹配用，可留空）</label>
+                    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:0.5rem 1rem;">
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">對抗</label><input type="number" id="game-axis-conflict" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">策略</label><input type="number" id="game-axis-strategy" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">社交</label><input type="number" id="game-axis-social_fun" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">沉浸</label><input type="number" id="game-axis-immersion" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">親和</label><input type="number" id="game-axis-accessibility" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">心機</label><input type="number" id="game-axis-manipulation" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">合作</label><input type="number" id="game-axis-coop" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-light);">運氣</label><input type="number" id="game-axis-luck" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label>資料來源</label>
-                    <select id="game-source">
-                        <option value="manual">手動新增</option>
-                        <option value="BGG">BGG</option>
-                        <option value="BGA">BGA</option>
-                    </select>
-                </div>
-                
+
                 <input type="hidden" id="game-id">
                 
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">儲存遊戲</button>
@@ -503,6 +500,19 @@
                 <div class="quick-form-group">
                     <label>📝 備註（可留空）</label>
                     <input type="text" id="quick-note" placeholder="例：日本展商首發、繁中版待確認...">
+                </div>
+                <div class="quick-form-group" style="margin-top:1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 8 軸狀態（可留空）</label>
+                    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:0.4rem 0.75rem;">
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">對抗</label><input type="number" id="quick-axis-conflict" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">策略</label><input type="number" id="quick-axis-strategy" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">社交</label><input type="number" id="quick-axis-social_fun" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">沉浸</label><input type="number" id="quick-axis-immersion" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">親和</label><input type="number" id="quick-axis-accessibility" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">心機</label><input type="number" id="quick-axis-manipulation" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">合作</label><input type="number" id="quick-axis-coop" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                        <div><label style="font-size:0.75rem; color:var(--text-light);">運氣</label><input type="number" id="quick-axis-luck" min="0" max="12" step="0.5" placeholder="0–12" style="width:100%; padding:0.4rem;"></div>
+                    </div>
                 </div>
                 <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
                     <button type="submit" style="flex:1; padding:0.85rem; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:0.5rem; font-size:1rem; font-weight:600; cursor:pointer;">⚡ 快速登記</button>
@@ -611,9 +621,7 @@
                     ].join(' ').toLowerCase();
                     if (!hay.includes(q)) return false;
                 }
-                // 來源篩選
-                if (currentSource === 'BGG')     return g.source === 'BGG';
-                if (currentSource === 'manual')  return g.source === 'manual';
+                // 篩選：待補充 = 名稱或 BGG ID 不完整
                 if (currentSource === 'pending') return isPending(g);
                 return true;
             });
@@ -628,7 +636,7 @@
             if (!currentSource) {
                 // ── 伺服器端分頁（無來源篩選）──
                 useServerPagination = true;
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light);">⏳ 載入中...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light);">⏳ 載入中...</td></tr>';
 
                 let url = `tables/game_database?page=${page}&limit=${PAGE_SIZE}`;
                 if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
@@ -666,15 +674,15 @@
             updateSourceStats();
         }
 
-        // 非同步更新來源統計
+        // 非同步更新統計（有 BGG ID / 無 BGG ID）
         function updateSourceStats() {
             if (!allGamesLoaded) {
                 document.getElementById('bgg-games').textContent    = '—';
                 document.getElementById('manual-games').textContent = '—';
                 return;
             }
-            const bggCount    = allGames.filter(g => g.source === 'BGG').length;
-            const manualCount = allGames.filter(g => g.source === 'manual').length;
+            const bggCount    = allGames.filter(g => g.bgg_id && String(g.bgg_id).trim()).length;
+            const manualCount = allGames.length - bggCount;
             document.getElementById('bgg-games').textContent    = bggCount.toLocaleString();
             document.getElementById('manual-games').textContent = manualCount.toLocaleString();
         }
@@ -743,7 +751,7 @@
             const tbody = document.getElementById('game-list');
             
             if (!games || games.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-light);">沒有找到遊戲</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-light);">沒有找到遊戲</td></tr>';
                 return;
             }
             
@@ -762,10 +770,6 @@
                     <td class="col-players">${game.min_players && game.max_players ? `${game.min_players}-${game.max_players}` : '-'}</td>
                     <td class="col-time">${game.playing_time ? `${game.playing_time}分` : '-'}</td>
                     <td class="col-complexity complexity-stars">${game.complexity ? '★'.repeat(game.complexity) : '-'}</td>
-                    <td class="col-source">
-                        <span style="padding: 0.25rem 0.75rem; background: var(--bg-light); border-radius: 0.5rem; font-size: 0.85rem;">${game.source || 'manual'}</span>
-                        ${isPending(game) ? '<span class="badge-pending">⚠️待補充</span>' : ''}
-                    </td>
                     <td>
                         <div class="btn-actions">
                             <button class="btn-small btn-edit" onclick="editGame('${game.id}')">編輯</button>
@@ -776,9 +780,9 @@
             `).join('');
         }
 
-        // 判斷遊戲是否「待補充」：source=manual 且名稱/bgg_id 任一不完整
+        // 判斷遊戲是否「待補充」：名稱或 BGG ID 不完整
         function isPending(game) {
-            return game.source === 'manual' && (!game.bgg_id || !game.name_zh || !game.name_en);
+            return !game.bgg_id || !game.name_zh || !game.name_en;
         }
 
         // filterGames 已在上方定義（伺服器端分頁 + 前端來源篩選）
@@ -826,8 +830,11 @@
             document.getElementById('game-max-players').value = game.max_players || '';
             document.getElementById('game-playing-time').value = game.playing_time || '';
             document.getElementById('game-complexity').value = game.complexity || '';
-            document.getElementById('game-description').value = game.description || '';
-            document.getElementById('game-source').value = game.source || 'manual';
+            const axisKeys = ['conflict','strategy','social_fun','immersion','accessibility','manipulation','coop','luck'];
+            axisKeys.forEach(k => {
+                const el = document.getElementById('game-axis-' + k);
+                if (el) el.value = (game['axis_' + k] != null && game['axis_' + k] !== '') ? game['axis_' + k] : '';
+            });
             document.getElementById('game-bgg-id').value = game.bgg_id || '';
             updateImagePreview();
         }
@@ -870,10 +877,14 @@
                 max_players:  parseInt(document.getElementById('game-max-players').value) || null,
                 playing_time: parseInt(document.getElementById('game-playing-time').value) || null,
                 complexity:   parseFloat(document.getElementById('game-complexity').value) || null,
-                description:  document.getElementById('game-description').value.trim(),
-                source:       document.getElementById('game-source').value,
                 bgg_id:       document.getElementById('game-bgg-id').value.trim()
             };
+            const axisKeys = ['conflict','strategy','social_fun','immersion','accessibility','manipulation','coop','luck'];
+            axisKeys.forEach(k => {
+                const el = document.getElementById('game-axis-' + k);
+                const v = el && el.value !== '' ? parseFloat(el.value) : null;
+                gameData['axis_' + k] = (v != null && !isNaN(v)) ? v : null;
+            });
             
             // ── 新增前做重複把關 ──
             if (!gameId) {
@@ -1027,82 +1038,6 @@
                     filled.push('封面圖片');
                 }
 
-                // ── 抓遊戲描述（英文 → Jina 翻譯濃縮成繁體中文 20 字內）──
-                if (!document.getElementById('game-description').value) {
-                    let rawEnDesc = null;
-
-                    // 策略1：找標題後的第一個較長段落（至少 40 字元）
-                    const descMatch = text.match(/^#{1,2}\s+.+\n{1,3}([\s\S]+?)(?=\n#{1,3}\s|\n---|\n\*\*\*)/m);
-                    if (descMatch) {
-                        const raw = descMatch[1]
-                            .replace(/!\[.*?\]\(.*?\)/g, '')
-                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-                            .replace(/\*\*([^*]+)\*\*/g, '$1')
-                            .replace(/\*([^*]+)\*/g, '$1')
-                            .replace(/\n+/g, ' ')
-                            .trim();
-                        if (raw.length >= 40) rawEnDesc = raw.slice(0, 300);
-                    }
-
-                    // 策略2：找 "Description" 段落
-                    if (!rawEnDesc) {
-                        const descSection = text.match(/#+\s*Description\s*\n+([\s\S]+?)(?=\n#)/i);
-                        if (descSection) {
-                            const raw = descSection[1]
-                                .replace(/!\[.*?\]\(.*?\)/g, '')
-                                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-                                .replace(/\*\*([^*]+)\*\*/g, '$1')
-                                .replace(/\n+/g, ' ')
-                                .trim();
-                            if (raw.length >= 30) rawEnDesc = raw.slice(0, 300);
-                        }
-                    }
-
-                    if (rawEnDesc) {
-                        let zhDesc = null;
-                        try {
-                            setFetchStatus('🈯 翻譯描述中（Jina）...', '#888');
-                            const prompt = `以下是一款桌遊的英文描述，請翻譯成繁體中文並濃縮成20字以內的核心玩法介紹（不要加引號或標點以外的符號）：${rawEnDesc.slice(0, 200)}`;
-                            const jinaSearchUrl = `https://s.jina.ai/${encodeURIComponent(prompt)}`;
-                            const tRes = await fetch(jinaSearchUrl, {
-                                headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' }
-                            });
-                            if (tRes.ok) {
-                                const tText = await tRes.text();
-                                const lines = tText.split('\n').map(l => l.trim()).filter(Boolean);
-                                for (const line of lines) {
-                                    const zhMatch = line.match(/^[^#\[\]|*>]{5,30}$/) && /[\u4e00-\u9fff]/.test(line);
-                                    if (zhMatch) {
-                                        const cleaned = line.replace(/^[\s\-*•]+/, '').trim();
-                                        if (cleaned.length >= 5 && cleaned.length <= 30 && /[\u4e00-\u9fff]/.test(cleaned)) {
-                                            zhDesc = cleaned;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (!zhDesc) {
-                                    const zhLines = lines.filter(l =>
-                                        /[\u4e00-\u9fff]{4,}/.test(l) &&
-                                        l.length <= 35 &&
-                                        !/^(Title|URL|https?|Source|\[)/.test(l)
-                                    );
-                                    if (zhLines.length > 0) {
-                                        zhDesc = zhLines[0].replace(/^[\s\-*•]+/, '').slice(0, 30).trim();
-                                    }
-                                }
-                            }
-                        } catch(e) { /* 翻譯失敗不影響其他資料 */ }
-
-                        if (zhDesc) {
-                            document.getElementById('game-description').value = zhDesc;
-                            filled.push(`遊戲描述（中）`);
-                        } else {
-                            document.getElementById('game-description').value = rawEnDesc.slice(0, 100);
-                            filled.push('遊戲描述（英文，請手動翻譯濃縮）');
-                        }
-                    }
-                }
-
                 // ════════════════════════════════════════════════
                 // 步驟二：抓 credits 頁 → 精確取得中文名、日文名、年份
                 // URL 格式：/boardgame/{id}/{name-slug}/credits
@@ -1219,9 +1154,6 @@
                     }
                 }
 
-                // ── 設定來源為 BGG ──
-                document.getElementById('game-source').value = 'BGG';
-
                 if (filled.length > 0) {
                     const zhHint = document.getElementById('game-name-zh').value ? '' : '（中文名未找到，請手動填寫）';
                     setFetchStatus(`✅ 已填入：${filled.join('、')}${zhHint}`, 'green');
@@ -1336,11 +1268,15 @@
                 playing_time: null,
                 complexity:   null,
                 image_url:   document.getElementById('quick-image-url').value.trim() || '',
-                description: note ? `[${publisher ? publisher + '｜' : ''}${note}]` : (publisher ? `[出版社：${publisher}]` : ''),
-                source:      'manual',
                 bgg_id:      '',
                 created_at:  Date.now()
             };
+            const axisKeys = ['conflict','strategy','social_fun','immersion','accessibility','manipulation','coop','luck'];
+            axisKeys.forEach(k => {
+                const el = document.getElementById('quick-axis-' + k);
+                const v = el && el.value !== '' ? parseFloat(el.value) : null;
+                gameData['axis_' + k] = (v != null && !isNaN(v)) ? v : null;
+            });
 
             // 重複確認（中英文名比對，用当前快取的 allGames，若未載入則跳過）
             const dups = allGames.filter(g =>
@@ -1618,12 +1554,12 @@
                 let groupDone = 0;
 
                 for (const group of dupGroups) {
-                    // 選保留的：優先有 name_zh、其次 source==='BGG'、最後選第一筆
+                    // 選保留的：優先有 name_zh、其次有 bgg_id、最後選第一筆
                     const keepGame = group.slice().sort((a, b) => {
                         if (a.name_zh && !b.name_zh) return -1;
                         if (!a.name_zh && b.name_zh) return 1;
-                        if (a.source === 'BGG' && b.source !== 'BGG') return -1;
-                        if (a.source !== 'BGG' && b.source === 'BGG') return 1;
+                        if (a.bgg_id && !b.bgg_id) return -1;
+                        if (!a.bgg_id && b.bgg_id) return 1;
                         return 0;
                     })[0];
                     const keepName = keepGame.name_zh || keepGame.name_en || '';
