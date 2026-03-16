@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩家檔案顯示測試（離線假資料）</title>
+    <style>
+        :root { --primary: #667eea; --secondary: #764ba2; --bg: #1a1a2e; --card: #16213e; --text: #e8e8e8; --muted: #a0a0a0; --border: #2a2a4a; }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.5; }
+        h1 { font-size: 1.5rem; margin: 0 0 1rem 0; }
+        .banner { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; padding: 0.75rem 1rem; border-radius: 0.75rem; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        nav.anchor-nav { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.75rem; background: var(--card); border-radius: 0.75rem; }
+        nav.anchor-nav a { color: var(--primary); text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; background: rgba(102,126,234,0.2); }
+        nav.anchor-nav a:hover { background: rgba(102,126,234,0.35); }
+        section { background: var(--card); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem; border: 1px solid var(--border); }
+        section h2 { margin: 0 0 1rem 0; font-size: 1.25rem; }
+        .tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .tabs button { padding: 0.5rem 0.9rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
+        .tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .tabs button:hover:not(.active) { background: var(--border); }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
+        .game-card { background: var(--bg); padding: 0.6rem; border-radius: 0.5rem; font-size: 0.85rem; border: 1px solid var(--border); }
+        .show-more { margin-top: 1rem; text-align: center; }
+        .show-more button { padding: 0.5rem 1.5rem; background: var(--primary); color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
+        .show-more button:hover { opacity: 0.9; }
+        .filter-bar { margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+        .filter-bar select { padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+        .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; }
+        .badge-item { text-align: center; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid; font-size: 0.8rem; }
+        .badge-item .icon { font-size: 1.8rem; display: block; margin-bottom: 0.25rem; }
+        .badge-item.common { border-color: #6b7280; background: rgba(107,114,128,0.2); }
+        .badge-item.rare { border-color: #3b82f6; background: rgba(59,130,246,0.2); }
+        .badge-item.epic { border-color: #8b5cf6; background: rgba(139,92,246,0.2); }
+        .badge-item.legendary { border-color: #f59e0b; background: rgba(245,158,11,0.2); }
+    </style>
+</head>
+<body>
+    <h1>🧪 玩家檔案顯示測試（離線假資料）</h1>
+    <div class="banner">此頁為測試用，資料皆為假資料，不需連線與 D1。可測試：錨點導覽、喜好「顯示更多」、徽章稀有度篩選。</div>
+
+    <!-- 錨點導覽 -->
+    <nav class="anchor-nav">
+        <a href="#section-pref">🎮 我的桌遊喜好</a>
+        <a href="#section-badges">🏆 成就徽章</a>
+    </nav>
+
+    <!-- 區塊一：我的桌遊喜好（假資料 + 分頁內「顯示更多」） -->
+    <section id="section-pref">
+        <h2>🎮 我的桌遊喜好</h2>
+        <div class="tabs" id="pref-tabs"></div>
+        <div id="pref-panels"></div>
+    </section>
+
+    <!-- 區塊二：成就徽章（假資料 + 稀有度篩選） -->
+    <section id="section-badges">
+        <h2>🏆 我的成就徽章</h2>
+        <div class="filter-bar">
+            <label>稀有度：</label>
+            <select id="badge-rarity-filter" onchange="filterBadges()">
+                <option value="">全部</option>
+                <option value="legendary">傳說</option>
+                <option value="epic">史詩</option>
+                <option value="rare">稀有</option>
+                <option value="common">普通</option>
+            </select>
+            <span id="badge-count" style="color: var(--muted); font-size: 0.9rem;"></span>
+        </div>
+        <div class="badge-grid" id="badge-wall"></div>
+    </section>
+
+    <script>
+        // ═══ 假資料（不從 D1 抓）══════════════════════════════════════
+        const MOCK_GAME_NAMES = [
+            '璀璨寶石', '卡卡頌', '花火', '矮人礦坑', '狼人殺', '阿瓦隆', '瘟疫危機', ' Dominion',
+            '幽港迷城', '魔戒聖戰', '七大奇蹟', '星際大戰', '農家樂', '大西部開拓者', '蓋亞計劃',
+            '神秘大地', '歷史巨輪', '工業革命', '電力公司', '馬尼拉', '現代藝術', '富饒之城',
+            '東京之王', '駱駝大賽', '化裝舞會', '說書人', '截碼戰', '機密代號', '傳情畫意',
+            '犯人在跳舞', '從前從前', '誰是牛頭王', '拉密', '卡坦島', '鐵路環遊', '車票之旅'
+        ];
+        const PREF_TABS = [
+            { id: 'love', label: '🤩 超喜歡', key: 'super_liked' },
+            { id: 'like', label: '😍 喜歡', key: 'liked' },
+            { id: 'neutral', label: '😐 普通', key: 'neutral' },
+            { id: 'dislike', label: '😕 不喜歡', key: 'disliked' }
+        ];
+        const INITIAL_SHOW = 12;
+        const MOCK_PREF = {};
+        PREF_TABS.forEach((t, i) => {
+            const count = 8 + i * 10 + Math.floor(Math.random() * 15);
+            MOCK_PREF[t.key] = Array.from({ length: count }, (_, j) =>
+                MOCK_GAME_NAMES[(i * 7 + j) % MOCK_GAME_NAMES.length] + (j > MOCK_GAME_NAMES.length ? ' ' + (j + 1) : '')
+            );
+        });
+
+        const MOCK_BADGES = [
+            { id: 'b1', name_zh: '初來乍到', icon: '🌱', rarity: 'common' },
+            { id: 'b2', name_zh: '桌遊新手', icon: '🎲', rarity: 'common' },
+            { id: 'b3', name_zh: '評分達人', icon: '⭐', rarity: 'common' },
+            { id: 'b4', name_zh: '收藏家', icon: '📚', rarity: 'rare' },
+            { id: 'b5', name_zh: '策略大師', icon: '♟️', rarity: 'rare' },
+            { id: 'b6', name_zh: '派對王', icon: '🎉', rarity: 'rare' },
+            { id: 'b7', name_zh: '合作之星', icon: '🤝', rarity: 'rare' },
+            { id: 'b8', name_zh: '守護者', icon: '🛡️', rarity: 'legendary' },
+            { id: 'b9', name_zh: '傳說玩家', icon: '👑', rarity: 'legendary' },
+            { id: 'b10', name_zh: '史詩成就', icon: '💎', rarity: 'epic' },
+            { id: 'b11', name_zh: '連簽達人', icon: '🔥', rarity: 'epic' },
+            { id: 'b12', name_zh: '探索者', icon: '🧭', rarity: 'common' },
+            { id: 'b13', name_zh: '心機王', icon: '🃏', rarity: 'rare' },
+            { id: 'b14', name_zh: '幸運兒', icon: '🍀', rarity: 'common' },
+            { id: 'b15', name_zh: '百款達人', icon: '💯', rarity: 'epic' }
+        ];
+
+        // ═══ 喜好：分頁 + 每分頁「顯示更多」══════════════════════════════
+        let currentPrefTab = 'super_liked';
+        let shownCount = {};
+
+        function renderPrefTabs() {
+            const el = document.getElementById('pref-tabs');
+            el.innerHTML = PREF_TABS.map(t => `
+                <button class="${currentPrefTab === t.key ? 'active' : ''}" data-key="${t.key}">${t.label} <span>${MOCK_PREF[t.key].length}</span></button>
+            `).join('');
+            el.querySelectorAll('button').forEach(btn => {
+                btn.onclick = () => { currentPrefTab = btn.dataset.key; shownCount[currentPrefTab] = INITIAL_SHOW; renderPrefTabs(); renderPrefPanel(); };
+            });
+        }
+
+        function renderPrefPanel() {
+            const list = MOCK_PREF[currentPrefTab] || [];
+            const showN = shownCount[currentPrefTab] != null ? shownCount[currentPrefTab] : INITIAL_SHOW;
+            const visible = list.slice(0, showN);
+            const hasMore = list.length > showN;
+
+            const panelsEl = document.getElementById('pref-panels');
+            panelsEl.innerHTML = `
+                <div class="game-grid" id="pref-game-grid">
+                    ${visible.map(name => `<div class="game-card">${name}</div>`).join('')}
+                </div>
+                ${hasMore ? `
+                    <div class="show-more">
+                        <button type="button" onclick="showMorePref()">顯示更多（目前 ${showN} / ${list.length}）</button>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function showMorePref() {
+            shownCount[currentPrefTab] = (shownCount[currentPrefTab] || INITIAL_SHOW) + 12;
+            if (shownCount[currentPrefTab] >= (MOCK_PREF[currentPrefTab] || []).length)
+                shownCount[currentPrefTab] = (MOCK_PREF[currentPrefTab] || []).length;
+            renderPrefPanel();
+        }
+
+        // ═══ 徽章：稀有度篩選══════════════════════════════════════════════
+        function filterBadges() {
+            const filter = document.getElementById('badge-rarity-filter').value;
+            const list = filter ? MOCK_BADGES.filter(b => b.rarity === filter) : MOCK_BADGES;
+            const wall = document.getElementById('badge-wall');
+            wall.innerHTML = list.map(b => `
+                <div class="badge-item ${b.rarity}">
+                    <span class="icon">${b.icon}</span>
+                    <span>${b.name_zh}</span>
+                </div>
+            `).join('');
+            document.getElementById('badge-count').textContent = `共 ${list.length} 個`;
+        }
+
+        (function init() {
+            PREF_TABS.forEach(t => { if (shownCount[t.key] == null) shownCount[t.key] = INITIAL_SHOW; });
+            renderPrefTabs();
+            renderPrefPanel();
+            filterBadges();
+        })();
+    </script>
+</body>
+</html>

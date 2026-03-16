@@ -277,7 +277,7 @@
             user_stats: ['id','user_id','xp','level','total_xp','unlocked_badges','daily_quest_completed','last_quest_reset','streak_days','last_login','total_contributions','weekly_contributions','last_weekly_reset'],
             user_collections: ['id','title','description','games','created_by','creator_name','is_public','play_count','vote_stats','rated_by'],
             user_collection_votes: ['id','collection_id','voter_id','game_name','vote','voted_at'],
-            game_database: ['id','name_zh','name_ja','name_en','year','min_players','max_players','playing_time','complexity','image_url','description','source','bgg_id','created_at'],
+            game_database: ['id','name_zh','name_ja','name_en','year','min_players','max_players','playing_time','complexity','image_url','bgg_id','axis_conflict','axis_strategy','axis_social_fun','axis_immersion','axis_accessibility','axis_manipulation','axis_coop','axis_luck','created_at','updated_at'],
             game_votes: ['id','user_id','game_name','vote_type','mbti_type','collection_id'],
             game_aliases: ['id','primary_name','aliases','bgg_id','created_at','updated_at'],
             game_collections: ['id','title','type','category','games','icon','description','sort_order','is_active','start_date','end_date','questions_per_session'],
@@ -468,7 +468,7 @@
             let totalStmts = 0;
 
             sqlParts.push('-- ========================================');
-            sqlParts.push('-- 桌遊社群資料庫備份');
+            sqlParts.push('-- 揪桌趣處資料庫備份');
             sqlParts.push(`-- 匯出時間：${new Date().toLocaleString('zh-TW')}`);
             sqlParts.push(`-- 資料表數：${tables.length}`);
             sqlParts.push('-- ========================================');
@@ -493,7 +493,7 @@
 
                     const tablePartLines = [];
                     tablePartLines.push('-- ========================================');
-                    tablePartLines.push('-- 桌遊社群資料庫備份（拆分檔）');
+                    tablePartLines.push('-- 揪桌趣處資料庫備份（拆分檔）');
                     tablePartLines.push(`-- 資料表：${t}（${rows.length} 筆，${schema.cols.length} 欄）`);
                     tablePartLines.push(`-- 匯出時間：${new Date().toLocaleString('zh-TW')}`);
                     tablePartLines.push('-- ========================================');

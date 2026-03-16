@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本機體驗：編輯桌遊 + 拖曳（無需資料庫）</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --border-color: #e2e8f0;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --bg-color: #f8fafc;
+            --card-bg: #fff;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-color); color: var(--text-color); padding: 1rem; margin: 0; }
+        h1 { font-size: 1.2rem; margin-bottom: 0.25rem; }
+        .subtitle { color: var(--text-light); font-size: 0.85rem; margin-bottom: 1rem; }
+        .drag-hint { background: #eff6ff; border-left: 4px solid var(--primary-color); padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
+        .drag-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+        .drop-zone {
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 1rem;
+            padding: 1rem;
+            min-height: 200px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .drop-zone.drag-over { border-color: var(--primary-color); background: #eff6ff; }
+        .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; }
+        .list-toolbar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+        .list-toolbar input { padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 180px; }
+        .list-pagination { font-size: 0.8rem; color: var(--text-light); }
+        .list-pagination .btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-left: 0.25rem; border: 1px solid var(--border-color); border-radius: 0.35rem; background: var(--card-bg); cursor: pointer; }
+        .list-pagination .btn:hover:not(:disabled) { background: var(--bg-color); }
+        .list-pagination .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tags-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 60px; }
+        .tag {
+            display: inline-flex; align-items: center; gap: 0.25rem;
+            padding: 0.3rem 0.6rem; border-radius: 999px; font-size: 0.8rem;
+            cursor: move; user-select: none;
+        }
+        .tag.liked { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .tag.neutral { background: linear-gradient(135deg, #94a3b8, #64748b); color: white; }
+        .tag.disliked { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .tag.dragging { opacity: 0.5; }
+        .tag { position: relative; }
+        .tag-del-btn {
+            position: absolute; top: -5px; right: -5px;
+            width: 16px; height: 16px; border-radius: 50%;
+            border: none; background: rgba(0,0,0,0.4); color: white;
+            cursor: pointer; font-size: 0.9rem; line-height: 1; padding: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            z-index: 2;
+        }
+        .tag-del-btn:hover { background: rgba(220,38,38,0.9); }
+        .pin-count { font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.35rem; }
+        .empty { color: var(--text-light); font-size: 0.85rem; padding: 1rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🧪 本機體驗：編輯桌遊 + 拖曳</h1>
+    <p class="subtitle">模擬 edit-games-drag，三區可互相拖曳。無需登入、無需資料庫。</p>
+    <div class="drag-hint">👆 按住遊戲標籤拖到其他區域即可改變分類；點標籤右上角 × 可刪除。可篩選、分頁。</div>
+
+    <div class="drag-container">
+        <div class="drop-zone" id="zone-liked" data-type="liked">
+            <div class="zone-header"><span>😍 喜歡</span><span id="count-liked">0 款</span></div>
+            <div class="pin-count" id="pin-liked"></div>
+            <div class="list-toolbar" id="toolbar-liked">
+                <input type="text" id="filter-liked" placeholder="🔍 篩選..." autocomplete="off">
+                <span id="pagination-liked" class="list-pagination"></span>
+            </div>
+            <div class="tags-wrap" id="list-liked"></div>
+        </div>
+        <div class="drop-zone" id="zone-neutral" data-type="neutral">
+            <div class="zone-header"><span>😐 普通</span><span id="count-neutral">0 款</span></div>
+            <div class="pin-count" id="pin-neutral"></div>
+            <div class="list-toolbar" id="toolbar-neutral">
+                <input type="text" id="filter-neutral" placeholder="🔍 篩選..." autocomplete="off">
+                <span id="pagination-neutral" class="list-pagination"></span>
+            </div>
+            <div class="tags-wrap" id="list-neutral"></div>
+        </div>
+        <div class="drop-zone" id="zone-disliked" data-type="disliked">
+            <div class="zone-header"><span>😕 不喜歡</span><span id="count-disliked">0 款</span></div>
+            <div class="pin-count" id="pin-disliked"></div>
+            <div class="list-toolbar" id="toolbar-disliked">
+                <input type="text" id="filter-disliked" placeholder="🔍 篩選..." autocomplete="off">
+                <span id="pagination-disliked" class="list-pagination"></span>
+            </div>
+            <div class="tags-wrap" id="list-disliked"></div>
+        </div>
+    </div>
+
+    <script>
+        const TYPES = ['liked', 'neutral', 'disliked'];
+        const PAGE_SIZE = 24;
+        const MAX_PIN = 10;
+        const zoneFilter = { liked: '', neutral: '', disliked: '' };
+        const zonePage = { liked: 0, neutral: 0, disliked: 0 };
+        const pinned = { liked: new Set(), neutral: new Set(), disliked: new Set() };
+        // 假資料：三區各放一些
+        let lists = {
+            liked: ['卡坦島', '花磚物語', 'Azul', '卡卡頌', '璀璨寶石', '矮人礦坑', '狼人殺', '阿瓦隆', '瘟疫危機', '東京之王', '情書', '爆炸貓', '說書人', '拉密', '卡斯卡迪亞之旅', '和睦相處', '拼布對決', '戰爭之匣', '聖家族大教堂', '貓毯', 'Santorini', '陰陽師之戰', 'Project L', '曼荼羅', '新月任務', '沙皇棋', '塔魯瓦', '光合作用', '七大奇蹟', '殖民火星', '翼盟天下', '根', '靈跡島', '農家樂', '電力公司', '波多黎各', '石器時代', '富饒之城', '車票之旅', '仙境幽谷'],
+            neutral: ['塔什卡拉爾競技場', '星際大戰：帝國 Assault', '幽港迷城', '魔戒：中洲征途', '七大奇蹟：對決', '大西部之路', '歷史巨輪', '奧丁的盛宴', '馬可波羅', '鐵道任務'],
+            disliked: ['Catan', 'Carcassonne', 'Splendor', 'Saboteur', 'Werewolf', 'Pandemic', 'King of Tokyo', 'Love Letter', 'Exploding Kittens', 'Dixit', 'Rummikub']
+        };
+
+        function getFiltered(type) {
+            const list = lists[type];
+            const q = (zoneFilter[type] || '').trim().toLowerCase();
+            return q ? list.filter(g => String(g).toLowerCase().includes(q)) : list.slice();
+        }
+
+        function setZonePage(type, p) {
+            const filtered = getFiltered(type);
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            zonePage[type] = Math.max(0, Math.min(p, totalPages - 1));
+            renderZone(type);
+        }
+
+        function onZoneFilter(type, el) {
+            zoneFilter[type] = el ? el.value : (document.getElementById('filter-' + type) && document.getElementById('filter-' + type).value) || '';
+            zonePage[type] = 0;
+            renderZone(type);
+        }
+
+        function moveGame(fromType, toType, gameName) {
+            if (fromType === toType) return;
+            const from = lists[fromType];
+            const idx = from.indexOf(gameName);
+            if (idx === -1) return;
+            from.splice(idx, 1);
+            if (!lists[toType].includes(gameName)) lists[toType].push(gameName);
+            pinned[fromType].delete(gameName);
+            renderZone(fromType);
+            renderZone(toType);
+            updateCounts();
+        }
+
+        function removeGame(type, gameNameEscaped) {
+            const gameName = (gameNameEscaped || '').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+            const arr = lists[type];
+            const idx = arr.indexOf(gameName);
+            if (idx === -1) return;
+            arr.splice(idx, 1);
+            pinned[type].delete(gameName);
+            renderZone(type);
+            updateCounts();
+        }
+
+        function togglePin(type, name) {
+            const s = pinned[type];
+            if (s.has(name)) s.delete(name);
+            else if (s.size < MAX_PIN) s.add(name);
+            renderZone(type);
+        }
+
+        function updateCounts() {
+            TYPES.forEach(t => {
+                const el = document.getElementById('count-' + t);
+                if (el) el.textContent = lists[t].length + ' 款';
+            });
+        }
+
+        function renderZone(type) {
+            const list = lists[type];
+            const filtered = getFiltered(type);
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (zonePage[type] >= totalPages) zonePage[type] = Math.max(0, totalPages - 1);
+            const start = zonePage[type] * PAGE_SIZE;
+            const slice = filtered.slice(start, start + PAGE_SIZE);
+
+            const toolbar = document.getElementById('toolbar-' + type);
+            const filterEl = document.getElementById('filter-' + type);
+            const paginationEl = document.getElementById('pagination-' + type);
+            const listEl = document.getElementById('list-' + type);
+            const pinEl = document.getElementById('pin-' + type);
+            if (!listEl) return;
+
+            toolbar.style.display = list.length > 0 ? 'flex' : 'none';
+            if (filterEl) filterEl.value = zoneFilter[type] || '';
+            const pinCount = pinned[type].size;
+            if (pinEl) pinEl.textContent = pinCount > 0 ? '📌 已釘選 ' + pinCount + '/' + MAX_PIN + ' 款' : '';
+
+            if (total === 0) {
+                if (paginationEl) paginationEl.innerHTML = '';
+                listEl.innerHTML = '<div class="empty">' + (zoneFilter[type].trim() ? '沒有符合的遊戲' : '尚無遊戲') + '</div>';
+            } else {
+                const end = Math.min(start + PAGE_SIZE, total);
+                if (paginationEl) {
+                    paginationEl.innerHTML = `顯示 ${start + 1}-${end} / 共 ${total} 款
+                        <button type="button" class="btn" ${zonePage[type] <= 0 ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] - 1})">上一頁</button>
+                        <button type="button" class="btn" ${zonePage[type] >= totalPages - 1 ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] + 1})">下一頁</button>`;
+                }
+                listEl.innerHTML = slice.map(name => {
+                    const isPinned = pinned[type].has(name);
+                    const safe = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    return `<span class="tag ${type}" draggable="true" data-game="${escapeAttr(name)}" data-type="${type}">
+                        <button type="button" class="tag-del-btn" title="刪除此遊戲" onclick="removeGame('${type}','${safe}');event.stopPropagation();">×</button>
+                        <span onclick="event.stopPropagation(); togglePin('${type}', '${safe}')" title="釘選">${isPinned ? '📌' : '○'}</span>
+                        ${escapeHtml(name)}
+                    </span>`;
+                }).join('');
+                listEl.querySelectorAll('.tag').forEach(tag => {
+                    tag.addEventListener('dragstart', handleDragStart);
+                    tag.addEventListener('dragend', handleDragEnd);
+                });
+            }
+            updateCounts();
+        }
+
+        let draggedTag = null;
+        function handleDragStart(e) {
+            draggedTag = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', e.target.dataset.game + '|' + e.target.dataset.type);
+        }
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+        }
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+        }
+        function handleDragLeave(e) {
+            if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over');
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const raw = e.dataTransfer.getData('text/plain');
+            if (!raw) return;
+            const [gameName, fromType] = raw.split('|');
+            const toType = e.currentTarget.dataset.type;
+            if (fromType && toType && fromType !== toType) moveGame(fromType, toType, gameName);
+        }
+
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function escapeAttr(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/"/g, '&quot;'); }
+
+        TYPES.forEach(type => {
+            const zone = document.getElementById('zone-' + type);
+            if (zone) {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            }
+            const filterEl = document.getElementById('filter-' + type);
+            if (filterEl) filterEl.addEventListener('input', e => onZoneFilter(type, e.target));
+        });
+        updateCounts();
+        TYPES.forEach(t => renderZone(t));
+    </script>
+</body>
+</html>

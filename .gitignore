@@ -1,4 +1,4 @@
-# Cloudflare local dev cache
+# Wrangler 本地快取（deploy / dev 時自動產生）
 .wrangler/
 cloudflare/.wrangler/
 

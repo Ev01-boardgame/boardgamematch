@@ -474,6 +474,51 @@
                 font-size: 1.5rem;
             }
         }
+
+        /* 切換分頁（與揪桌趣處同風格） */
+        .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-tabs .btn { white-space: nowrap; }
+        .recommend-panel { display: none; }
+        .recommend-panel.active { display: block; }
+        .random-mode-section { background: var(--card-bg); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+        .random-mode-options { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .random-mode-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: 2px solid var(--border-color); border-radius: 0.75rem; background: var(--bg-color); cursor: pointer; transition: all 0.2s; }
+        .random-mode-option:hover { border-color: var(--primary-color); }
+        .random-mode-option.selected { border-color: var(--primary-color); background: rgba(102,126,234,0.1); }
+        .random-result-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+        .random-result-card { background: var(--card-bg); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
+        .random-result-card-cover { aspect-ratio: 1; background: var(--border-color); background-size: cover; background-position: center; }
+        .random-result-card-body { padding: 0.6rem; }
+        .random-result-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-color); line-height: 1.3; }
+        .random-result-card-score { font-size: 0.75rem; color: var(--primary-color); margin-top: 0.25rem; }
+        /* 隨機推薦：與主題清單同款遊戲卡（含評價按鈕），但用網格排列、不疊在一起 */
+        .random-result-cards .random-game-card {
+            position: static !important;
+            width: auto !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+        }
+        .random-game-card { min-width: 0; }
+        .random-game-card .card-cover { aspect-ratio: 1; background-size: cover; background-position: center; }
+        .random-game-card .card-body { padding: 0.65rem; }
+        .random-game-card .game-name-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+        .random-game-card .rating-buttons { margin-top: 0.5rem; gap: 0.25rem; }
+        .random-game-card .recommendation-btn { padding: 0.3rem 0.35rem; font-size: 1.1rem; }
+        .random-game-card .recommendation-btn .btn-label { font-size: 0.58rem; }
+        .random-game-card .rated-badge,
+        .random-game-card .skipped-badge { margin-top: 0.4rem; font-size: 0.75rem; color: var(--primary-color); font-weight: 600; }
+        .random-game-card .skipped-badge { color: var(--text-light); }
+        /* 評價或跳過後：卡片收合為單行 */
+        .random-game-card--closed .card-cover { display: none; }
+        .random-game-card--closed .card-body,
+        .random-game-card--closed .card-body-no-cover { padding: 0.5rem 0.65rem; }
+        .random-game-card--closed .game-name-row { margin-bottom: 0; }
+        .random-game-card--closed .rating-buttons { display: none; }
+        .random-game-card--closed .rated-badge,
+        .random-game-card--closed .skipped-badge { margin-top: 0.25rem; margin-bottom: 0; font-size: 0.8rem; }
+        .random-game-card--closed .random-result-card-score { display: none; }
+        .random-game-card--closed .skip-btn { display: none; }
     </style>
 </head>
 <body>
@@ -490,8 +535,9 @@
                 <li><a href="index.html">回到首頁</a></li>
                 <li><a href="recommend.html" class="active">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
                 <li><a href="explore.html">玩家數據</a></li>
-                <li><a href="leaderboard.html">貢獻排行</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
             </ul>
         </div>
@@ -505,50 +551,88 @@
             <p>點選評分，找出你的桌遊靈魂伴侶</p>
         </div>
 
-        <!-- 主題清單區 -->
+        <!-- 切換分頁（與揪桌趣處同風格） -->
+        <section style="max-width: 1000px; margin: 0 auto 1.5rem;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--text-color);">選擇分類</h2>
+            <div class="filter-tabs" id="recommend-filter-tabs">
+                <button type="button" class="btn btn-primary" data-tab="random" id="tab-random">🎲 隨機推薦</button>
+                <button type="button" class="btn btn-secondary" data-tab="limited" id="tab-limited">⏰ 限時活動</button>
+                <button type="button" class="btn btn-secondary" data-tab="permanent" id="tab-permanent">⭐ 常駐主題</button>
+                <button type="button" class="btn btn-secondary" data-tab="publisher" id="tab-publisher">🏢 出版社主打</button>
+                <button type="button" class="btn btn-secondary" data-tab="yearly" id="tab-yearly">🏆 年度排行</button>
+            </div>
+        </section>
+
+        <!-- 主題清單區（依分頁顯示） -->
         <section id="game-collections-section" style="max-width: 1000px; margin: 0 auto;">
 
-            <!-- 限時活動 -->
-            <div id="limited-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">⏰ 限時活動</h3>
-                <div id="limited-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 出版社主打 -->
-            <div id="publisher-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">🏢 出版社主打</h3>
-                <div id="publisher-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
-                    </div>
-                </div>
-            </div>
-            
             <!-- 年度排行 -->
-            <div id="yearly-collections" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">🏆 年度排行</h3>
-                <div id="yearly-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入中...</span>
+            <div id="panel-yearly" class="recommend-panel">
+                <div id="yearly-collections" style="margin-bottom: 2rem;">
+                    <div id="yearly-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入中...</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 常駐主題 -->
-            <div id="permanent-collections">
-                <h3 style="font-size: 1.25rem; margin: 0 0 0.75rem 0; color: var(--text-color); font-weight: 700;">⭐ 常駐主題</h3>
-                <div id="permanent-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                    <div class="simple-hourglass" style="grid-column: 1/-1;">
-                        <span class="hourglass-icon-simple combined">⏳</span>
-                        <span class="hourglass-text-simple">載入活動中...</span>
+            <div id="panel-permanent" class="recommend-panel">
+                <div id="permanent-collections" style="margin-bottom: 2rem;">
+                    <div id="permanent-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 出版社主打 -->
+            <div id="panel-publisher" class="recommend-panel">
+                <div id="publisher-collections" style="margin-bottom: 2rem;">
+                    <div id="publisher-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 限時活動 -->
+            <div id="panel-limited" class="recommend-panel">
+                <div id="limited-collections" style="margin-bottom: 2rem;">
+                    <div id="limited-collections-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="simple-hourglass" style="grid-column: 1/-1;">
+                            <span class="hourglass-icon-simple combined">⏳</span>
+                            <span class="hourglass-text-simple">載入活動中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 隨機推薦 -->
+            <div id="panel-random" class="recommend-panel active">
+                <div class="random-mode-section">
+                    <h3 style="font-size: 1.1rem; margin: 0 0 0.75rem; color: var(--text-color);">推薦方式</h3>
+                    <div class="random-mode-options">
+                        <label class="random-mode-option selected" data-mode="random"><input type="radio" name="random-mode" value="random" checked> <span>純隨機</span></label>
+                        <label class="random-mode-option" data-mode="mbti"><input type="radio" name="random-mode" value="mbti"> <span>依 MBTI 性格</span></label>
+                        <label class="random-mode-option" data-mode="axis"><input type="radio" name="random-mode" value="axis"> <span>依桌遊偏好</span></label>
+                        <label class="random-mode-option" data-mode="both"><input type="radio" name="random-mode" value="both"> <span>依 MBTI + 桌遊偏好</span></label>
+                    </div>
+                    <p class="result-hint" style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">純隨機不依個人資料；MBTI 依同類型玩家喜好；桌遊偏好依你的偏好輪廓與遊戲的匹配度。</p>
+                </div>
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <button type="button" class="btn btn-primary" id="btn-random-recommend" style="padding: 0.9rem 2rem;">推薦 8 款</button>
+                </div>
+                <div id="random-result-wrap" style="display: none;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-color);">推薦結果</h3>
+                    <div id="random-result-cards" class="random-result-cards"></div>
+                    <div id="random-result-empty" class="community-empty" style="display: none;">尚無資料，請改用「純隨機」或稍後再試。</div>
                 </div>
             </div>
         </section>
@@ -571,6 +655,7 @@
     <script src="js/api-base.js?v=20260302-clear"></script>
     <script src="js/app.js?v=20260311"></script>
     <script src="js/game-names.js"></script>
+    <script src="js/match-score.js"></script>
     <script>
         // ── safePatch 備援定義 ──
         if (typeof safePatch === 'undefined') {
@@ -607,6 +692,275 @@
         
         // localStorage 備份鍵名
         const BACKUP_KEY = 'mbti_game_ratings_backup';
+
+        // 隨機推薦用（與 random-recommend 同邏輯，用語改為「桌遊偏好」）
+        const RANDOM_PAGE_SIZE = 100;   // 每頁筆數（與 API 一致）
+        const RANDOM_POOL_SIZE = 1000;  // MBTI/軸線模式用的 pool 大小（只抓前 N 筆）
+        const RANDOM_RESULT_COUNT = 8;
+        let randomGamePool = [];
+        let randomGameMapByName = {};
+        let randomAllUsers = [];
+        let randomUserProfile = null;
+
+        function runRandomRecommend() {
+            const modeEl = document.querySelector('input[name="random-mode"]:checked');
+            const mode = modeEl ? modeEl.value : 'random';
+            const btn = document.getElementById('btn-random-recommend');
+            const wrap = document.getElementById('random-result-wrap');
+            const cardsEl = document.getElementById('random-result-cards');
+            const emptyEl = document.getElementById('random-result-empty');
+            // 方案 B：MBTI／桌遊偏好需登入，點下去再彈登入提示
+            if ((mode === 'mbti' || mode === 'axis' || mode === 'both') && (!currentUser || !currentUser.id)) {
+                showNotification('請先登入', '使用「依 MBTI 性格」或「依桌遊偏好」推薦需先登入，登入後可依你的喜好個人化推薦。', '🔒', 'info');
+                return;
+            }
+            if (btn) btn.disabled = true;
+            wrap.style.display = 'block';
+            cardsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:1rem;">載入中...</div>';
+            emptyEl.style.display = 'none';
+
+            function getDisplayName(g) {
+                if (!g) return '';
+                return (g.name_zh || g.name_en || g.name_ja || (typeof g === 'string' ? g : '') || '').trim();
+            }
+            function getImageUrl(g) {
+                if (!g) return '';
+                if (typeof g === 'object' && g.image_url) return g.image_url;
+                return localGetImageUrl ? localGetImageUrl(getDisplayName(g)) : null;
+            }
+            function shuffle(arr) {
+                const a = arr.slice();
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            }
+
+            // 純隨機做法一：後端支援 ?random=10 時一次請求取 10 筆（Worker 用 ORDER BY RANDOM()）
+            async function fetchTenRandomOneRequest() {
+                const cacheBuster = '_=' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+                const res = await fetch('tables/game_database?random=' + RANDOM_RESULT_COUNT + '&' + cacheBuster);
+                if (!res.ok) return null;
+                const data = await res.json();
+                const list = (data.data != null ? data.data : Array.isArray(data) ? data : []).filter(g => g && (g.name_zh || g.name_en));
+                if (list.length < RANDOM_RESULT_COUNT) return null;
+                let games = list.slice(0, RANDOM_RESULT_COUNT);
+                await fillMissingImageUrls(games);
+                mergeGamesIntoLocalMap(games);
+                return games;
+            }
+            // 純隨機 fallback：十次「隨機一頁 → 該頁隨機一款」（後端尚未支援 ?random=10 時）
+            async function fetchTenRandomFromAllPages() {
+                const first = await fetch('tables/game_database?limit=1').then(r => r.ok ? r.json() : {});
+                const total = first.total || 0;
+                if (total === 0) return [];
+                const totalPages = Math.ceil(total / RANDOM_PAGE_SIZE);
+                const seen = new Set();
+                const results = [];
+                let retries = 0;
+                const maxRetries = RANDOM_RESULT_COUNT * 5;
+                while (results.length < RANDOM_RESULT_COUNT && retries < maxRetries) {
+                    retries++;
+                    const page = 1 + Math.floor(Math.random() * totalPages);
+                    const res = await fetch('tables/game_database?limit=' + RANDOM_PAGE_SIZE + '&page=' + page).then(r => r.ok ? r.json() : { data: [] });
+                    const list = (res.data || []).filter(g => g && (g.name_zh || g.name_en));
+                    if (list.length === 0) continue;
+                    const g = list[Math.floor(Math.random() * list.length)];
+                    const key = (g.id != null ? String(g.id) : '') || getDisplayName(g) || '';
+                    if (key && seen.has(key)) continue;
+                    if (key) seen.add(key);
+                    results.push(g);
+                }
+                return results;
+            }
+
+            function loadPool() {
+                return fetchAllPages('tables/game_database', RANDOM_POOL_SIZE).then(rows => {
+                    randomGamePool = (rows || []).filter(r => (r.name_zh || r.name_en));
+                    randomGameMapByName = {};
+                    randomGamePool.forEach(g => {
+                        ['name_zh', 'name_en', 'name_ja'].forEach(k => {
+                            const n = (g[k] || '').trim();
+                            if (n && !randomGameMapByName[n]) randomGameMapByName[n] = g;
+                        });
+                    });
+                    return randomGamePool;
+                });
+            }
+
+            function ensureData() {
+                let p;
+                if (mode === 'random') {
+                    p = Promise.resolve();
+                } else {
+                    p = loadPool();
+                    if (mode === 'mbti' || mode === 'both') {
+                        p = p.then(() => (typeof getAllUsers === 'function' ? getAllUsers() : [])).then(u => {
+                            randomAllUsers = u || [];
+                            return randomGamePool;
+                        });
+                    }
+                    if (mode === 'axis' || mode === 'both') {
+                        const cu = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+                        if (cu && cu.id) {
+                            const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                            p = p.then(() => fetch('tables/user_preference_profiles/' + cu.id, { headers }).then(r => r.status === 200 ? r.json() : null)).then(prof => {
+                                randomUserProfile = prof;
+                                return randomGamePool;
+                            });
+                        } else randomUserProfile = null;
+                    }
+                }
+                return p;
+            }
+
+            async function runRandom() {
+                const one = await fetchTenRandomOneRequest();
+                let games = one || await fetchTenRandomFromAllPages();
+                games = (games || []).slice(0, RANDOM_RESULT_COUNT);
+                if (games.length) {
+                    if (!one) await fillMissingImageUrls(games);
+                    mergeGamesIntoLocalMap(games);
+                    console.log('隨機推薦本批:', games.map(g => getDisplayName(g)));
+                }
+                return games.map(g => ({ game: g, scoreLabel: null }));
+            }
+            async function fillMissingImageUrls(games) {
+                const need = (games || []).filter(g => g && g.id && !(g.image_url && g.image_url.startsWith('http')));
+                if (need.length === 0) return;
+                await Promise.all(need.map(g => fetch('tables/game_database/' + encodeURIComponent(g.id)).then(r => r.ok ? r.json() : null).then(row => { if (row && row.image_url) g.image_url = row.image_url; })));
+            }
+            // 是否為「已評價」：超喜歡、喜歡、普普、不喜歡（不含想玩、沒興趣、跳過）
+            function isRatedGameName(name) {
+                if (!name || !currentUser) return false;
+                const u = currentUser;
+                const arr = [].concat(u.super_liked_games || [], u.liked_games || [], u.neutral_games || [], u.disliked_games || []);
+                return arr.some(n => String(n).trim() === String(name).trim());
+            }
+            function isRatedGame(g) {
+                return isRatedGameName(getDisplayName(g));
+            }
+
+            function runMBTI() {
+                if (!currentUser || !currentUser.mbti_type || !randomAllUsers.length)
+                    return { list: [], noMatch: true, message: '尚無 MBTI 或同類型玩家資料，請先設定 MBTI 或改用純隨機。' };
+                const typeUsers = randomAllUsers.filter(u => u.mbti_type === currentUser.mbti_type);
+                const gameCount = {};
+                typeUsers.forEach(u => {
+                    (u.super_liked_games || []).forEach(game => { gameCount[game] = (gameCount[game] || 0) + 2; });
+                    (u.liked_games || []).forEach(game => { gameCount[game] = (gameCount[game] || 0) + 1; });
+                });
+                const ranked = Object.entries(gameCount).map(([game, score]) => ({ game, score })).sort((a, b) => b.score - a.score);
+                if (ranked.length === 0)
+                    return { list: [], noMatch: true, message: '尚無 MBTI 或同類型玩家資料，請先設定 MBTI 或改用純隨機。' };
+                // 依相似度排序，排除已評價，取前 N 款（不亂給隨機）
+                const filtered = ranked.filter(p => !isRatedGameName(p.game)).slice(0, RANDOM_RESULT_COUNT);
+                return filtered.map(p => {
+                    const g = randomGameMapByName[p.game] || { name_zh: p.game, name_en: p.game };
+                    return { game: g, scoreLabel: '同類型 ' + p.score + ' 分' };
+                }).filter(x => x.game);
+            }
+            function runAxis() {
+                if (!randomUserProfile || !window.MatchScore)
+                    return { list: [], noMatch: true, message: '尚無桌遊偏好資料，請先完成桌友適性測驗並儲存偏好，或改用純隨機。' };
+                const withAxis = randomGamePool.filter(g => g.axis_conflict != null || g.axis_strategy != null);
+                if (withAxis.length === 0)
+                    return { list: [], noMatch: true, message: '目前尚無遊戲的偏好軸資料，請改用純隨機或稍後再試。' };
+                const playerAxes = { conflict: randomUserProfile.conflict, strategy: randomUserProfile.strategy, social_fun: randomUserProfile.social_fun, immersion: randomUserProfile.immersion, accessibility: randomUserProfile.accessibility, manipulation: randomUserProfile.manipulation, coop: randomUserProfile.coop, luck: randomUserProfile.luck };
+                const scored = withAxis.map(g => {
+                    const s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);
+                    return { game: g, scoreLabel: '偏好匹配 ' + s + '%', score: s };
+                });
+                scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+                // 依相似度排序，排除已評價，取前 10
+                return scored.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT);
+            }
+            function runBoth() {
+                const mbtiList = runMBTI();
+                const axisList = runAxis();
+                const mbtiArr = Array.isArray(mbtiList) ? mbtiList : (mbtiList && mbtiList.list) || [];
+                const axisArr = Array.isArray(axisList) ? axisList : (axisList && axisList.list) || [];
+                if (mbtiArr.length === 0 && axisArr.length === 0)
+                    return { list: [], noMatch: true, message: '尚無符合的推薦，請先完成桌友適性測驗／設定 MBTI 或改用純隨機。' };
+                const byGame = {};
+                function add(list, weight) {
+                    (list || []).forEach((x, i) => {
+                        const name = getDisplayName(x.game);
+                        if (!name) return;
+                        const rank = 1 - (i / Math.max(list.length, 1));
+                        if (!byGame[name]) byGame[name] = { game: x.game, combined: 0 };
+                        byGame[name].combined += weight * rank;
+                    });
+                }
+                add(mbtiArr, 0.5);
+                add(axisArr, 0.5);
+                const sorted = Object.values(byGame).sort((a, b) => b.combined - a.combined);
+                return sorted.filter(x => !isRatedGame(x.game)).slice(0, RANDOM_RESULT_COUNT).map(x => ({ game: x.game, scoreLabel: '綜合 ' + Math.round(x.combined * 100) + '%' }));
+            }
+
+            function escapeAttr(s) {
+                if (s == null) return '';
+                return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+            function renderList(list) {
+                if (!list || list.length === 0) {
+                    cardsEl.innerHTML = '';
+                    emptyEl.textContent = (mode === 'mbti' || mode === 'axis' || mode === 'both')
+                        ? '你已經評過所有相似遊戲了'
+                        : '尚無資料，請改用「純隨機」或稍後再試。';
+                    emptyEl.style.display = 'block';
+                } else {
+                    emptyEl.style.display = 'none';
+                    cardsEl.innerHTML = list.map((item, idx) => {
+                        const g = item.game;
+                        const name = getDisplayName(g) || '桌遊';
+                        let img = getImageUrl(g);
+                        if (!img && localGetImageUrl) img = localGetImageUrl(name);
+                        const scoreHtml = item.scoreLabel ? '<div class="random-result-card-score">' + item.scoreLabel + '</div>' : '';
+                        const oldRating = typeof getOldRating === 'function' ? getOldRating(name) : null;
+                        const ratedBadge = oldRating ? '<div class="rated-badge">' + { super_like: '🤩 超喜歡', like: '👍 喜歡', neutral: '😐 普普', dislike: '👎 不喜歡', wishlist: '⭐ 想玩', no_interest: '🚫 沒興趣' }[oldRating] + '</div>' : '';
+                        const coverHtml = img ? '<div class="card-cover"><div class="card-cover-bg" style="background-image:url(\'' + String(img).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"></div><img class="card-cover-img" src="' + String(img).replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="this.closest(\'.card-cover\').style.display=\'none\'"></div>' : '';
+                        const nameHtml = typeof localFormatCard === 'function' ? localFormatCard(name) : (name.replace(/</g, '&lt;'));
+                        const dataGame = escapeAttr(name);
+                        const skipBtn = !oldRating ? '<button type="button" class="skip-btn" onclick="skipGameFromRandom(this)" title="跳過這款">⏭ 跳過</button>' : '';
+                        const btnsHtml = oldRating
+                            ? ratedBadge
+                            : '<div class="rating-buttons">' +
+                                '<button type="button" class="recommendation-btn btn-super-like" data-game="' + dataGame + '" data-rating="super_like" onclick="rateGameFromRandom(this)" title="超喜歡">🤩<span class="btn-label">超喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-like" data-game="' + dataGame + '" data-rating="like" onclick="rateGameFromRandom(this)" title="喜歡">👍<span class="btn-label">喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-neutral" data-game="' + dataGame + '" data-rating="neutral" onclick="rateGameFromRandom(this)" title="普普">😐<span class="btn-label">普普</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-dislike" data-game="' + dataGame + '" data-rating="dislike" onclick="rateGameFromRandom(this)" title="不喜歡">👎<span class="btn-label">不喜歡</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-wishlist" data-game="' + dataGame + '" data-rating="wishlist" onclick="rateGameFromRandom(this)" title="想玩">⭐<span class="btn-label">想玩</span></button>' +
+                                '<button type="button" class="recommendation-btn btn-no-interest" data-game="' + dataGame + '" data-rating="no_interest" onclick="rateGameFromRandom(this)" title="沒興趣">🚫<span class="btn-label">沒興趣</span></button>' +
+                                '</div>';
+                        return '<div class="random-game-card game-card" id="random-card-' + idx + '">' + coverHtml + '<div class="' + (img ? 'card-body' : 'card-body-no-cover') + '"><div class="game-name-row"><div class="game-name">' + nameHtml + '</div>' + skipBtn + '</div>' + scoreHtml + btnsHtml + '</div></div>';
+                    }).join('');
+                }
+                if (btn) btn.disabled = false;
+            }
+
+            ensureData().then(async () => {
+                let list = [];
+                if (mode === 'random') list = await runRandom();
+                else if (mode === 'mbti') list = await Promise.resolve(runMBTI());
+                else if (mode === 'axis') list = await Promise.resolve(runAxis());
+                else if (mode === 'both') list = await Promise.resolve(runBoth());
+                if (list && list.noMatch === true) {
+                    cardsEl.innerHTML = '';
+                    emptyEl.textContent = list.message || '尚無符合的推薦，請改用純隨機或稍後再試。';
+                    emptyEl.style.display = 'block';
+                } else {
+                    if (!Array.isArray(list)) list = [];
+                    renderList(list);
+                }
+            }).catch(e => {
+                cardsEl.innerHTML = '';
+                emptyEl.textContent = '載入失敗：' + (e && e.message ? e.message : '請稍後再試');
+                emptyEl.style.display = 'block';
+                if (btn) btn.disabled = false;
+            });
+        }
         
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
@@ -617,15 +971,12 @@
                 // 載入當前使用者（使用 GameMBTI 統一方法）
                 currentUser = GameMBTI.getCurrentUser();
                 
-                // ✅ 如果已登入 Google，即使未分享喜好也允許瀏覽
+                // 方案 B：未登入也可瀏覽清單與遊戲卡，評分時再提示登入
                 if (!currentUser && !googleUser) {
-                    console.log('未找到登入使用者');
-                    showNotLoggedIn();
-                    return;
-                }
-                
-                // 📝 如果只有 Google 登入但未分享喜好，創建臨時使用者物件
-                if (!currentUser && googleUser) {
+                    console.log('未登入，以訪客模式瀏覽');
+                    currentUser = null;
+                } else if (!currentUser && googleUser) {
+                    // 📝 如果只有 Google 登入但未分享喜好，創建臨時使用者物件
                     try {
                         const user = JSON.parse(googleUser);
                         currentUser = {
@@ -646,50 +997,99 @@
                         return;
                     }
                 }
-                
-                // 確保陣列欄位存在（先給預設值，讓後續操作不 crash）
-                if (!currentUser.liked_games) currentUser.liked_games = [];
-                if (!currentUser.disliked_games) currentUser.disliked_games = [];
-                if (!currentUser.wishlist) currentUser.wishlist = [];
 
-                // ── 從伺服器同步最新評分（跨裝置連通）──
-                // 優先用伺服器資料覆蓋 localStorage，再合併 localStorage 的未同步備份
-                if (currentUser.id) {
-                    try {
-                        const syncRes = await fetch(`tables/users/${currentUser.id}`);
-                        if (syncRes.ok) {
-                            const serverUser = await syncRes.json();
-                            // 以伺服器資料為主，更新所有評分欄位
-                            const ratingFields = [
-                                'liked_games','disliked_games','wishlist',
-                                'super_liked_games','neutral_games',
-                                'no_interest_games'
-                            ];
-                            ratingFields.forEach(f => {
-                                if (Array.isArray(serverUser[f])) {
-                                    currentUser[f] = serverUser[f];
-                                }
-                            });
-                            // 同步回 localStorage，讓下次開啟也是最新版
-                            try {
-                                const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                                ratingFields.forEach(f => { stored[f] = currentUser[f] || []; });
-                                localStorage.setItem('currentUser', JSON.stringify(stored));
-                            } catch(e) {}
-                            console.log('✅ 已從伺服器同步最新評分資料');
+                if (currentUser) {
+                    // 確保陣列欄位存在（先給預設值，讓後續操作不 crash）
+                    if (!currentUser.liked_games) currentUser.liked_games = [];
+                    if (!currentUser.disliked_games) currentUser.disliked_games = [];
+                    if (!currentUser.wishlist) currentUser.wishlist = [];
+
+                    // ── 從伺服器同步最新評分（跨裝置連通）──
+                    if (currentUser.id) {
+                        try {
+                            const syncRes = await fetch(`tables/users/${currentUser.id}`);
+                            if (syncRes.ok) {
+                                const serverUser = await syncRes.json();
+                                const ratingFields = [
+                                    'liked_games','disliked_games','wishlist',
+                                    'super_liked_games','neutral_games',
+                                    'no_interest_games'
+                                ];
+                                ratingFields.forEach(f => {
+                                    if (Array.isArray(serverUser[f])) {
+                                        currentUser[f] = serverUser[f];
+                                    }
+                                });
+                                try {
+                                    const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                                    ratingFields.forEach(f => { stored[f] = currentUser[f] || []; });
+                                    localStorage.setItem('currentUser', JSON.stringify(stored));
+                                } catch(e) {}
+                                console.log('✅ 已從伺服器同步最新評分資料');
+                            }
+                        } catch(e) {
+                            console.warn('⚠️ 伺服器同步失敗，使用本地資料:', e);
                         }
-                    } catch(e) {
-                        console.warn('⚠️ 伺服器同步失敗，使用本地資料:', e);
                     }
+                    // 嘗試從 localStorage 恢復上次未成功同步到伺服器的評價
+                    await restoreFromLocalStorage();
                 }
 
-                // 嘗試從 localStorage 恢復上次未成功同步到伺服器的評價（網路中斷等情況）
-                await restoreFromLocalStorage();
-
-                console.log('當前使用者:', currentUser);
+                console.log('當前使用者:', currentUser ? '已登入' : '訪客瀏覽');
                 
                 // 載入主題清單
                 await loadGameCollections();
+
+                // 切換分頁（年度排行 / 常駐主題 / 出版社主打 / 限時活動 / 隨機推薦）
+                const tabs = document.querySelectorAll('#recommend-filter-tabs .btn[data-tab]');
+                const panels = document.querySelectorAll('.recommend-panel');
+                function switchTab(tabKey) {
+                    var leavingPanel = document.querySelector('.recommend-panel.active');
+                    var leavingId = leavingPanel ? leavingPanel.id : '';
+
+                    tabs.forEach(btn => {
+                        if (btn.dataset.tab === tabKey) {
+                            btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+                        } else {
+                            btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary');
+                        }
+                    });
+                    panels.forEach(panel => {
+                        panel.classList.toggle('active', panel.id === 'panel-' + tabKey);
+                    });
+
+                    // 切到其它分類時，關掉上一個分頁的卡片
+                    if (leavingId === 'panel-random') {
+                        var wrap = document.getElementById('random-result-wrap');
+                        if (wrap) wrap.style.display = 'none';
+                    } else if (leavingId && ['panel-limited', 'panel-permanent', 'panel-publisher', 'panel-yearly'].indexOf(leavingId) !== -1 && leavingPanel) {
+                        var containers = leavingPanel.querySelectorAll('.game-cards-container');
+                        containers.forEach(function(c) {
+                            if (c.id && c.id.indexOf('cards-container-') === 0) {
+                                c.innerHTML = '<div class="empty-state"><div class="icon">🎮</div><p>點擊「開始評價」來探索遊戲</p></div>';
+                            }
+                        });
+                    }
+                }
+                tabs.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        switchTab(btn.dataset.tab);
+                        try { location.hash = btn.dataset.tab; } catch (e) {}
+                    });
+                });
+                // 依 hash 顯示對應分頁；無 hash 或未知則預設「隨機推薦」
+                const hashTab = (location.hash || '').replace(/^#/, '') || 'random';
+                const validTabs = ['random', 'limited', 'permanent', 'publisher', 'yearly'];
+                switchTab(validTabs.includes(hashTab) ? hashTab : 'random');
+
+                // 隨機推薦：模式選項點擊
+                document.querySelectorAll('.random-mode-option').forEach(el => {
+                    el.addEventListener('click', function() {
+                        document.querySelectorAll('.random-mode-option').forEach(o => o.classList.remove('selected'));
+                        this.classList.add('selected');
+                    });
+                });
+                document.getElementById('btn-random-recommend').addEventListener('click', runRandomRecommend);
                 
             } catch (error) {
                 console.error('初始化失敗:', error);
@@ -732,6 +1132,27 @@
         let _localGameMap = {}; // { normalizedName: { name_zh, name_en, name_ja, image_url } }
 
         function _normName(n) { return n ? n.trim().toLowerCase() : ''; }
+
+        function _gameDisplayName(g) {
+            if (!g) return '';
+            return (g.name_zh || g.name_en || g.name_ja || '').trim();
+        }
+        function mergeGamesIntoLocalMap(games) {
+            if (!Array.isArray(games)) return;
+            games.forEach(g => {
+                const name = _gameDisplayName(g);
+                if (!name) return;
+                const key = _normName(name);
+                const existing = _localGameMap[key];
+                const image_url = (g.image_url && g.image_url.startsWith('http')) ? g.image_url : (existing && existing.image_url) || '';
+                _localGameMap[key] = {
+                    name_zh: g.name_zh || '',
+                    name_en: g.name_en || '',
+                    name_ja: g.name_ja || '',
+                    image_url: image_url
+                };
+            });
+        }
 
         // BGG 預設佔位圖（無實際封面時 BGG 回傳的通用圖片）
         const BGG_PLACEHOLDER = 'pic1657689';
@@ -888,14 +1309,15 @@
                 const totalCount = collection.games.length;
                 const questionsPerSession = collection.questions_per_session || 0;
                 
-                // 計算可評價的遊戲數量
+                // 計算可評價的遊戲數量（未登入時視為皆未評分）
+                const u = currentUser || {};
                 const allRatedGames = [
-                    ...(currentUser.super_liked_games || []),
-                    ...(currentUser.liked_games || []),
-                    ...(currentUser.neutral_games || []),
-                    ...(currentUser.disliked_games || []),
-                    ...(currentUser.no_interest_games || []),
-                    ...(currentUser.wishlist || [])
+                    ...(u.super_liked_games || []),
+                    ...(u.liked_games || []),
+                    ...(u.neutral_games || []),
+                    ...(u.disliked_games || []),
+                    ...(u.no_interest_games || []),
+                    ...(u.wishlist || [])
                 ];
                 const unratedGames = collection.games.filter(game => !allRatedGames.includes(game));
                 const ratedCount = totalCount - unratedGames.length;
@@ -982,13 +1404,14 @@
                 return;
             }
 
+            const u = currentUser || {};
             const allRatedGames = [
-                ...(currentUser.super_liked_games || []),
-                ...(currentUser.liked_games || []),
-                ...(currentUser.neutral_games || []),
-                ...(currentUser.disliked_games || []),
-                ...(currentUser.no_interest_games || []),
-                ...(currentUser.wishlist || [])
+                ...(u.super_liked_games || []),
+                ...(u.liked_games || []),
+                ...(u.neutral_games || []),
+                ...(u.disliked_games || []),
+                ...(u.no_interest_games || []),
+                ...(u.wishlist || [])
             ];
 
             let gamesToRate;
@@ -1098,8 +1521,9 @@
             return card;
         }
 
-        // 取得玩家對某遊戲的舊評分
+        // 取得玩家對某遊戲的舊評分（未登入無評分）
         function getOldRating(gameName) {
+            if (!currentUser) return null;
             if ((currentUser.super_liked_games || []).includes(gameName)) return 'super_like';
             if ((currentUser.liked_games || []).includes(gameName)) return 'like';
             if ((currentUser.neutral_games || []).includes(gameName)) return 'neutral';
@@ -1107,6 +1531,69 @@
             if ((currentUser.wishlist || []).includes(gameName)) return 'wishlist';
             if ((currentUser.no_interest_games || []).includes(gameName)) return 'no_interest';
             return null;
+        }
+
+        // 隨機推薦區的評價（與主題清單同邏輯，但不更新 collection_game_stats）
+        async function rateGameFromRandom(btn) {
+            const gameName = btn.getAttribute('data-game');
+            const rating = btn.getAttribute('data-rating');
+            if (!gameName || !rating) return;
+            if (!currentUser || !currentUser.id) {
+                if (typeof showNotification === 'function') showNotification('請先登入', '登入後才能為遊戲評分，系統會根據你的喜好推薦桌遊。', '🔒', 'info');
+                return;
+            }
+            const card = btn.closest('.random-game-card');
+            if (card) card.querySelectorAll('.rating-buttons button').forEach(b => b.disabled = true);
+
+            if (rating === 'super_like') {
+                if (!currentUser.super_liked_games) currentUser.super_liked_games = [];
+                currentUser.super_liked_games.push(gameName);
+            } else if (rating === 'like') {
+                if (!currentUser.liked_games) currentUser.liked_games = [];
+                currentUser.liked_games.push(gameName);
+            } else if (rating === 'neutral') {
+                if (!currentUser.neutral_games) currentUser.neutral_games = [];
+                currentUser.neutral_games.push(gameName);
+            } else if (rating === 'dislike') {
+                if (!currentUser.disliked_games) currentUser.disliked_games = [];
+                currentUser.disliked_games.push(gameName);
+            } else if (rating === 'wishlist') {
+                if (!currentUser.wishlist) currentUser.wishlist = [];
+                currentUser.wishlist.push(gameName);
+            } else if (rating === 'no_interest') {
+                if (!currentUser.no_interest_games) currentUser.no_interest_games = [];
+                currentUser.no_interest_games.push(gameName);
+            }
+
+            const label = { super_like: '🤩 超喜歡', like: '👍 喜歡', neutral: '😐 普普', dislike: '👎 不喜歡', wishlist: '⭐ 想玩', no_interest: '🚫 沒興趣' }[rating] || rating;
+            if (card) {
+                const wrap = card.querySelector('.rating-buttons');
+                if (wrap) wrap.outerHTML = '<div class="rated-badge">' + label + '</div>';
+                card.classList.add('random-game-card--closed');
+            }
+
+            try {
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage({ game: gameName, rating, timestamp: Date.now() });
+                const isFirst = typeof checkAndWriteGameVote === 'function' ? await checkAndWriteGameVote(gameName, rating, '') : true;
+                if (typeof saveRatingToDatabase === 'function') await saveRatingToDatabase(gameName, rating);
+                if (isFirst && typeof GameMBTI !== 'undefined' && GameMBTI.addXP) {
+                    const result = await GameMBTI.addXP(currentUser.id, 10, '評價遊戲：' + gameName);
+                    if (result && typeof console !== 'undefined') console.log('✅ 評價「' + gameName + '」獲得 +10 XP', result);
+                }
+            } catch (e) {
+                if (typeof console !== 'undefined') console.error('❌ 隨機推薦評價儲存失敗:', e);
+            }
+        }
+
+        // 隨機推薦區的「跳過」：不評價、不儲存，收合卡片並顯示已跳過
+        function skipGameFromRandom(btn) {
+            var card = btn && btn.closest('.random-game-card');
+            if (!card) return;
+            var skipBtn = card.querySelector('.skip-btn');
+            var ratingWrap = card.querySelector('.rating-buttons');
+            if (skipBtn) skipBtn.remove();
+            if (ratingWrap) ratingWrap.outerHTML = '<div class="skipped-badge">⏭ 已跳過</div>';
+            card.classList.add('random-game-card--closed');
         }
 
         // 維持原評：直接跳過此張（不更新任何資料）
@@ -1215,6 +1702,11 @@
         
         // 評價遊戲
         async function rateGame(collectionId, gameName, rating) {
+            // 方案 B：未登入時不寫入，點擊評分再提示
+            if (!currentUser || !currentUser.id) {
+                showNotification('請先登入', '登入後才能為遊戲評分，系統會根據你的喜好推薦桌遊。', '🔒', 'info');
+                return;
+            }
             const card = document.getElementById(`game-card-${collectionId}`);
 
             // 一般模式：已評價過直接跳過

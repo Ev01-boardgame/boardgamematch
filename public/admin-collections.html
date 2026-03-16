@@ -367,7 +367,8 @@
                 <li><a href="explore.html">玩家數據</a></li>
                 <li><a href="recommend.html">桌遊探索</a></li>
                 <li><a href="quiz.html">桌遊問答</a></li>
-                <li><a href="leaderboard.html">貢獻排行</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
                 <li><a href="profile.html">我的檔案</a></li>
             </ul>
         </div>
@@ -566,6 +567,14 @@
     <script>
         let collections = [];
         let editingId = null;
+
+        // 寫入 API 時須帶 Google JWT（後端 401 = Authentication required）
+        function authHeaders() {
+            const h = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('google_id_token');
+            if (token) h['Authorization'] = 'Bearer ' + token;
+            return h;
+        }
 
         // 頁面載入
         window.addEventListener('DOMContentLoaded', () => {
@@ -1010,27 +1019,37 @@
                     // 更新
                     response = await fetch(`tables/game_collections/${id}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify(data)
                     });
                 } else {
                     // 新增
                     response = await fetch('tables/game_collections', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify(data)
                     });
                 }
 
-                if (!response.ok) throw new Error('儲存失敗');
+                if (!response.ok) {
+                    // 讀取後端實際錯誤訊息，方便除錯
+                    const text = await response.text().catch(() => '');
+                    const msg = text ? `儲存失敗（${response.status}）：${text.slice(0,200)}` : `儲存失敗（${response.status}）`;
+                    throw new Error(msg);
+                }
 
-                const isNew = !editingId;
+                // 成功時解析回傳資料（特別是新增時取得真正的 id）
+                const saved = await response.json().catch(() => null);
+                const savedId = saved && saved.id ? saved.id : id;
+
                 alert(editingId ? '✅ 更新成功！' : '✅ 新增成功！');
                 closeModal();
                 loadCollections();
 
                 // 初始化 collection_game_stats（新增清單，或更新清單的遊戲列表有變化時）
-                await syncCollectionGameStats(id, games);
+                if (savedId) {
+                    await syncCollectionGameStats(savedId, games);
+                }
 
             } catch (error) {
                 console.error('儲存失敗:', error);
@@ -1060,7 +1079,7 @@
                 await Promise.all(missing.map(gameName =>
                     fetch('tables/collection_game_stats', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders(),
                         body: JSON.stringify({
                             id: `cgs_${collectionId.slice(-6)}_${gameName.slice(0,6).replace(/\s/g,'')}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
                             collection_id: collectionId,
@@ -1083,7 +1102,7 @@
             try {
                 const response = await fetch(`tables/game_collections/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders(),
                     body: JSON.stringify({ is_active: isActive })
                 });
 
@@ -1106,7 +1125,8 @@
 
             try {
                 const response = await fetch(`tables/game_collections/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: authHeaders()
                 });
 
                 if (!response.ok) throw new Error('刪除失敗');
