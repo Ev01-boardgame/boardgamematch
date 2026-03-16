@@ -135,6 +135,10 @@
     <script>
         let list = [];
 
+        function isTrueFlag(v) {
+            return v === 1 || v === '1' || v === true;
+        }
+
         function parseJson(s) {
             if (Array.isArray(s)) return s;
             if (!s) return [];
@@ -162,9 +166,9 @@
                         const regions = parseJson(row.category_regions).join('、') || '—';
                         const platforms = parseJson(row.category_platforms).join('、') || '—';
                         const tags = [];
-                        if (row.category_discussion === 1 || row.category_discussion === '1') tags.push('討論');
-                        if (row.category_meetup === 1 || row.category_meetup === '1') tags.push('揪團');
-                        if (row.category_store === 1 || row.category_store === '1') tags.push('店家');
+                        if (isTrueFlag(row.category_discussion)) tags.push('討論');
+                        if (isTrueFlag(row.category_meetup)) tags.push('揪團');
+                        if (isTrueFlag(row.category_store)) tags.push('店家');
                         return '<div class="community-row">' +
                             '<div class="info">' +
                             '<div class="name">' + escapeHtml(row.name) + ' <span class="badge ' + (active ? '' : 'badge-off') + '">' + (active ? '上架' : '下架') + '</span></div>' +
@@ -199,9 +203,9 @@
                 document.getElementById('edit-description').value = row.description || '';
                 document.getElementById('edit-sort_order').value = row.sort_order ?? 999;
                 document.getElementById('edit-is_active').checked = row.is_active !== 0 && row.is_active !== '0';
-                document.getElementById('cat-discussion').checked = row.category_discussion === 1 || row.category_discussion === '1';
-                document.getElementById('cat-meetup').checked = row.category_meetup === 1 || row.category_meetup === '1';
-                document.getElementById('cat-store').checked = row.category_store === 1 || row.category_store === '1';
+                document.getElementById('cat-discussion').checked = isTrueFlag(row.category_discussion);
+                document.getElementById('cat-meetup').checked = isTrueFlag(row.category_meetup);
+                document.getElementById('cat-store').checked = isTrueFlag(row.category_store);
                 const regions = parseJson(row.category_regions);
                 document.querySelectorAll('.cat-region').forEach(cb => { cb.checked = regions.includes(cb.value); });
                 const platforms = parseJson(row.category_platforms);
