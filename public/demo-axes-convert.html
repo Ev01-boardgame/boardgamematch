@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>舊 8 軸 → 新 6 維度 轉換示意</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background: var(--bg-color); }
+        .page-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .page-sub {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.2rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            padding: 1.1rem 1.25rem;
+            margin-bottom: 1.1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        th, td {
+            padding: 0.45rem 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        th {
+            background: var(--bg-color);
+            font-weight: 600;
+        }
+        input[type=number] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.35rem 0.5rem;
+            border-radius: 0.4rem;
+            border: 1px solid var(--border-color);
+            font-size: 0.86rem;
+        }
+        .btn {
+            padding: 0.5rem 1.1rem;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .axis-tag {
+            display: inline-block;
+            padding: 0.12rem 0.4rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        .note {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="explore.html" class="active">玩家數據</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <h1 class="page-title">舊 8 軸 → 新 6 維度 轉換示意</h1>
+        <p class="page-sub">
+            這個工具只是方便我們確認「舊欄位（對抗／策略／社交…）壓成新 6 維度（進入門檻、情緒氛圍…）」的大致效果，
+            之後真正要批次轉換時，可以複用同一套公式在後端或 Cloudflare Worker 中。
+        </p>
+
+        <section class="card">
+            <h2 style="font-size:1rem;margin-bottom:0.5rem;">輸入舊 8 軸分數（0–12）</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>舊軸名稱</th>
+                        <th>說明</th>
+                        <th style="width:90px;">分數</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="axis-tag">axis_conflict</span></td>
+                        <td>對抗（喜歡互害／搶資源的程度）</td>
+                        <td><input type="number" id="old_conflict" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_strategy</span></td>
+                        <td>策略（願意動腦、規劃的程度）</td>
+                        <td><input type="number" id="old_strategy" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_social_fun</span></td>
+                        <td>社交（喜歡講話、嘴砲、演戲）</td>
+                        <td><input type="number" id="old_social" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_immersion</span></td>
+                        <td>沉浸（投入劇情／世界觀程度）</td>
+                        <td><input type="number" id="old_immersion" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_accessibility</span></td>
+                        <td>親和（易學、好上手的偏好）</td>
+                        <td><input type="number" id="old_access" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_manipulation</span></td>
+                        <td>心機（喜歡騙人、內鬼、談判）</td>
+                        <td><input type="number" id="old_manip" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_coop</span></td>
+                        <td>合作（喜歡一起打遊戲的程度）</td>
+                        <td><input type="number" id="old_coop" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_luck</span></td>
+                        <td>運氣（能接受骰運／抽牌的程度）</td>
+                        <td><input type="number" id="old_luck" min="0" max="12" step="0.5" value="6"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top:0.6rem;">
+                <button class="btn" onclick="convertAxes()">轉換成新 6 維度</button>
+            </div>
+            <p class="note" style="margin-top:0.5rem;">
+                目前公式只是「合理的初版近似」：方便我們「先有一組自動轉換規則」，舊資料不會卡死；之後若你有更直觀的想法，我們可以再調整係數。
+            </p>
+        </section>
+
+        <section class="card">
+            <h2 style="font-size:1rem;margin-bottom:0.5rem;">輸出新 6 維度（0–12，左端 → 右端）</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>新欄位</th>
+                        <th>光譜說明</th>
+                        <th style="width:90px;">結果</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="axis-tag">axis_entry</span></td>
+                        <td>進入門檻：易學 ↔ 複雜（越高越「複雜」）</td>
+                        <td id="new_entry">-</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_mood</span></td>
+                        <td>情緒氛圍：歡樂 ↔ 燒腦（越高越「燒腦」）</td>
+                        <td id="new_mood">-</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_control</span></td>
+                        <td>掌控程度：運氣 ↔ 策略（越高越「看人不看天」）</td>
+                        <td id="new_control">-</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_openness</span></td>
+                        <td>資訊透明：磊落 ↔ 心機（越高越「心機重」）</td>
+                        <td id="new_open">-</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_sociality</span></td>
+                        <td>互動模式：社交 ↔ 沉浸（越高越「安靜看盤面／劇情」）</td>
+                        <td id="new_sociality">-</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">axis_competition</span></td>
+                        <td>競爭關係：合作 ↔ 對抗（越高越「對抗」）</td>
+                        <td id="new_competition">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        function clamp(x) {
+            if (isNaN(x)) return 6;
+            return x < 0 ? 0 : x > 12 ? 12 : x;
+        }
+
+        function get(id) {
+            const v = parseFloat(document.getElementById(id).value);
+            return isNaN(v) ? 6 : v;
+        }
+
+        function convertAxes() {
+            const c  = get('old_conflict');
+            const s  = get('old_strategy');
+            const so = get('old_social');
+            const im = get('old_immersion');
+            const ac = get('old_access');
+            const ma = get('old_manip');
+            const co = get('old_coop');
+            const lu = get('old_luck');
+
+            // 這裡的公式是「先有一組可用的近似」，之後若你有更直覺的 mapping，我們可以在這個檔案裡調整係數再套用到 Worker
+
+            // 1) 進入門檻：易學 ↔ 複雜
+            //   - 親和高 → 越易學；策略高 → 越複雜
+            //   - 以 6 為中線，(策略 - 親和)/2 做微調
+            const axis_entry = clamp(6 + (s - ac) / 2);
+
+            // 2) 情緒氛圍：歡樂 ↔ 燒腦
+            //   - 社交高且策略低 → 歡樂；策略高且社交低 → 燒腦
+            const axis_mood = clamp(6 + (s - so) / 2);
+
+            // 3) 掌控程度：運氣 ↔ 策略
+            //   - 策略高、運氣低 → 高掌控；運氣高、策略低 → 靠天吃飯
+            const axis_control = clamp(6 + (s - lu) / 2);
+
+            // 4) 資訊透明：磊落 ↔ 心機
+            //   - 單純由心機軸決定，以 6 為中，心機偏高就往右
+            const axis_openness = clamp((ma + 6) / 2); // 讓 0~12 壓縮到約 3~9，之後可調整
+
+            // 5) 互動模式：社交 ↔ 沉浸
+            const axis_sociality = clamp(6 + (im - so) / 2);
+
+            // 6) 競爭關係：合作 ↔ 對抗
+            const axis_competition = clamp(6 + (c - co) / 2);
+
+            document.getElementById('new_entry').textContent        = axis_entry.toFixed(1);
+            document.getElementById('new_mood').textContent         = axis_mood.toFixed(1);
+            document.getElementById('new_control').textContent      = axis_control.toFixed(1);
+            document.getElementById('new_open').textContent         = axis_openness.toFixed(1);
+            document.getElementById('new_sociality').textContent    = axis_sociality.toFixed(1);
+            document.getElementById('new_competition').textContent  = axis_competition.toFixed(1);
+        }
+    </script>
+</body>
+</html>
+

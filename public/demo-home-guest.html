@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI × 桌遊配對 - 歡迎</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* 範例：未登入首頁（宣傳式），使用網站配色 */
+        .hero-guest {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 2.5rem 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .hero-guest h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: white;
+            -webkit-text-fill-color: white;
+        }
+        .hero-guest .sub {
+            margin: 0 0 1.5rem;
+            opacity: 0.95;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        .hero-guest .cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+        .hero-guest .btn-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hero-guest .btn-cta.main {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+        .hero-guest .btn-cta.main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        .hero-guest .btn-cta.ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.6);
+        }
+        .hero-guest .btn-cta.ghost:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .hero-guest .meta {
+            font-size: 0.82rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+        .feature-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.1rem 1.25rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .feature-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-color);
+        }
+        .feature-card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .feature-card .title { font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem; color: var(--text-color); }
+        .feature-card .desc { font-size: 0.88rem; color: var(--text-light); line-height: 1.5; }
+        .section-head { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-color); }
+        .section-sub { font-size: 0.9rem; color: var(--text-light); margin-bottom: 1rem; }
+        .mbti-teaser {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .mbti-teaser span {
+            display: block;
+            padding: 0.4rem 0.5rem;
+            text-align: center;
+            background: var(--bg-color);
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        .games-section { margin-bottom: 2rem; }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+        .games-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+        .games-card h3 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+            color: var(--text-color);
+        }
+        .game-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            margin: 0.2rem 0.2rem 0 0;
+        }
+        .pref-intro {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.1rem 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .pref-intro .title { font-weight: 600; font-size: 1rem; margin-bottom: 0.35rem; color: var(--text-color); }
+        .pref-intro .body { font-size: 0.9rem; color: var(--text-light); line-height: 1.6; }
+        .demo-note {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 0.75rem;
+            font-size: 0.88rem;
+            color: #0c4a6e;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="active">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Hero：宣傳式，引導登入／測驗 -->
+        <section class="hero-guest">
+            <h1>根據 MBTI，找到最適合你的桌遊</h1>
+            <p class="sub">做一份桌遊人格測驗，建立個人桌遊檔案，讓系統推薦適合你風格的遊戲。</p>
+            <div class="cta-row">
+                <a href="index.html#google-signin-container" class="btn-cta main">用 Google 登入開始</a>
+                <a href="personality-test.html" class="btn-cta ghost">先做桌遊人格測驗</a>
+                <a href="recommend.html" class="btn-cta ghost">逛逛桌遊探索</a>
+            </div>
+            <p class="meta">不需登入也能瀏覽探索與問答；登入後可儲存喜好、取得個人化推薦</p>
+        </section>
+
+        <!-- MBTI ＋ 桌遊偏好 介紹 -->
+        <section class="pref-intro">
+            <div class="title">🧬 我們不只 MBTI，還有「桌遊偏好」</div>
+            <div class="body">
+                除了 16 種人格類型，站上會用<strong> 8 軸桌遊偏好</strong>（對抗／策略／社交／沉浸／親和／心機／合作／運氣）來描述你與每款遊戲。
+                做完桌友適性測驗會得到你的偏好輪廓，系統再依此推薦與你合拍的桌遊；你也可以手動編輯喜歡、想玩清單，讓推薦更準。
+            </div>
+        </section>
+
+        <!-- 功能亮點 -->
+        <section>
+            <h2 class="section-head">你可以在這裡做什麼？</h2>
+            <p class="section-sub">桌遊探索、人格測驗、揪團店家、個人推薦，一站搞定。</p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon">🎲</div>
+                    <div class="title">探索桌遊喜好</div>
+                    <div class="desc">依條件篩選、搜尋桌遊，建立喜歡／想玩清單，取得個人化推薦。</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🖼️</div>
+                    <div class="title">桌遊封面牆</div>
+                    <div class="desc">用你的收藏生成專屬封面牆，分享給同好。</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🧠</div>
+                    <div class="title">桌遊問答</div>
+                    <div class="desc">答題賺經驗、認識更多桌遊，還能投稿題目。</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🎯</div>
+                    <div class="title">今晚玩什麼？</div>
+                    <div class="desc">依人數、時間、偏好，幫你挑出今晚適合開的桌遊。</div>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📍</div>
+                    <div class="title">揪桌趣處</div>
+                    <div class="desc">找實體店家、線上平台與各地揪團社群。</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 16 類型 teaser -->
+        <section>
+            <h2 class="section-head">🎯 16 種人格類型</h2>
+            <p class="section-sub">點擊類型可查看該人格的桌遊偏好（正式版由首頁載入）。</p>
+            <div class="mbti-teaser">
+                <span>INTJ</span><span>INTP</span><span>ENTJ</span><span>ENTP</span>
+                <span>INFJ</span><span>INFP</span><span>ENFJ</span><span>ENFP</span>
+                <span>ISTJ</span><span>ISFJ</span><span>ESTJ</span><span>ESFJ</span>
+                <span>ISTP</span><span>ISFP</span><span>ESTP</span><span>ESFP</span>
+            </div>
+        </section>
+
+        <!-- 玩家最近都在玩什麼？ -->
+        <section class="games-section">
+            <h2 class="section-head">🏆 玩家最近都在玩什麼？</h2>
+            <p class="section-sub">以下僅為排版示意；正式版會即時統計所有玩家的「喜歡」與「想玩」資料，產生排行榜。</p>
+            <div class="games-grid">
+                <div class="games-card">
+                    <h3>😍 最受歡迎</h3>
+                    <div>
+                        <span class="game-pill">瘟疫危機 · 合作 · 中等</span>
+                        <span class="game-pill">車票之旅 · 家庭 · 輕中</span>
+                        <span class="game-pill">花磚物語 · 抽象 · 輕度</span>
+                    </div>
+                </div>
+                <div class="games-card">
+                    <h3>⭐ 最受期待</h3>
+                    <div>
+                        <span class="game-pill">幽港迷城 · 劇本 · 重度</span>
+                        <span class="game-pill">翼展 · 引擎建構 · 中度</span>
+                        <span class="game-pill">根 · 陣營不對稱 · 中重</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="demo-note">
+            <strong>📌 這是範例頁</strong>（demo-home-guest.html）— 未登入時的主頁風格：宣傳式、網站配色。實際首頁可依登入狀態切換此版或登入版。
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-light); border-top: 1px solid var(--border-color);">
+        <p>© 2025 MBTI × 桌遊配對</p>
+    </footer>
+</body>
+</html>

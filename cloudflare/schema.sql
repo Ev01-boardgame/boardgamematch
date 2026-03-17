@@ -58,18 +58,35 @@ CREATE TABLE IF NOT EXISTS game_database (
   year INTEGER,
   min_players INTEGER,
   max_players INTEGER,
+  min_playtime INTEGER,
+  max_playtime INTEGER,
+  -- playing_time 代表「估計每位玩家平均花費時間（分鐘）」，由 min/max_playtime 與人數推估
   playing_time INTEGER,
   complexity REAL,
   image_url TEXT,
   bgg_id TEXT,
-  axis_conflict REAL,
-  axis_strategy REAL,
-  axis_social_fun REAL,
-  axis_immersion REAL,
-  axis_accessibility REAL,
-  axis_manipulation REAL,
-  axis_coop REAL,
-  axis_luck REAL,
+  -- BGG 數值與屬性欄位
+  baverage REAL,               -- BGG 平均評分（投票推薦度）
+  rank INTEGER,                -- BGG 排名
+  bggbestplayers TEXT,         -- BGG 推薦最佳遊玩人數（原始字串，之後可再細拆）
+  bgglanguagedependence INTEGER, -- BGG 文字依賴度（1–5）
+  itemtype TEXT,               -- 主遊戲 / 擴充 等
+  category TEXT,               -- BGG Board Game Category（JSON 陣列字串，存官方名稱）
+  mechanics TEXT,              -- BGG Board Game Mechanic（JSON 陣列字串，存官方名稱）
+  bgg_type TEXT,               -- BGG Type（Abstract Games / Family Games 等）
+  -- 新版遊戲 6 維度（一維一欄，0 = 偏左端、12 = 偏右端）
+  -- 1) 進入門檻：易學 ↔ 複雜
+  axis_entry REAL,
+  -- 2) 情緒氛圍：歡樂 ↔ 燒腦
+  axis_mood REAL,
+  -- 3) 掌控程度：運氣 ↔ 策略
+  axis_control REAL,
+  -- 4) 資訊透明：磊落 ↔ 心機
+  axis_openness REAL,
+  -- 5) 互動模式：社交 ↔ 沉浸
+  axis_sociality REAL,
+  -- 6) 競爭關係：合作 ↔ 對抗
+  axis_competition REAL,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
@@ -339,26 +356,38 @@ CREATE INDEX IF NOT EXISTS idx_community_links_active_sort ON community_links(is
 -- ========== 玩家 8 軸偏好輪廓（做完桌遊偏好測驗後寫入，供「玩家影響遊戲 8 軸」用） ==========
 CREATE TABLE IF NOT EXISTS user_preference_profiles (
   user_id TEXT PRIMARY KEY,
-  conflict INTEGER DEFAULT 0,
-  strategy INTEGER DEFAULT 0,
-  social_fun INTEGER DEFAULT 0,
-  immersion INTEGER DEFAULT 0,
-  accessibility INTEGER DEFAULT 0,
-  manipulation INTEGER DEFAULT 0,
-  coop INTEGER DEFAULT 0,
-  luck INTEGER DEFAULT 0,
+  -- 新版玩家 6 維度（與遊戲欄位語意相同，0 = 偏左端、12 = 偏右端）
+  -- 1) 進入門檻：易學 ↔ 複雜
+  axis_entry INTEGER DEFAULT 0,
+  -- 2) 情緒氛圍：歡樂 ↔ 燒腦
+  axis_mood INTEGER DEFAULT 0,
+  -- 3) 掌控程度：運氣 ↔ 策略
+  axis_control INTEGER DEFAULT 0,
+  -- 4) 資訊透明：磊落 ↔ 心機
+  axis_openness INTEGER DEFAULT 0,
+  -- 5) 互動模式：社交 ↔ 沉浸
+  axis_sociality INTEGER DEFAULT 0,
+  -- 6) 競爭關係：合作 ↔ 對抗
+  axis_competition INTEGER DEFAULT 0,
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
 
--- ========== 遊戲 8 軸（由「喜歡該遊戲的玩家」的輪廓平均計算，NULL = 尚未計算） ==========
--- 若為既有資料庫，請依序執行以下 ALTER：
--- ALTER TABLE game_database ADD COLUMN axis_conflict REAL;
--- ALTER TABLE game_database ADD COLUMN axis_strategy REAL;
--- ALTER TABLE game_database ADD COLUMN axis_social_fun REAL;
--- ALTER TABLE game_database ADD COLUMN axis_immersion REAL;
--- ALTER TABLE game_database ADD COLUMN axis_accessibility REAL;
--- ALTER TABLE game_database ADD COLUMN axis_manipulation REAL;
--- ALTER TABLE game_database ADD COLUMN axis_coop REAL;
--- ALTER TABLE game_database ADD COLUMN axis_luck REAL;
+-- ========== 遊戲 / 玩家 6 維度 ==========
+-- 遊戲：由「喜歡該遊戲的玩家」輪廓平均計算；玩家：由桌友適性題目計算
+-- 若為既有資料庫，需要補欄位：
+--   遊戲：
+--     ALTER TABLE game_database ADD COLUMN axis_entry REAL;
+--     ALTER TABLE game_database ADD COLUMN axis_mood REAL;
+--     ALTER TABLE game_database ADD COLUMN axis_control REAL;
+--     ALTER TABLE game_database ADD COLUMN axis_openness REAL;
+--     ALTER TABLE game_database ADD COLUMN axis_sociality REAL;
+--     ALTER TABLE game_database ADD COLUMN axis_competition REAL;
+--   玩家：
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_entry INTEGER DEFAULT 0;
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_mood INTEGER DEFAULT 0;
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_control INTEGER DEFAULT 0;
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_openness INTEGER DEFAULT 0;
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_sociality INTEGER DEFAULT 0;
+--     ALTER TABLE user_preference_profiles ADD COLUMN axis_competition INTEGER DEFAULT 0;
 -- 既有 DB 若曾建 description/source，可移除：ALTER TABLE game_database DROP COLUMN description; ALTER TABLE game_database DROP COLUMN source;
 -- 既有 users 表補欄位（地區、是否想被桌友連絡）：ALTER TABLE users ADD COLUMN region TEXT; ALTER TABLE users ADD COLUMN want_contact INTEGER DEFAULT 0;

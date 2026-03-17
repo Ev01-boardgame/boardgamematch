@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>玩家 8 軸 × 題目對應（示意）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background: var(--bg-color); }
+        .page-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .page-sub {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            padding: 1.25rem 1.4rem;
+            margin-bottom: 1.2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: var(--bg-color);
+            font-weight: 600;
+        }
+        .axis-tag {
+            display: inline-block;
+            padding: 0.12rem 0.4rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        .q-id {
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: var(--text-light);
+        }
+        .note {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        .pill {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            margin-right: 0.3rem;
+            margin-top: 0.15rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="personality-test.html" class="active">桌友適性</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <h1 class="page-title">玩家 8 軸 × 題目對應（示意說明）</h1>
+        <p class="page-sub">
+            本頁不是正式功能，只是用來說明：<strong>「桌友適性」問卷的題目，如何轉成玩家的 8 軸偏好分數</strong>。
+            方便之後一起檢查邏輯是否合理，再決定要不要調整權重或新增題目。
+        </p>
+
+        <section class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.5rem;">8 軸簡要定義</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:140px;">軸向</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="axis-tag">對抗 conflict</span></td>
+                        <td>你對「玩家互相攻擊、損害彼此資源、強烈競爭」這種互動的接受度與偏好。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">策略 strategy</span></td>
+                        <td>你喜歡長線規劃、資源管理、運算與優化到什麼程度；越高代表越能接受「動腦」與時間成本。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">社交 social_fun</span></td>
+                        <td>你偏好「聊天、演戲、說故事、讀空氣」這類社交成分，而非純拼效率。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">沉浸 immersion</span></td>
+                        <td>你喜歡劇本、世界觀、角色扮演、連續劇式體驗的程度。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">親和 accessibility</span></td>
+                        <td>你偏好「容易教、規則短、10 分鐘內開局」到什麼程度；高代表越喜歡親民遊戲。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">心機 manipulation</span></td>
+                        <td>你喜歡讀心、欺瞞、談判、陰謀、互相猜測這類「心理博弈」的程度。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">合作 coop</span></td>
+                        <td>你對「一起打遊戲」（完全合作、半合作、團隊戰）的喜愛程度，相對於完全競爭。</td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">運氣 luck</span></td>
+                        <td>你能接受「擲骰、抽牌、隨機事件」影響勝負到什麼程度；高代表不排斥甚至喜歡隨機感。</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="note" style="margin-top:0.75rem;">
+                註：真正的計算會把每題答案轉成 0–12 的分數，並寫進 <code>user_preference_profiles</code>，
+                這裡只是用自然語言整理「概念對齊」，之後再來決定每題的精確權重。
+            </p>
+        </section>
+
+        <section class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.5rem;">題目對應示意（假想 mapping）</h2>
+            <p class="note" style="margin-bottom:0.5rem;">
+                下面是「題目 → 軸向」的示意表，<strong>不是從程式反推</strong>，目的是幫你視覺化結構，方便之後你告訴我實際題目內容，我再改成真實版。
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px;">題目編號</th>
+                        <th>題目主題（示意）</th>
+                        <th style="width:260px;">影響的軸向 & 權重（示意）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="q-id">Q1</span></td>
+                        <td>你喜歡遊戲規則越簡單越好，還是可以接受偏複雜？</td>
+                        <td>
+                            <span class="pill">策略 strategy：+強</span>
+                            <span class="pill">親和 accessibility：-中</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="q-id">Q2</span></td>
+                        <td>你一場桌遊理想時間是多長？（30 分鐘內～3 小時以上）</td>
+                        <td>
+                            <span class="pill">沉浸 immersion：+中</span>
+                            <span class="pill">親和 accessibility：-中</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="q-id">Q3</span></td>
+                        <td>你更喜歡「一起打遊戲」還是「互相競爭」？</td>
+                        <td>
+                            <span class="pill">合作 coop：±強（合作派加、競爭派減）</span>
+                            <span class="pill">對抗 conflict：競爭派 +中</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="q-id">Q4</span></td>
+                        <td>你對「彼此搶資源、直接害別人」這種互動的接受度？</td>
+                        <td>
+                            <span class="pill">對抗 conflict：±強</span>
+                            <span class="pill">社交 social_fun：高對抗但歡樂派 +小</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="q-id">Q5</span></td>
+                        <td>你喜不喜歡「騙人、猜誰是內鬼、談判」這一類遊戲？</td>
+                        <td>
+                            <span class="pill">心機 manipulation：±強</span>
+                            <span class="pill">社交 social_fun：+中</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="q-id">Q6</span></td>
+                        <td>你能接受「骰運、抽牌運」影響結果到什麼程度？</td>
+                        <td>
+                            <span class="pill">運氣 luck：±強</span>
+                            <span class="pill">策略 strategy：高運氣偏好時略 -小</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="note" style="margin-top:0.75rem;">
+                之後如果你願意，我們可以把 <code>personality-test.html</code> 的實際題目逐題拉出來，
+                在這張表填入真實題幹與「對哪幾軸加多少權重」，我再把這個 mapping 實作回計算程式裡。
+            </p>
+        </section>
+    </div>
+</body>
+</html>
+

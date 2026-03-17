@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI × 桌遊配對 - 首頁</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* 範例：登入後首頁（樞紐式），不宣傳、重功能入口 */
+        .hub-welcome {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .hub-welcome .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .hub-welcome .text { flex: 1; min-width: 0; }
+        .hub-welcome .greet { font-weight: 600; font-size: 1.05rem; color: var(--text-color); margin-bottom: 0.2rem; }
+        .hub-welcome .mbti { font-size: 0.88rem; color: var(--text-light); }
+        .hub-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .hub-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .hub-btn:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-color);
+        }
+        .hub-btn .emoji { font-size: 1.4rem; }
+        .hub-btn .label { flex: 1; }
+        .hub-quick {
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .hub-quick h3 { font-size: 1rem; margin-bottom: 0.6rem; color: var(--text-color); }
+        .hub-quick ul { list-style: none; padding: 0; margin: 0; }
+        .hub-quick li { margin-bottom: 0.4rem; }
+        .hub-quick a { color: var(--primary-color); text-decoration: none; font-size: 0.9rem; }
+        .hub-quick a:hover { text-decoration: underline; }
+        .hub-section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-color); }
+        .hub-games-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .hub-games-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .hub-games-card h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-color); display: flex; align-items: center; gap: 0.4rem; }
+        .hub-pill {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            margin: 0.15rem 0.15rem 0 0;
+        }
+        .hub-mbti-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1.5rem;
+        }
+        .hub-mbti-row a {
+            padding: 0.35rem 0.6rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+        .hub-mbti-row a:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .demo-note {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 0.75rem;
+            font-size: 0.88rem;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="active">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 歡迎列：簡短、不佔版面 -->
+        <section class="hub-welcome">
+            <div class="avatar">🎲</div>
+            <div class="text">
+                <div class="greet">歡迎回來</div>
+                <div class="mbti">INFJ · 可前往個人檔案編輯桌遊喜好與 MBTI</div>
+            </div>
+        </section>
+
+        <!-- 主要入口：四格 -->
+        <section>
+            <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--text-color);">常用功能</h2>
+            <div class="hub-actions">
+                <a href="recommend.html" class="hub-btn">
+                    <span class="emoji">🎲</span>
+                    <span class="label">探索桌遊喜好</span>
+                </a>
+                <a href="collection-poster.html" class="hub-btn">
+                    <span class="emoji">🖼️</span>
+                    <span class="label">桌遊封面牆</span>
+                </a>
+                <a href="quiz.html" class="hub-btn">
+                    <span class="emoji">🧠</span>
+                    <span class="label">桌遊問答</span>
+                </a>
+                <a href="game-picker.html" class="hub-btn">
+                    <span class="emoji">🎯</span>
+                    <span class="label">今晚玩什麼？</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- 玩家最近都在玩什麼？ -->
+        <section>
+            <h2 class="hub-section-title">🏆 玩家最近都在玩什麼？</h2>
+            <div class="hub-games-row">
+                <div class="hub-games-card">
+                    <h3>😍 最受歡迎</h3>
+                    <span class="hub-pill">瘟疫危機 · 合作 · 中等</span>
+                    <span class="hub-pill">車票之旅 · 家庭 · 輕中</span>
+                    <span class="hub-pill">花磚物語 · 抽象 · 輕度</span>
+                </div>
+                <div class="hub-games-card">
+                    <h3>⭐ 最受期待</h3>
+                    <span class="hub-pill">幽港迷城 · 劇本 · 重度</span>
+                    <span class="hub-pill">翼展 · 引擎建構 · 中度</span>
+                    <span class="hub-pill">根 · 陣營不對稱 · 中重</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 16 類型快速入口 -->
+        <section>
+            <h2 class="hub-section-title">🎯 16 種人格類型</h2>
+            <p style="font-size: 0.88rem; color: var(--text-light); margin-bottom: 0.6rem;">點類型可看該人格的桌遊偏好</p>
+            <div class="hub-mbti-row">
+                <a href="explore.html">INTJ</a><a href="explore.html">INTP</a><a href="explore.html">ENTJ</a><a href="explore.html">ENTP</a>
+                <a href="explore.html">INFJ</a><a href="explore.html">INFP</a><a href="explore.html">ENFJ</a><a href="explore.html">ENFP</a>
+                <a href="explore.html">ISTJ</a><a href="explore.html">ISFJ</a><a href="explore.html">ESTJ</a><a href="explore.html">ESFJ</a>
+                <a href="explore.html">ISTP</a><a href="explore.html">ISFP</a><a href="explore.html">ESTP</a><a href="explore.html">ESFP</a>
+            </div>
+        </section>
+
+        <!-- 快速連結 -->
+        <section class="hub-quick">
+            <h3>快速連結</h3>
+            <ul>
+                <li><a href="profile.html">我的檔案</a></li>
+                <li><a href="edit-games-drag.html">編輯我的桌遊分類</a></li>
+                <li><a href="community.html">揪桌趣處（店家／揪團）</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+            </ul>
+        </section>
+
+        <div class="demo-note">
+            <strong>📌 這是範例頁</strong>（demo-home-member.html）— 登入後的主頁風格：樞紐式、重功能入口，不做宣傳文案。
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-light); border-top: 1px solid var(--border-color);">
+        <p>© 2025 MBTI × 桌遊配對</p>
+    </footer>
+</body>
+</html>

@@ -265,14 +265,16 @@
         function runAxis() {
             if (!userProfile || !window.MatchScore) return runRandom();
             var withAxis = gamePool.filter(function(g) {
-                return g.axis_conflict != null || g.axis_strategy != null;
+                return g.axis_entry != null || g.axis_mood != null || g.axis_control != null;
             });
             if (withAxis.length === 0) return runRandom();
             var playerAxes = {
-                conflict: userProfile.conflict, strategy: userProfile.strategy,
-                social_fun: userProfile.social_fun, immersion: userProfile.immersion,
-                accessibility: userProfile.accessibility, manipulation: userProfile.manipulation,
-                coop: userProfile.coop, luck: userProfile.luck
+                axis_entry: userProfile.axis_entry,
+                axis_mood: userProfile.axis_mood,
+                axis_control: userProfile.axis_control,
+                axis_openness: userProfile.axis_openness,
+                axis_sociality: userProfile.axis_sociality,
+                axis_competition: userProfile.axis_competition
             };
             var scored = withAxis.map(function(g) {
                 var s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);

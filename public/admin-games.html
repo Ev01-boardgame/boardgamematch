@@ -439,16 +439,50 @@
                 </div>
                 
                 <div class="form-group" style="margin-top:1rem;">
-                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 8 軸狀態（桌遊偏好匹配用，可留空）</label>
-                    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:0.5rem 1rem;">
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">對抗</label><input type="number" id="game-axis-conflict" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">策略</label><input type="number" id="game-axis-strategy" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">社交</label><input type="number" id="game-axis-social_fun" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">沉浸</label><input type="number" id="game-axis-immersion" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">親和</label><input type="number" id="game-axis-accessibility" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">心機</label><input type="number" id="game-axis-manipulation" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">合作</label><input type="number" id="game-axis-coop" min="0" max="12" step="0.5" placeholder="0–12"></div>
-                        <div><label style="font-size:0.8rem; color:var(--text-light);">運氣</label><input type="number" id="game-axis-luck" min="0" max="12" step="0.5" placeholder="0–12"></div>
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（桌遊偏好匹配用，可留空）</label>
+                    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>🌱 易學</span>
+                                <span>📚 複雜</span>
+                            </div>
+                            <input type="range" id="game-axis-entry" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>😂 歡樂</span>
+                                <span>🧠 燒腦</span>
+                            </div>
+                            <input type="range" id="game-axis-mood" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>🎲 運氣</span>
+                                <span>♟️ 策略</span>
+                            </div>
+                            <input type="range" id="game-axis-control" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>🗣️ 社交</span>
+                                <span>🧘 沉浸</span>
+                            </div>
+                            <input type="range" id="game-axis-sociality" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>☀️ 磊落</span>
+                                <span>🎭 心機</span>
+                            </div>
+                            <input type="range" id="game-axis-openness" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
+                                <span>🤝 合作</span>
+                                <span>⚔️ 對抗</span>
+                            </div>
+                            <input type="range" id="game-axis-competition" min="0" max="12" step="0.5" value="6" style="width:100%;">
+                        </div>
                     </div>
                 </div>
 
@@ -830,10 +864,13 @@
             document.getElementById('game-max-players').value = game.max_players || '';
             document.getElementById('game-playing-time').value = game.playing_time || '';
             document.getElementById('game-complexity').value = game.complexity || '';
-            const axisKeys = ['conflict','strategy','social_fun','immersion','accessibility','manipulation','coop','luck'];
-            axisKeys.forEach(k => {
+            // 新版 6 維度：若尚未設定則預設在中間值 6
+            const sixKeys = ['entry','mood','control','openness','sociality','competition'];
+            sixKeys.forEach(k => {
                 const el = document.getElementById('game-axis-' + k);
-                if (el) el.value = (game['axis_' + k] != null && game['axis_' + k] !== '') ? game['axis_' + k] : '';
+                if (!el) return;
+                const v = game['axis_' + k];
+                el.value = (v != null && v !== '') ? v : 6;
             });
             document.getElementById('game-bgg-id').value = game.bgg_id || '';
             updateImagePreview();
@@ -876,14 +913,20 @@
                 min_players:  parseInt(document.getElementById('game-min-players').value) || null,
                 max_players:  parseInt(document.getElementById('game-max-players').value) || null,
                 playing_time: parseInt(document.getElementById('game-playing-time').value) || null,
-                complexity:   parseFloat(document.getElementById('game-complexity').value) || null,
+                // 複雜度：統一四捨五入為兩位小數後再儲存
+                complexity:   (function () {
+                    const raw = parseFloat(document.getElementById('game-complexity').value);
+                    if (isNaN(raw)) return null;
+                    return Math.round(raw * 100) / 100;
+                })(),
                 bgg_id:       document.getElementById('game-bgg-id').value.trim()
             };
-            const axisKeys = ['conflict','strategy','social_fun','immersion','accessibility','manipulation','coop','luck'];
-            axisKeys.forEach(k => {
+            const sixKeys = ['entry','mood','control','openness','sociality','competition'];
+            sixKeys.forEach(k => {
                 const el = document.getElementById('game-axis-' + k);
-                const v = el && el.value !== '' ? parseFloat(el.value) : null;
-                gameData['axis_' + k] = (v != null && !isNaN(v)) ? v : null;
+                if (!el) return;
+                const v = parseFloat(el.value);
+                gameData['axis_' + k] = (!isNaN(v)) ? v : 6; // 一律存實際 slider 值，預設即為 6
             });
             
             // ── 新增前做重複把關 ──

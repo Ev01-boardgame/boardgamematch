@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>玩家 6 軸題庫 Demo（本機用）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background: var(--bg-color); }
+        .page-wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+        .page-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .page-sub {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            padding: 1.25rem 1.4rem;
+            margin-bottom: 1.2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        .axis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.75rem;
+        }
+        .axis-pill {
+            padding: 0.4rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .axis-pill span.axis-code {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .axis-pill span.axis-label {
+            font-weight: 600;
+        }
+        .axis-pill span.axis-range {
+            color: var(--text-light);
+        }
+        .axis-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .axis-card-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .axis-card-sub {
+            font-size: 0.82rem;
+            color: var(--text-light);
+        }
+        .q-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 0.1rem 0 0;
+        }
+        .q-item {
+            padding: 0.45rem 0.4rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .q-item:last-child {
+            border-bottom: none;
+        }
+        .q-id {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-right: 0.4rem;
+        }
+        .q-text {
+            font-size: 0.9rem;
+        }
+        .q-meta {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin-top: 0.1rem;
+        }
+        .badge-soft {
+            display: inline-block;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            margin-right: 0.2rem;
+        }
+        .random-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .random-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary-soft {
+            padding: 0.55rem 1.3rem;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .random-note {
+            font-size: 0.82rem;
+            color: var(--text-light);
+        }
+        .random-list {
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            max-height: 320px;
+            overflow: auto;
+        }
+        .random-list table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        .random-list th,
+        .random-list td {
+            padding: 0.35rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .random-list thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            z-index: 1;
+        }
+        @media (max-width: 768px) {
+            .page-wrap { padding-inline: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="demo-axes-game.html">遊戲 6 軸 Demo</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <h1 class="page-title">玩家 6 軸題庫 Demo（本機檢視用）</h1>
+        <p class="page-sub">
+            這一頁只在本機用來整理與預覽「玩家 6 軸」的題庫。
+            目標是：<strong>每軸先準備一批題目，之後正式測驗從題庫中隨機抽題，保證 6 軸各 4 題，共 24 題</strong>。
+        </p>
+
+        <section class="card">
+            <h2 style="font-size:1.05rem;margin-bottom:0.6rem;">六條軸向概念對齊</h2>
+            <div class="axis-grid" id="axis-grid"></div>
+        </section>
+
+        <section class="card">
+            <div class="axis-card-header">
+                <div>
+                    <h2 class="axis-card-title">各軸題庫一覽（草稿，之後可增刪）</h2>
+                    <div class="axis-card-sub">先用靜態題庫寫在 JS 裡，之後你覺得 OK 再搬進正式的 personality-test 流程。</div>
+                </div>
+            </div>
+            <div id="axis-questions"></div>
+        </section>
+
+        <section class="card">
+            <h2 style="font-size:1.05rem;margin-bottom:0.4rem;">隨機抽題示範（6 軸各 4 題，共 24 題）</h2>
+            <div class="random-wrap">
+                <div class="random-controls">
+                    <button type="button" class="btn-primary-soft" id="btn-random">重新抽題</button>
+                    <span class="random-note">每次按下會：<strong>每軸隨機抽 4 題</strong> → 合併並洗牌，模擬正式測驗看到的順序。</span>
+                </div>
+                <div class="random-list" id="random-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th style="width:80px;">軸向</th>
+                                <th>題目</th>
+                            </tr>
+                        </thead>
+                        <tbody id="random-tbody">
+                            <tr><td colspan="3" style="font-size:0.85rem;color:var(--text-light);">尚未抽題，請按上方「重新抽題」。</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // 六軸定義（與 DB axis_* 對應）
+        var AXES = [
+            {
+                key: 'entry',
+                code: 'axis_entry',
+                label: '門檻',
+                emojiLeft: '🌱',
+                emojiRight: '📚',
+                left: '易學',
+                right: '複雜',
+                desc: '規則厚度與學習成本：越高表示越能接受「規則多、需要投入時間」的遊戲。'
+            },
+            {
+                key: 'mood',
+                code: 'axis_mood',
+                label: '氛圍',
+                emojiLeft: '😂',
+                emojiRight: '🧠',
+                left: '歡樂',
+                right: '燒腦',
+                desc: '情緒頻率與專注度：越高越偏向專注、思考量大的遊戲；越低越偏向派對與鬧氣氛。'
+            },
+            {
+                key: 'control',
+                code: 'axis_control',
+                label: '勝負（運氣↔策略）',
+                emojiLeft: '🎲',
+                emojiRight: '♟️',
+                left: '運氣',
+                right: '策略',
+                desc: '勝負來源：越高代表越喜歡「靠技術與規劃」；越低越能接受甚至享受「骰運／抽牌」。'
+            },
+            {
+                key: 'sociality',
+                code: 'axis_sociality',
+                label: '互動',
+                emojiLeft: '🗣️',
+                emojiRight: '🧘',
+                left: '社交',
+                right: '沉浸',
+                desc: '互動型態：越高越偏向安靜看盤面／專注自我；越低越偏向聊天、嘴砲、表演、互動直接。'
+            },
+            {
+                key: 'openness',
+                code: 'axis_openness',
+                label: '心態（磊落↔心機）',
+                emojiLeft: '☀️',
+                emojiRight: '🎭',
+                left: '磊落',
+                right: '心機',
+                desc: '資訊透明與心理戰：越高越喜歡隱藏資訊、說謊、猜內鬼；越低越偏好公開資訊、公平直球。'
+            },
+            {
+                key: 'competition',
+                code: 'axis_competition',
+                label: '立場（合作↔對抗）',
+                emojiLeft: '🤝',
+                emojiRight: '⚔️',
+                left: '合作',
+                right: '對抗',
+                desc: '玩家關係：越高越偏向彼此競爭、搶資源；越低越偏向一起贏或一起輸。'
+            }
+        ];
+
+        // 題庫草稿：之後可以擴充 / 修改文字
+        // 每題只標一個「主要軸向」，真正實作時可以再加次要權重
+        var QUESTION_BANK = [
+            // axis_entry（門檻）
+            { id: 'E1', axis: 'entry', text: '聚會前，你比較常主動說「找大家都熟的遊戲」還是「來試一款新遊戲、順便學規則」？', note: '高分 = 願意為了新體驗學規則；低分 = 傾向玩熟悉的' },
+            { id: 'E2', axis: 'entry', text: '朋友說「這款規則有點多，要先看影片教學」，你通常的反應是？', note: '高分 = 願意投入學習時間' },
+            { id: 'E3', axis: 'entry', text: '你願意為了一款看起來很讚的遊戲，花多少時間看說明書？', note: '高分 = 願意 30 分鐘以上' },
+            { id: 'E4', axis: 'entry', text: '聚會當天，同一桌有人熟手有人新手，你比較常怎麼選遊戲？', note: '低分 = 優先選所有人都能秒懂的；高分 = 願意帶稍微需要學習的遊戲' },
+            { id: 'E5', axis: 'entry', text: '對於「第一次玩會有點痛苦，但之後會很爽」的重策遊戲，你的態度？', note: '高分 = 能接受重策' },
+            { id: 'E6', axis: 'entry', text: '看到遊戲盒背面排滿圖示與 icon，你通常覺得？', note: '高分 = 覺得有深度而不是被嚇跑' },
+
+            // axis_mood（氛圍）
+            { id: 'M1', axis: 'mood', text: '一個晚上只玩一款「超燒腦的重策」，你覺得如何？', note: '高分 = 接受整晚燒腦' },
+            { id: 'M2', axis: 'mood', text: '聚會時，你更常想帶哪種遊戲出門？', note: '低分 = 主要帶派對／嘴砲類；高分 = 會多帶燒腦策略款' },
+            { id: 'M3', axis: 'mood', text: '玩完桌遊後，你比較喜歡哪種感覺？', note: '高分 = 腦袋被操到很滿' },
+            { id: 'M4', axis: 'mood', text: '你能接受一款遊戲「平均回合思考時間超過 3 分鐘」嗎？', note: '高分 = 接受慢速思考' },
+            { id: 'M5', axis: 'mood', text: '如果今天只剩 2 個多小時可以玩桌遊，你會選？', note: '低分 = 想要多局輕鬆歡樂；高分 = 願意打一場中重度策略遊戲' },
+            { id: 'M6', axis: 'mood', text: '有人說「這款超硬，但超好玩」，你比較常的反應是？', note: '高分 = 因硬而被吸引' },
+
+            // axis_control（勝負：運氣↔策略）
+            { id: 'C1', axis: 'control', text: '關鍵一骰／一抽改變勝負時，你通常的第一個感覺是？', note: '低分 = 喜歡大逆轉；高分 = 覺得應該看實力' },
+            { id: 'C2', axis: 'control', text: '你比較偏好哪種遊戲設計？', note: '高分 = 幾乎沒有隨機、完全可算' },
+            { id: 'C3', axis: 'control', text: '如果一款遊戲「一開始手氣明顯好的人優勢很大，其他人要花很久才追得回來」，你會覺得？', note: '高分 = 對開局差距過大的設計比較反感' },
+            { id: 'C4', axis: 'control', text: '你喜歡遊戲裡有多少「靠牌運／骰運逆轉」的機會？', note: '高分 = 希望少一點、主要看技術' },
+            { id: 'C5', axis: 'control', text: '在你心中，理想的勝負比重大概是？（天時 vs 人和）', note: '高分 = 主要想看人的決策' },
+            { id: 'C6', axis: 'control', text: '遊戲結束後，你比較常做哪件事？', note: '高分 = 會檢討每一步而非說「今天手氣差」' },
+
+            // axis_sociality（互動：社交↔沉浸）
+            { id: 'S1', axis: 'sociality', text: '桌遊時，如果大家邊玩邊聊天、離題，你的感覺？', note: '低分 = 覺得這樣更好玩；高分 = 會覺得難以專心' },
+            { id: 'S2', axis: 'sociality', text: '你多常在遊戲中「加戲、演角色、講垃圾話」？', note: '低分 = 很常；高分 = 偏少' },
+            { id: 'S3', axis: 'sociality', text: '如果一款遊戲規則簡單，但需要很多即興表演，你會？', note: '低分 = 很想玩；高分 = 有點尷尬' },
+            { id: 'S4', axis: 'sociality', text: '你比較喜歡哪種遊玩氛圍？', note: '高分 = 安靜、專注在盤面或故事' },
+            { id: 'S5', axis: 'sociality', text: '對你來說，桌遊比較像是？', note: '低分 = 跟朋友互動的媒介；高分 = 自己專心體驗的作品／流程' },
+            { id: 'S6', axis: 'sociality', text: '聚會上如果大家一直聊天導致遊戲進度變慢，你會？', note: '高分 = 會想把節奏拉回來' },
+
+            // axis_openness（心態：磊落↔心機）
+            { id: 'O1', axis: 'openness', text: '你對「隱藏身份、說謊、騙人」這類機制的感覺？', note: '高分 = 很愛心機與欺瞞' },
+            { id: 'O2', axis: 'openness', text: '玩狼人／阿瓦隆這種遊戲時，你最在意的是？', note: '高分 = 玩人與猜人本身' },
+            { id: 'O3', axis: 'openness', text: '在遊戲中，你會不會刻意「演得很無辜／裝傻」來取得優勢？', note: '高分 = 會常用這種手段' },
+            { id: 'O4', axis: 'openness', text: '如果一款遊戲幾乎沒有資訊隱藏，全部公開，你的感覺是？', note: '低分 = 很好，公平；高分 = 少了點樂趣' },
+            { id: 'O5', axis: 'openness', text: '你能接受朋友在遊戲中「為了贏而騙你」到什麼程度？', note: '高分 = 幾乎沒底線，只要在遊戲內都 OK' },
+            { id: 'O6', axis: 'openness', text: '對你來說，「讀空氣、猜別人下一步」的重要性？', note: '高分 = 覺得這才是桌遊精華' },
+
+            // axis_competition（立場：合作↔對抗）
+            { id: 'P1', axis: 'competition', text: '你比較常主動提議哪種遊戲？', note: '低分 = 完全合作／解謎；高分 = 直接對抗、搶資源' },
+            { id: 'P2', axis: 'competition', text: '只剩一位新手沒贏過，你會考慮「讓他一下」嗎？', note: '低分 = 會刻意讓；高分 = 堅持公平競爭' },
+            { id: 'P3', axis: 'competition', text: '你喜歡「零和，有人贏就有人輸」的設計嗎？', note: '高分 = 很喜歡零和對抗' },
+            { id: 'P4', axis: 'competition', text: '如果一款遊戲沒有個人勝負、只有團隊成敗，你會？', note: '低分 = 很愛合作破關；高分 = 覺得少了競爭味' },
+            { id: 'P5', axis: 'competition', text: '你在遊戲中多常會「幫某個落後的人一把」？', note: '低分 = 常幫隊友／同桌；高分 = 主要考慮自己分數' },
+            { id: 'P6', axis: 'competition', text: '多人遊戲時，你比較喜歡的畫面是？', note: '高分 = 彼此互卡、互相較勁' }
+        ];
+
+        function renderAxes() {
+            var wrap = document.getElementById('axis-grid');
+            wrap.innerHTML = AXES.map(function(a) {
+                return '<div>' +
+                    '<div class="axis-pill">' +
+                    '<span class="axis-label">' + a.label + '</span>' +
+                    '<span>' + a.emojiLeft + '</span>' +
+                    '<span class="axis-range">' + a.emojiLeft + ' ' + a.left + ' ↔ ' + a.right + ' ' + a.emojiRight + '</span>' +
+                    '</div>' +
+                    '<div style="font-size:0.82rem;color:var(--text-light);margin-top:0.25rem;">' + a.desc + '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderAxisQuestions() {
+            var container = document.getElementById('axis-questions');
+            var byAxis = {};
+            QUESTION_BANK.forEach(function(q) {
+                byAxis[q.axis] = byAxis[q.axis] || [];
+                byAxis[q.axis].push(q);
+            });
+            byAxis = byAxis;
+            container.innerHTML = AXES.map(function(a) {
+                var list = byAxis[a.key] || [];
+                var items = list.map(function(q) {
+                    return '<li class="q-item">' +
+                        '<div class="q-text"><span class="q-id">' + q.id + '</span>' + q.text + '</div>' +
+                        (q.note ? '<div class="q-meta">' + q.note + '</div>' : '') +
+                        '</li>';
+                }).join('');
+                return '<div style="margin-bottom:0.9rem;">' +
+                    '<div class="axis-card-header" style="margin-bottom:0.25rem;">' +
+                    '<div><span class="axis-card-title">' + a.emojiLeft + ' ' + a.left + ' ↔ ' + a.right + ' ' + a.emojiRight + '</span>' +
+                    '<div class="axis-card-sub">key：<code>' + a.code + '</code>，目前題目數：' + list.length + '</div></div>' +
+                    '</div>' +
+                    '<ul class="q-list">' + items + '</ul>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+
+        function samplePerAxis(countPerAxis) {
+            var byAxis = {};
+            QUESTION_BANK.forEach(function(q) {
+                byAxis[q.axis] = byAxis[q.axis] || [];
+                byAxis[q.axis].push(q);
+            });
+            var picked = [];
+            AXES.forEach(function(a) {
+                var list = byAxis[a.key] || [];
+                var shuffled = shuffle(list);
+                for (var i = 0; i < Math.min(countPerAxis, shuffled.length); i++) {
+                    picked.push({ axis: a, question: shuffled[i] });
+                }
+            });
+            return shuffle(picked);
+        }
+
+        function renderRandomSample() {
+            var tbody = document.getElementById('random-tbody');
+            var rows = samplePerAxis(4);
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="3" style="font-size:0.85rem;color:var(--text-light);">目前題庫不足，請先在 JS 中補題目。</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(function(item, idx) {
+                return '<tr>' +
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td>' + item.axis.label + '</td>' +
+                    '<td>' + item.question.text + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        document.getElementById('btn-random').addEventListener('click', renderRandomSample);
+
+        renderAxes();
+        renderAxisQuestions();
+        renderRandomSample();
+    })();
+    </script>
+</body>
+</html>
+

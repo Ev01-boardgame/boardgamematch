@@ -863,11 +863,18 @@
             }
             function runAxis() {
                 if (!randomUserProfile || !window.MatchScore)
-                    return { list: [], noMatch: true, message: '尚無桌遊偏好資料，請先完成桌友適性測驗並儲存偏好，或改用純隨機。' };
-                const withAxis = randomGamePool.filter(g => g.axis_conflict != null || g.axis_strategy != null);
+                    return { list: [], noMatch: true, message: '尚無桌遊偏好資料（6 軸），請先完成桌友適性測驗並儲存偏好，或改用純隨機。' };
+                const withAxis = randomGamePool.filter(g => g.axis_entry != null || g.axis_mood != null || g.axis_control != null);
                 if (withAxis.length === 0)
-                    return { list: [], noMatch: true, message: '目前尚無遊戲的偏好軸資料，請改用純隨機或稍後再試。' };
-                const playerAxes = { conflict: randomUserProfile.conflict, strategy: randomUserProfile.strategy, social_fun: randomUserProfile.social_fun, immersion: randomUserProfile.immersion, accessibility: randomUserProfile.accessibility, manipulation: randomUserProfile.manipulation, coop: randomUserProfile.coop, luck: randomUserProfile.luck };
+                    return { list: [], noMatch: true, message: '目前尚無遊戲的 6 軸偏好資料，請改用純隨機或稍後再試。' };
+                const playerAxes = {
+                    axis_entry: randomUserProfile.axis_entry,
+                    axis_mood: randomUserProfile.axis_mood,
+                    axis_control: randomUserProfile.axis_control,
+                    axis_openness: randomUserProfile.axis_openness,
+                    axis_sociality: randomUserProfile.axis_sociality,
+                    axis_competition: randomUserProfile.axis_competition
+                };
                 const scored = withAxis.map(g => {
                     const s = MatchScore.computeMatchScore(playerAxes, g, 0.5, 0.5);
                     return { game: g, scoreLabel: '偏好匹配 ' + s + '%', score: s };

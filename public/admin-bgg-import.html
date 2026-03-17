@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG 匯入工具（轉成 game_database + 8 軸預設）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            color: white;
+            padding: 1.75rem 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .page-header h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .page-header p {
+            margin: 0.1rem 0;
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            box-shadow: var(--shadow-md);
+            padding: 1.25rem 1.4rem;
+            margin-bottom: 1.25rem;
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            margin: 0 0 0.75rem;
+        }
+        .upload-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .upload-row input[type="file"] {
+            max-width: 260px;
+        }
+        .btn-primary-soft {
+            padding: 0.55rem 1.3rem;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-secondary-soft {
+            padding: 0.5rem 1.1rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+        .btn-secondary-soft[disabled],
+        .btn-primary-soft[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .hint-text {
+            font-size: 0.84rem;
+            color: var(--text-light);
+            margin-top: 0.4rem;
+        }
+        .log-box {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.8rem;
+            background: #0b1120;
+            color: #e5e7eb;
+            border-radius: 0.6rem;
+            padding: 0.6rem 0.7rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .log-box .ok { color: #4ade80; }
+        .log-box .warn { color: #fbbf24; }
+        .log-box .err { color: #f97373; }
+        .preview-table-wrap {
+            max-height: 360px;
+            overflow: auto;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+        table.preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .preview-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-light);
+            z-index: 1;
+        }
+        .preview-table th,
+        .preview-table td {
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            white-space: nowrap;
+        }
+        .preview-table tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .badge-pill {
+            display: inline-block;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+        }
+        @media (max-width: 768px) {
+            .page-container { padding-inline: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <span class="navbar-logo-text">MBTI × 桌遊配對</span>
+            </a>
+            <div class="navbar-links">
+                <a href="admin.html">管理後台</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1>BGG 匯入工具（僅本機預覽＆下載，不寫入資料庫）</h1>
+            <p>上傳從 BGG 或外部工具匯出的遊戲清單 CSV，轉成接近 <code>game_database</code> 的欄位格式，並加上 8 軸預設值。</p>
+            <p>這個頁面目前只會在瀏覽器本機運算與下載檔案，不會呼叫 Cloudflare API，也不會改動線上資料庫。</p>
+        </div>
+
+        <!-- 上傳與轉換 -->
+        <section class="card">
+            <h2>1️⃣ 上傳 BGG collection CSV（或任何含 BGG ID 的清單）</h2>
+            <div class="upload-row" style="margin-bottom:0.75rem;">
+                <input type="file" id="csv-file" accept=".csv,text/csv">
+                <button type="button" class="btn-primary-soft" id="btn-parse" disabled>解析並轉成內部格式</button>
+                <button type="button" class="btn-secondary-soft" id="btn-clear">清除</button>
+            </div>
+            <div class="hint-text">
+                目前預期格式：第一行為標題列，<strong>至少需要一個能對應到 <code>bgg_id / objectid</code> 的欄位</strong>。
+                若有 <code>name / objectname</code>、<code>year / yearpublished</code>、<code>minplayers / maxplayers</code>、
+                <code>playingtime / minplaytime / maxplaytime</code>、<code>avgweight</code> 等欄位，會一併解析成對應欄位。
+                欄位名稱不完全一致也沒關係，工具會嘗試以關鍵字對應。
+            </div>
+            <div style="margin-top:0.75rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                    <div><span class="badge-pill" id="badge-count">尚未載入檔案</span></div>
+                    <div style="font-size:0.82rem;color:var(--text-light);">
+                        解析完成後，可在下方預覽與下載「轉換後 CSV」，再決定是否進一步匯入資料庫。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 解析紀錄 -->
+        <section class="card">
+            <h2>2️⃣ 解析與欄位對應紀錄</h2>
+            <div id="log" class="log-box">
+                <span class="ok">[系統]</span> 請先選擇一個 CSV 檔案，上傳後再按「解析並轉成內部格式」。
+            </div>
+        </section>
+
+        <!-- 預覽與下載 -->
+        <section class="card">
+            <h2>3️⃣ 預覽轉換結果 & 下載 CSV</h2>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.6rem;">
+                <div style="font-size:0.86rem;color:var(--text-light);">
+                    轉換後欄位包含：<code>bgg_id, name_en, year, min_players, max_players, min_playtime, max_playtime, playing_time, complexity, image_url</code>，
+                    BGG 數值欄位（<code>baverage, rank, bggbestplayers, bgglanguagedependence, itemtype, bgg_type</code>），
+                    <code>category, mechanics</code>，以及 <code>axis_entry ... axis_competition</code> 六個新版維度（目前為預設估值，可之後再調整）。
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary-soft" id="btn-enrich-covers" disabled>從 BGG 補封面 / Category / Mechanic（Jina）</button>
+                    <button type="button" class="btn-secondary-soft" id="btn-download" disabled>下載轉換後 CSV</button>
+                </div>
+            </div>
+            <div class="preview-table-wrap" id="preview-wrap" style="display:none;">
+                <table class="preview-table">
+                    <thead id="preview-thead"></thead>
+                    <tbody id="preview-tbody"></tbody>
+                </table>
+            </div>
+            <div id="preview-empty" style="font-size:0.86rem;color:var(--text-light);">
+                尚無資料，請先上傳並解析 CSV。
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // 本頁為工具性質，預設直接啟用；若未來要接管理員驗證，可再包一層 requireAdminAuth
+        document.addEventListener('DOMContentLoaded', function () {
+            initImportPage();
+        });
+
+        function initImportPage() {
+            const fileInput = document.getElementById('csv-file');
+            const btnParse  = document.getElementById('btn-parse');
+            const btnClear  = document.getElementById('btn-clear');
+            const btnDownload = document.getElementById('btn-download');
+            const btnEnrichCovers = document.getElementById('btn-enrich-covers');
+            const badgeCount = document.getElementById('badge-count');
+            const logEl = document.getElementById('log');
+            const previewWrap = document.getElementById('preview-wrap');
+            const previewThead = document.getElementById('preview-thead');
+            const previewTbody = document.getElementById('preview-tbody');
+            const previewEmpty = document.getElementById('preview-empty');
+
+            let rawText = '';
+            let transformedRows = [];
+
+            fileInput.addEventListener('change', () => {
+                transformedRows = [];
+                clearPreview();
+                if (!fileInput.files || !fileInput.files[0]) {
+                    btnParse.disabled = true;
+                    badgeCount.textContent = '尚未載入檔案';
+                    return;
+                }
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    rawText = e.target.result || '';
+                    appendLog('ok', `已讀取檔案：${file.name}，大小約 ${(file.size / 1024).toFixed(1)} KB。`);
+                    appendLog('ok', '請按「解析並轉成內部格式」開始轉換。');
+                    btnParse.disabled = false;
+                    badgeCount.textContent = `已載入檔案：${file.name}`;
+                };
+                reader.readAsText(file, 'utf-8');
+            });
+
+            btnParse.addEventListener('click', () => {
+                if (!rawText) {
+                    appendLog('err', '尚未讀取任何檔案。');
+                    return;
+                }
+                btnParse.disabled = true;
+                btnDownload.disabled = true;
+                btnEnrichCovers.disabled = true;
+                clearPreview();
+                appendLog('ok', '開始解析 CSV 並轉成內部格式...');
+                try {
+                    const { headerMap, rows } = parseCsvWithHeader(rawText);
+                    reportHeaderMap(headerMap);
+                    transformedRows = rows.map(r => mapRowToInternal(r, headerMap));
+                    appendLog('ok', `共解析出 ${transformedRows.length} 筆遊戲。`);
+                    renderPreview(transformedRows);
+                    const hasRows = transformedRows.length > 0;
+                    btnDownload.disabled = !hasRows;
+                    btnEnrichCovers.disabled = !hasRows;
+                    if (!hasRows) {
+                        appendLog('warn', '沒有任何有效資料列，請檢查 CSV 格式。');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    appendLog('err', `解析失敗：${e.message || e}`);
+                } finally {
+                    btnParse.disabled = false;
+                }
+            });
+
+            btnDownload.addEventListener('click', () => {
+                if (!transformedRows.length) return;
+                const csv = buildInternalCsv(transformedRows);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const now = new Date();
+                const ts = now.toISOString().replace(/[:T]/g, '-').slice(0, 16);
+                a.href = url;
+                a.download = `bgg-converted-for-game_database-${ts}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                appendLog('ok', '已下載轉換後 CSV。');
+            });
+
+            btnClear.addEventListener('click', () => {
+                fileInput.value = '';
+                rawText = '';
+                transformedRows = [];
+                btnParse.disabled = true;
+                btnDownload.disabled = true;
+                btnEnrichCovers.disabled = true;
+                badgeCount.textContent = '尚未載入檔案';
+                logEl.innerHTML = '<span class="ok">[系統]</span> 已清除狀態，請重新選擇一個 CSV 檔案。';
+                clearPreview();
+            });
+
+            // 從 BGG 補封面圖片（使用 Jina proxy），僅處理目前沒有 image_url 但有 bgg_id 的列
+            btnEnrichCovers.addEventListener('click', async () => {
+                if (!transformedRows.length) return;
+                // 需要補抓封面或 themes / mechanics 的列（目前只要有 bgg_id 即納入）
+                const targets = transformedRows.filter(r => r.bgg_id && /^\d+$/.test(String(r.bgg_id).trim()));
+                if (!targets.length) {
+                    appendLog('warn', '沒有任何具備有效 bgg_id 的列，無法從 BGG 補資料。');
+                    return;
+                }
+                if (!confirm(`將透過 Jina proxy 連到 BGG，為 ${targets.length} 筆資料補上封面圖片與 themes / mechanics。這可能需要一點時間，確定要開始嗎？`)) {
+                    return;
+                }
+                btnEnrichCovers.disabled = true;
+                appendLog('ok', `開始從 BGG 補封面圖片、Category 與 Mechanic，共 ${targets.length} 筆。`);
+                let okCover = 0, failCover = 0;
+                let okMeta = 0;
+                const maxRetry = 2;
+                const concurrency = 3; // 與 admin-bgg-covers 預設相同
+                const delayMs = 400;
+                for (let i = 0; i < targets.length; i += concurrency) {
+                    const batch = targets.slice(i, i + concurrency);
+                    await Promise.all(batch.map(async row => {
+                        const id = String(row.bgg_id).trim();
+                        try {
+                            const meta = await fetchGameMetaViaJina(id, maxRetry);
+                            if (meta.coverUrl) {
+                                row.image_url = row.image_url || meta.coverUrl;
+                                okCover++;
+                                appendLog('ok', `封面成功：${id} → ${meta.coverUrl.slice(0, 80)}...`);
+                            } else {
+                                failCover++;
+                                appendLog('warn', `封面失敗：${id}（抓不到圖片）`);
+                            }
+                            if (meta.category && meta.category.length) {
+                                row.category = JSON.stringify(meta.category);
+                                okMeta++;
+                                appendLog('ok', `category 成功：${id} → ${meta.category.join(', ')}`);
+                            }
+                            if (meta.mechanics && meta.mechanics.length) {
+                                row.mechanics = JSON.stringify(meta.mechanics);
+                                okMeta++;
+                                appendLog('ok', `mechanics 成功：${id} → ${meta.mechanics.join(', ')}`);
+                            }
+                            if (meta.bggType) {
+                                row.bgg_type = meta.bggType;
+                                okMeta++;
+                                appendLog('ok', `type 成功：${id} → ${meta.bggType}`);
+                            }
+                        } catch (e) {
+                            failCover++;
+                            appendLog('err', `從 BGG 補資料失敗：${id}（${e.message || e}）`);
+                        }
+                    }));
+                    if (i + concurrency < targets.length) {
+                        await sleep(delayMs);
+                    }
+                }
+                appendLog('ok', `補抓完成：封面成功 ${okCover} 筆、封面失敗 ${failCover} 筆；themes/mechanics 更新 ${okMeta} 次。`);
+                renderPreview(transformedRows);
+                btnEnrichCovers.disabled = false;
+            });
+
+            function clearPreview() {
+                previewThead.innerHTML = '';
+                previewTbody.innerHTML = '';
+                previewWrap.style.display = 'none';
+                previewEmpty.style.display = 'block';
+            }
+
+            function renderPreview(rows) {
+                if (!rows.length) {
+                    clearPreview();
+                    return;
+                }
+                const cols = Object.keys(rows[0]);
+                previewThead.innerHTML = '<tr>' + cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr>';
+                previewTbody.innerHTML = rows.slice(0, 100).map(r => {
+                    return '<tr>' + cols.map(c => `<td>${escapeHtml(formatValue(r[c]))}</td>`).join('') + '</tr>';
+                }).join('');
+                previewWrap.style.display = 'block';
+                previewEmpty.style.display = 'none';
+            }
+
+            function appendLog(level, msg) {
+                const cls = level === 'err' ? 'err' : (level === 'warn' ? 'warn' : 'ok');
+                const line = document.createElement('div');
+                line.innerHTML = `<span class="${cls}">[${level.toUpperCase()}]</span> ${escapeHtml(msg)}`;
+                logEl.appendChild(line);
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+
+            function reportHeaderMap(map) {
+                const pairs = Object.entries(map).filter(([k, v]) => v != null);
+                appendLog('ok', `欄位對應關係（左：內部欄位 → 右：原始標題）：`);
+                if (!pairs.length) {
+                    appendLog('warn', '目前尚未對到任何欄位，請檢查 CSV 標題列。');
+                    return;
+                }
+                pairs.forEach(([internal, src]) => {
+                    appendLog('ok', `  ${internal}  ⇐  ${src}`);
+                });
+            }
+        }
+
+        // 解析第一行為標題的 CSV，支援逗號或分號，簡單處理引號
+        function parseCsvWithHeader(text) {
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (!lines.length) throw new Error('檔案內容為空');
+            const headerLine = lines[0];
+            const delimiter = headerLine.includes(';') && !headerLine.includes(',') ? ';' : ',';
+            const headers = splitCsvLine(headerLine, delimiter).map(h => h.trim());
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const parts = splitCsvLine(lines[i], delimiter);
+                if (parts.every(v => v.trim() === '')) continue;
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = parts[idx] != null ? parts[idx].trim() : '';
+                });
+                rows.push(row);
+            }
+            const headerMap = buildHeaderMap(headers);
+            return { headerMap, rows };
+        }
+
+        function splitCsvLine(line, delimiter) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === delimiter && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        // 嘗試以關鍵字將原始標題對應到內部欄位
+        function buildHeaderMap(headers) {
+            const lower = headers.map(h => h.toLowerCase());
+            function find(...keywords) {
+                for (const key of keywords) {
+                    const idx = lower.findIndex(h => h.includes(key));
+                    if (idx !== -1) return headers[idx];
+                }
+                return null;
+            }
+            return {
+                bgg_id: find('bgg_id', 'objectid', 'gameid', 'id'),
+                name_en: find('name_en', 'objectname', 'name', 'title'),
+                year: find('yearpublished', 'year', 'pubyear'),
+                min_players: find('minplayers', 'min_players', 'min player'),
+                max_players: find('maxplayers', 'max_players', 'max player'),
+                min_playtime: find('minplaytime', 'min_playtime', 'min playtime'),
+                max_playtime: find('maxplaytime', 'max_playtime', 'max playtime'),
+                playing_time: find('playingtime', 'playtime'),
+                complexity: find('avgweight', 'averageweight', 'avg_weight', 'weight', 'complexity'),
+                image_url: find('imageid', 'image', 'thumbnail', 'thumb', 'image_url', 'cover'),
+                // 來自 collection 匯出 CSV 的進階欄位
+                baverage: find('baverage', 'average'),
+                rank: find('rank', 'bgg_rank'),
+                bggbestplayers: find('bggbestplayers', 'bestplayers'),
+                bgglanguagedependence: find('bgglanguagedependence', 'language dependence', 'languagedependence'),
+                itemtype: find('itemtype', 'objecttype')
+            };
+        }
+
+        // 將一列原始資料轉成內部格式欄位，8 軸先用簡單預設（之後可再調整）
+        function mapRowToInternal(row, map) {
+            function get(srcKey) {
+                const col = map[srcKey];
+                return col && row[col] != null ? row[col] : '';
+            }
+            const bggId = get('bgg_id');
+            const nameEn = get('name_en');
+            const yearRaw = get('year');
+            const minP = parseIntSafe(get('min_players'));
+            const maxP = parseIntSafe(get('max_players'));
+            const minTimeRaw = get('min_playtime');
+            const maxTimeRaw = get('max_playtime');
+            const timeRaw = get('playing_time');
+            const weightRaw = get('complexity');
+            const img = get('image_url');
+            const baverageRaw = get('baverage');
+            const rankRaw = get('rank');
+            const bestPlayersRaw = get('bggbestplayers');
+            const langDepRaw = get('bgglanguagedependence');
+            const itemtypeRaw = get('itemtype');
+            const bggTypeRaw = ''; // 目前 CSV 不含 Type，之後從 BGG 頁面補
+
+            const year = parseIntSafe(yearRaw);
+            const minPlaytime = parseIntSafe(minTimeRaw) || parseIntSafe(timeRaw);
+            const maxPlaytime = parseIntSafe(maxTimeRaw) || parseIntSafe(timeRaw);
+            const weightRawNum = parseFloatSafe(weightRaw);
+            // 若缺資料或為 0，視為沒有有效複雜度
+            const weight = (weightRawNum != null && weightRawNum > 0) ? Math.round(weightRawNum * 100) / 100 : null;
+
+            const baverageNum = parseFloatSafe(baverageRaw);
+            const rankNum = parseIntSafe(rankRaw);
+            const langDepNum = parseLanguageDependence(langDepRaw);
+
+            // 新版 6 維度的第一版 baseline：目前只用複雜度估出「進入門檻」，其餘先設為中立值 6 待之後用主題 / 機制補
+            // 進入門檻 axis_entry：易學 ↔ 複雜（這裡將 avgweight 線性映射到 0–12，無有效數值則 6）
+            const axis_entry = weight != null ? clamp01(weight / 5) * 12 : 6;
+            const axis_mood = 6;
+            const axis_control = 6;
+            const axis_openness = 6;
+            const axis_sociality = 6;
+            const axis_competition = 6;
+
+            return {
+                bgg_id: bggId,
+                name_en: nameEn,
+                year: year || '',
+                min_players: minP || '',
+                max_players: maxP || '',
+                min_playtime: minPlaytime || '',
+                max_playtime: maxPlaytime || '',
+                // playing_time 代表「估計每位玩家平均花費時間（分鐘）」
+                playing_time: (() => {
+                    if (!minPlaytime && !maxPlaytime) return '';
+                    const minPer = (minPlaytime && maxP) ? minPlaytime / maxP : null;
+                    const maxPer = (maxPlaytime && minP) ? maxPlaytime / Math.max(minP, 1) : null;
+                    const vals = [minPer, maxPer].filter(v => v != null && !isNaN(v));
+                    if (!vals.length) return '';
+                    const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+                    return Math.round(avg);
+                })(),
+                // 這裡的 complexity 也統一四捨五入到兩位小數（缺值或 0 則空白）
+                complexity: weight || '',
+                baverage: baverageNum != null ? Math.round(baverageNum * 100) / 100 : '',
+                rank: rankNum != null ? rankNum : '',
+                bggbestplayers: bestPlayersRaw || '',
+                bgglanguagedependence: langDepNum != null ? langDepNum : '',
+                category: '',
+                mechanics: '',
+                itemtype: itemtypeRaw || '',
+                bgg_type: bggTypeRaw,
+                image_url: img,
+                axis_entry: round1(axis_entry),
+                axis_mood: round1(axis_mood),
+                axis_control: round1(axis_control),
+                axis_openness: round1(axis_openness),
+                axis_sociality: round1(axis_sociality),
+                axis_competition: round1(axis_competition)
+            };
+        }
+
+        function buildInternalCsv(rows) {
+            if (!rows.length) return '';
+            const cols = Object.keys(rows[0]);
+            const header = cols.join(',');
+            const lines = rows.map(r => cols.map(c => csvEscape(r[c])).join(','));
+            return header + '\n' + lines.join('\n');
+        }
+
+        function csvEscape(v) {
+            if (v == null) return '';
+            const s = String(v);
+            if (/[",\n]/.test(s)) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatValue(v) {
+            if (v == null || v === '') return '';
+            return v;
+        }
+
+        function parseIntSafe(v) {
+            if (v == null || v === '') return null;
+            const n = parseInt(v, 10);
+            return isNaN(n) ? null : n;
+        }
+
+        function parseFloatSafe(v) {
+            if (v == null || v === '') return null;
+            const n = parseFloat(v);
+            return isNaN(n) ? null : n;
+        }
+
+        // 將 BGG 的文字版 language dependence 轉成 1–5
+        // 1: No necessary in-game text
+        // 2: Some necessary text - easily memorized or small crib sheet
+        // 3: Moderate in-game text - needs crib sheet or paste ups
+        // 4: Extensive use of text - massive conversion needed to be playable
+        // 5: Unplayable in another language
+        function parseLanguageDependence(v) {
+            if (v == null || v === '') return null;
+            const maybeNum = parseIntSafe(v);
+            if (maybeNum != null && maybeNum >= 1 && maybeNum <= 5) return maybeNum;
+            const s = String(v).toLowerCase();
+            if (s.startsWith('no necessary in-game text')) return 1;
+            if (s.startsWith('some necessary text')) return 2;
+            if (s.startsWith('moderate in-game text')) return 3;
+            if (s.startsWith('extensive use of text')) return 4;
+            if (s.startsWith('unplayable in another language')) return 5;
+            return null;
+        }
+
+        function clamp01(x) {
+            if (x == null || isNaN(x)) return 0;
+            return x < 0 ? 0 : x > 1 ? 1 : x;
+        }
+
+        function round1(x) {
+            if (x == null || isNaN(x)) return '';
+            return Math.round(x * 10) / 10;
+        }
+
+        // 從 BGG 主頁透過 Jina proxy 抓封面圖與 Category / Mechanic / Type
+        async function fetchGameMetaViaJina(bggId, maxRetry) {
+            const pageUrl = `https://boardgamegeek.com/boardgame/${bggId}`;
+            const proxyUrl = `https://r.jina.ai/${pageUrl}`;
+            for (let attempt = 0; attempt <= maxRetry; attempt++) {
+                try {
+                    const res = await fetch(proxyUrl, {
+                        headers: { 'X-No-Cache': 'true' }
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const text = await res.text();
+                    const coverUrl = extractCoverFromText(text);
+                    const category = extractCategoryFromText(text);
+                    const mechanics = extractMechanicsFromText(text);
+                    const bggType = extractTypeFromText(text);
+                    return { coverUrl, category, mechanics, bggType };
+                } catch (e) {
+                    if (attempt < maxRetry) {
+                        await sleep(1500 * (attempt + 1));
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+        }
+
+        function extractCoverFromText(text) {
+            const imgRegex = /https:\/\/cf\.geekdo-images\.com\/[^\s\"']+\.(?:jpg|png|jpeg)/gi;
+            const candidates = [];
+            let m;
+            while ((m = imgRegex.exec(text)) !== null) candidates.push(m[0]);
+            if (candidates.length === 0) return null;
+            return candidates.find(u => u.includes('_original'))
+                || candidates.find(u => !u.match(/user|avatar|micro|square|thumb/))
+                || candidates[0];
+        }
+
+        // 從 Jina 回傳的 BGG 頁面文字中粗略擷取 Category
+        function extractCategoryFromText(text) {
+            const themes = new Set();
+            // 1) 嘗試抓右側 Classification 區塊的 Category 清單
+            const catBlockMatch = text.match(/Category\s*\n([\s\S]*?)(\n\n|Mechanism\s*\n|Family\s*\n|Type\s*\n)/i);
+            if (catBlockMatch && catBlockMatch[1]) {
+                    const block = catBlockMatch[1];
+                    const lines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                    lines.forEach(line => {
+                        splitToTags(line).forEach(t => themes.add(t));
+                    });
+            }
+            // 2) 備援：處理 "Category: Fantasy, Horror" 類型的一行寫法
+            const lines = text.split(/\r?\n/);
+            for (const line of lines) {
+                const lower = line.toLowerCase();
+                if (lower.startsWith('category:') || lower.startsWith('categories:') || lower.includes('board game category')) {
+                    const parts = line.split(/[:：]/);
+                    if (parts.length < 2) continue;
+                    const payload = parts.slice(1).join(':');
+                    splitToTags(payload).forEach(t => themes.add(t));
+                }
+            }
+            return Array.from(themes);
+        }
+
+        // 從 Jina 回傳的 BGG 頁面文字中粗略擷取 mechanics
+        function extractMechanicsFromText(text) {
+            const mechs = new Set();
+            // 1) 嘗試抓右側 Classification 區塊的 Mechanism 清單
+            const mechBlockMatch = text.match(/Mechanism\s*\n([\s\S]*?)(\n\n|Family\s*\n|Category\s*\n|Type\s*\n)/i);
+            if (mechBlockMatch && mechBlockMatch[1]) {
+                const block = mechBlockMatch[1];
+                const lines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                lines.forEach(line => {
+                    // 右側清單有可能有 "+ 3 more" 這種字樣，直接跳過
+                    if (/^\+\s*\d+\s+more/i.test(line)) return;
+                    splitToTags(line).forEach(t => mechs.add(t));
+                });
+            }
+            // 2) 備援：處理 "Mechanics: Dice Rolling; Open Drafting" 類型的一行寫法
+            const lines = text.split(/\r?\n/);
+            for (const line of lines) {
+                const lower = line.toLowerCase();
+                if (lower.startsWith('mechanic:') || lower.startsWith('mechanics:') || lower.includes('board game mechanic')) {
+                    const parts = line.split(/[:：]/);
+                    if (parts.length < 2) continue;
+                    const payload = parts.slice(1).join(':');
+                    splitToTags(payload).forEach(t => mechs.add(t));
+                }
+            }
+            return Array.from(mechs);
+        }
+
+        // 將以逗號 / 分號 / 項目符號分隔的字串拆成乾淨的官方名稱清單
+        function splitToTags(payload) {
+            // 先把 Markdown 連結轉成純文字：*   [Fantasy](url "Fantasy") -> Fantasy
+            let cleaned = String(payload).replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+            return cleaned
+                .split(/[,;•|]/)
+                .map(s => s.replace(/^\*\s*/, '').trim())
+                .filter(s => s && s !== 'N/A');
+        }
+
+        // 從 Classification 區塊擷取 Type（Abstract Games / Family Games ...）
+        function extractTypeFromText(text) {
+            const typeBlockMatch = text.match(/Type\s*\n([\s\S]*?)(\n\n|Category\s*\n|Mechanism\s*\n|Family\s*\n)/i);
+            if (typeBlockMatch && typeBlockMatch[1]) {
+                const block = typeBlockMatch[1];
+                const lines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                if (lines.length) {
+                    let first = lines[0];
+                    // Markdown 連結情況：[Family](...)View poll and results
+                    const linkMatch = first.match(/\[([^\]]+)\]\([^)]+\)/);
+                    if (linkMatch) {
+                        return linkMatch[1];
+                    }
+                    // 去掉 "View poll and results" 這類尾巴
+                    first = first.replace(/View poll and results.*/i, '').trim();
+                    if (first && first !== 'Uncategorized') return first;
+                }
+            }
+            // 若 BGG 沒給 Type，就標成 "Uncategorized"
+            return 'Uncategorized';
+        }
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+    </script>
+</body>
+</html>
+
