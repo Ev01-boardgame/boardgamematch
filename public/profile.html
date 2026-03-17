@@ -206,6 +206,43 @@
             line-height: 1.2 !important;
             text-align: center !important;
         }
+        /* 玩家偏好 6 軸滑桿（與 personality-test 統一樣式） */
+        .axis-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--text-light);
+        }
+        .axis-row-label-left,
+        .axis-row-label-right {
+            white-space: nowrap;
+        }
+        .axis-row-track {
+            position: relative;
+            flex: 1;
+            height: 4px;
+            border-radius: 999px;
+            background: repeating-linear-gradient(
+                to right,
+                #d1d5db 0,
+                #d1d5db 8%,
+                transparent 8%,
+                transparent 16%
+            );
+        }
+        .axis-row-dot {
+            position: absolute;
+            top: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 1px #0ea5e9;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -937,17 +974,34 @@
                     return;
                 }
                 const data = await r.json();
-                const labels = {
-                    axis_entry: '門檻',
-                    axis_mood: '氛圍',
-                    axis_control: '勝負',
-                    axis_openness: '心態',
-                    axis_sociality: '互動',
-                    axis_competition: '立場'
-                };
-                const keys = ['axis_entry','axis_mood','axis_control','axis_openness','axis_sociality','axis_competition'];
-                const parts = keys.map(function(k) { return labels[k] + ' ' + (data[k] ?? 0); });
-                el.textContent = parts.join('、');
+                const axes = [
+                    { key: 'axis_entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+                    { key: 'axis_mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+                    { key: 'axis_control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+                    { key: 'axis_sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+                    { key: 'axis_openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+                    { key: 'axis_competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+                ];
+                const html = [
+                    '<div style="display:flex;flex-direction:column;gap:0.4rem;">',
+                    axes.map(function(a) {
+                        var v = Number(data[a.key] ?? 6);
+                        if (isNaN(v)) v = 6;
+                        if (v < 0) v = 0;
+                        if (v > 12) v = 12;
+                        var pct = (v / 12) * 100;
+                        return '<div style="display:flex;flex-direction:column;gap:0.15rem;">' +
+                            '<div style="font-size:0.85rem;font-weight:600;">' + a.label + '</div>' +
+                            '<div class="axis-row">' +
+                            '<span class="axis-row-label-left">' + a.left + '</span>' +
+                            '<div class="axis-row-track"><div class="axis-row-dot" style="left:' + pct + '%;"></div></div>' +
+                            '<span class="axis-row-label-right">' + a.right + '</span>' +
+                            '</div>' +
+                            '</div>';
+                    }).join('') +
+                    '</div>'
+                ].join('');
+                el.innerHTML = html;
             } catch (e) {
                 el.textContent = '尚未測驗（可點「測桌遊偏好」填寫）';
             }

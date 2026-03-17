@@ -167,34 +167,42 @@
             display: block;
             aspect-ratio: 1;
         }
-        /* 6 軸結果用的水平滑桿（只讀點點條） */
-        .axis-slider-readonly {
-            -webkit-appearance: none;
-            appearance: none;
+        /* 6 軸結果用的水平滑桿（只讀點點條，div 版） */
+        .axis-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--text-light);
+        }
+        .axis-row-label-left,
+        .axis-row-label-right {
+            white-space: nowrap;
+        }
+        .axis-row-track {
+            position: relative;
+            flex: 1;
             height: 4px;
             border-radius: 999px;
-            background: repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 8%, transparent 8%, transparent 16%);
-            outline: none;
+            background: repeating-linear-gradient(
+                to right,
+                #d1d5db 0,
+                #d1d5db 8%,
+                transparent 8%,
+                transparent 16%
+            );
         }
-        .axis-slider-readonly::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
+        .axis-row-dot {
+            position: absolute;
+            top: 50%;
             width: 10px;
             height: 10px;
             border-radius: 50%;
             background: #0ea5e9;
-            border: 2px solid white;
+            border: 2px solid #ffffff;
             box-shadow: 0 0 0 1px #0ea5e9;
-            cursor: default;
-        }
-        .axis-slider-readonly::-moz-range-thumb {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #0ea5e9;
-            border: 2px solid white;
-            box-shadow: 0 0 0 1px #0ea5e9;
-            cursor: default;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
         }
     </style>
 </head>
@@ -236,7 +244,7 @@
                 <div class="test-list-card" data-test="preference">
                     <div class="card-emoji">🎯</div>
                     <div class="card-title">桌遊偏好</div>
-                    <div class="card-desc">54 題，桌遊偏好。題數加倍為求精準，產出雷達圖與分數。</div>
+                    <div class="card-desc">24 題，玩家 6 軸（門檻、氛圍、勝負、互動、心態、立場），題庫隨機抽題，以水平滑桿呈現結果。</div>
                 </div>
             </div>
         </section>
@@ -715,12 +723,13 @@
             var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.75rem;">';
             axes.forEach(function(a) {
                 var v = mapAxisScoreTo012(scores[a.key] || 0);
+                var pct = (v / 12) * 100;
                 html += '<div style="display:flex;flex-direction:column;gap:0.25rem;">' +
                     '<div style="font-size:0.85rem;font-weight:600;">' + a.label + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;color:var(--text-light);">' +
-                    '<span>' + a.left + '</span>' +
-                    '<input type="range" min="0" max="12" value="' + v + '" disabled class="axis-slider-readonly" style="flex:1;">' +
-                    '<span>' + a.right + '</span>' +
+                    '<div class="axis-row">' +
+                    '<span class="axis-row-label-left">' + a.left + '</span>' +
+                    '<div class="axis-row-track"><div class="axis-row-dot" style="left:' + pct + '%;"></div></div>' +
+                    '<span class="axis-row-label-right">' + a.right + '</span>' +
                     '</div>' +
                     '</div>';
             });
