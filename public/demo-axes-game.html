@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>遊戲 8 軸 × 玩家 8 軸 對應（示意）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background: var(--bg-color); }
+        .page-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .page-sub {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            padding: 1.25rem 1.4rem;
+            margin-bottom: 1.2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: var(--bg-color);
+            font-weight: 600;
+        }
+        .axis-tag {
+            display: inline-block;
+            padding: 0.12rem 0.4rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        .pill {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            margin-right: 0.3rem;
+            margin-top: 0.15rem;
+        }
+        .note {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="explore.html" class="active">玩家數據</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+        <h1 class="page-title">遊戲 8 軸 × 玩家 8 軸 對應（示意說明）</h1>
+        <p class="page-sub">
+            本頁用來說明兩件事：<strong>「每款遊戲的 8 軸怎麼來」</strong>，以及<strong>「推薦時如何把玩家 8 軸和遊戲 8 軸配對」</strong>。
+            目前是設計草圖，方便一起討論與修改，之後再實作到程式裡。
+        </p>
+
+        <section class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.5rem;">遊戲 8 軸：資料流示意</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:160px;">階段</th>
+                        <th>資料來源與做法</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="axis-tag">1. 基礎值（Import）</span></td>
+                        <td>
+                            <ul style="padding-left:1.1rem;margin:0;">
+                                <li>從 BGG / 其他來源抓到的資料：<code>player count / play time / complexity / themes / mechanics</code>。</li>
+                                <li>在 <code>admin-bgg-import.html</code> 先用簡單規則給每軸一個 <strong>baseline</strong>（例如：時間長 → 沉浸高；weight 高 → 策略高、親和低）。</li>
+                                <li>這些值寫進 <code>game_database.axis_*</code> 當作「起點」，之後會被玩家評價微調。</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">2. 玩家影響（Voting）</span></td>
+                        <td>
+                            <ul style="padding-left:1.1rem;margin:0;">
+                                <li>玩家做完桌友適性 → 寫入 <code>user_preference_profiles</code>（每人一組 8 軸）。</li>
+                                <li>玩家在「喜歡 / 普通 / 不喜歡」中把某款遊戲加入「喜歡」→ 系統把該玩家的 8 軸視為<strong>對這款遊戲的正面樣本</strong>。</li>
+                                <li>可以用「加權平均」：<code>axis_strategy(game)</code> 逐漸往所有喜歡這款的人之平均靠近（也可只吃最近 N 位玩家）。</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="axis-tag">3. 管理員微調（Admin）</span></td>
+                        <td>
+                            <ul style="padding-left:1.1rem;margin:0;">
+                                <li>在 <code>admin-games</code> 頁面上，管理員可以手動改一款遊戲的 8 軸（覆蓋演算法算出來的值）。</li>
+                                <li>也可以把某些軸鎖定不再由玩家資料自動改寫（例如經典派對遊戲的「社交」與「心機」）。</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="note" style="margin-top:0.75rem;">
+                真實實作時，這三個來源會合在一起：<strong>baseline（import） + 玩家統計（喜歡它的人） + 管理員覆蓋</strong>，存回 <code>game_database.axis_*</code>。
+            </p>
+        </section>
+
+        <section class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:0.5rem;">推薦時：玩家 8 軸 vs. 遊戲 8 軸</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:160px;">軸向</th>
+                        <th>配對原則（示意）</th>
+                        <th style="width:260px;">計分想法（示意）</th>
+                    </tr>
+                </thead>
+            <tbody>
+                <tr>
+                    <td><span class="axis-tag">策略 strategy</span></td>
+                    <td>玩家「策略」高 → 優先推薦策略高的遊戲；玩家策略低 → 避免太燒腦。可搭配 <code>complexity_bucket</code> 做硬上限。</td>
+                    <td>
+                        <span class="pill">score += (12 - |S_player - S_game|)</span><br>
+                        <span class="pill">若玩家策略 ≤ 3，複雜度 bucket = expert 則直接扣分</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="axis-tag">對抗 conflict</span></td>
+                    <td>玩家不喜歡衝突 → 避開對抗高的遊戲；喜歡衝突的人則相反。</td>
+                    <td>
+                        <span class="pill">score += (12 - |C_player - C_game|)</span><br>
+                        <span class="pill">玩家 conflict 低且遊戲 conflict 高時額外扣分</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="axis-tag">合作 coop</span></td>
+                    <td>玩家偏好合作 → 優先推薦合作／半合作遊戲；不喜歡合作 → 優先推薦競爭型。</td>
+                    <td>
+                        <span class="pill">score += (12 - |Coop_player - Coop_game|)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="axis-tag">社交 / 心機 social_fun / manipulation</span></td>
+                    <td>喜歡說話、演戲、猜內鬼的人 → 推薦社交／心機高的遊戲；內向或不喜歡衝突的人 → 避免。</td>
+                    <td>
+                        <span class="pill">兩軸合併計算：平均差距越小分數越高</span><br>
+                        <span class="pill">可搭配「今晚想不想玩唬人遊戲？」的即時條件</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="axis-tag">親和 / 沉浸 accessibility / immersion</span></td>
+                    <td>親和高 → 優先推薦規則短、時間短；沉浸高 → 接受較長、劇本感強的遊戲。</td>
+                    <td>
+                        <span class="pill">用玩家「這次想玩多重」條件，限制可推薦的時間區間</span><br>
+                        <span class="pill">再用 8 軸做微調</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="axis-tag">運氣 luck</span></td>
+                    <td>喜歡骰運 / 抽牌感 → 推薦 luck 高的遊戲；喜歡完全掌控 → 避免 luck 高。</td>
+                    <td>
+                        <span class="pill">score += (12 - |Luck_player - Luck_game|)</span>
+                    </td>
+                </tr>
+            </tbody>
+            </table>
+            <p class="note" style="margin-top:0.75rem;">
+                真正實作時，可以把每一軸的「差距」轉成 0～權重的分數，累加後再加上「今晚條件題」與「遊戲基礎條件（人數、時間、年份等）」的過濾，
+                最後得到一個總分，作為「今晚玩什麼？」與推薦清單的排序依據。
+            </p>
+        </section>
+    </div>
+</body>
+</html>
+

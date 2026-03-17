@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo 首頁排版（本機預覽）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --primary: #059669;
+            --primary-dark: #047857;
+            --bg: #f9fafb;
+            --text-main: #111827;
+            --text-light: #6b7280;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top left, #ecfdf5, #f9fafb 40%, #f3f4f6);
+            color: var(--text-main);
+            margin: 0;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .page-wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+
+        /* 簡化版導覽列 */
+        .navbar-demo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.5rem;
+        }
+        .navbar-demo-title {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .navbar-demo-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .navbar-demo-links span {
+            padding: 0.25rem 0.7rem;
+            border-radius: 999px;
+            cursor: default;
+        }
+        .navbar-demo-links span.active {
+            background: #ecfdf5;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        /* Hero 區 */
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 2.5rem;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.75rem;
+        }
+        .hero-highlight {
+            background: linear-gradient(120deg, #22c55e, #22c55e, #22c55e);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 0.98rem;
+            color: var(--text-light);
+            line-height: 1.7;
+            margin-bottom: 1.4rem;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .btn-main {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 999px;
+            border: none;
+            padding: 0.7rem 1.6rem;
+            font-size: 0.95rem;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 12px 30px rgba(16,185,129,0.35);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .btn-main:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+        .btn-ghost {
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            padding: 0.7rem 1.4rem;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            background: rgba(255,255,255,0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+        }
+        .btn-ghost:hover {
+            background: #f3f4f6;
+        }
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+        .hero-meta span {
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid rgba(209,213,219,0.7);
+        }
+
+        .hero-card {
+            background: radial-gradient(circle at top left, #34d399, #10b981 45%, #047857 100%);
+            color: #ecfdf5;
+            border-radius: 1.5rem;
+            padding: 1.5rem 1.4rem;
+            box-shadow: 0 18px 45px rgba(4,120,87,0.6);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 55%);
+            pointer-events: none;
+        }
+        .hero-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .hero-card-steps {
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            color: #dcfce7;
+        }
+        .hero-card-pill {
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(6,95,70,0.6);
+            margin-right: 0.35rem;
+        }
+        .hero-card-mock {
+            margin-top: 0.9rem;
+            padding: 0.7rem 0.75rem;
+            border-radius: 0.85rem;
+            background: rgba(15,23,42,0.35);
+            font-size: 0.8rem;
+        }
+        .hero-card-mock-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+        .hero-card-tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            background: rgba(22,163,74,0.4);
+            font-size: 0.7rem;
+        }
+
+        /* 功能捷徑 */
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .section-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.1rem;
+        }
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+        .shortcut-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 1rem;
+            border: 1px solid rgba(229,231,235,0.9);
+            padding: 0.9rem 1rem;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .shortcut-title {
+            font-size: 0.98rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .shortcut-desc {
+            font-size: 0.86rem;
+            color: var(--text-light);
+        }
+        .shortcut-link {
+            font-size: 0.8rem;
+            color: var(--primary-dark);
+            margin-top: 0.2rem;
+        }
+
+        /* MBTI 區塊 */
+        .mbti-section {
+            margin-bottom: 2.8rem;
+        }
+        .mbti-grid-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.8rem;
+        }
+        .mbti-card {
+            background: var(--card-bg);
+            border-radius: 0.9rem;
+            border: 1px solid var(--border-color);
+            padding: 0.7rem 0.8rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+        }
+        .mbti-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(15,23,42,0.06);
+            border-color: #a7f3d0;
+        }
+        .mbti-code {
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+        }
+        .mbti-desc {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+        .mbti-games {
+            font-size: 0.75rem;
+            color: #16a34a;
+        }
+
+        /* 熱門桌遊 demo */
+        .games-section {
+            margin-bottom: 2.5rem;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+        .games-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+        .games-card h3 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+        }
+        .game-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            background: #f3f4f6;
+            margin: 0.12rem;
+        }
+
+        .footer-demo {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.82rem;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .page-wrap { padding-inline: 1rem; }
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <header class="navbar-demo">
+            <div class="navbar-demo-title">
+                <span>🎲</span>
+                <span>MBTI × 桌遊配對</span>
+            </div>
+            <div class="navbar-demo-links">
+                <span class="active">首頁</span>
+                <span>桌遊探索</span>
+                <span>我的檔案</span>
+                <span>揪桌趣處</span>
+            </div>
+        </header>
+
+        <!-- Hero：測驗導向 + 副路徑 -->
+        <section class="hero">
+            <div>
+                <h1 class="hero-title">
+                    根據 <span class="hero-highlight">MBTI</span> 找到<br>最適合你的桌遊體驗
+                </h1>
+                <p class="hero-subtitle">
+                    做一份 5–10 分鐘的桌遊人格測驗，系統會根據你的 MBTI 與遊戲偏好，
+                    幫你建立個人桌遊檔案，並推薦適合你風格的桌遊清單。
+                </p>
+                <div class="hero-actions">
+                    <button class="btn-main">
+                        <span>開始桌遊人格測驗</span>
+                        <span>→</span>
+                    </button>
+                    <button class="btn-ghost">
+                        <span>先看看桌遊推薦</span>
+                    </button>
+                </div>
+                <div class="hero-meta">
+                    <span>不需立即登入，做完再決定是否建立帳號</span>
+                    <span>隨時可編輯自己的桌遊喜好</span>
+                </div>
+            </div>
+            <aside class="hero-card">
+                <div class="hero-card-title">🧬 桌遊人格 × 推薦示意</div>
+                <p class="hero-card-steps">
+                    完成測驗 → 建立偏好輪廓 → 自動產生推薦清單與代表桌遊。
+                </p>
+                <div>
+                    <span class="hero-card-pill">INFJ · 策略 / 故事導向</span>
+                    <span class="hero-card-pill">偏好合作 · 中長時間</span>
+                </div>
+                <div class="hero-card-mock">
+                    <div class="hero-card-mock-row">
+                        <span>推薦代表作</span>
+                        <span class="hero-card-tag">範例</span>
+                    </div>
+                    <div style="font-size:0.8rem;margin-bottom:0.25rem;">
+                        ・《瘟疫危機》：高互動合作、難度適中<br>
+                        ・《幽港迷城》：故事濃度與角色成長感強
+                    </div>
+                    <div style="font-size:0.75rem;color:#bbf7d0;">
+                        右上功能捷徑可直接進入「推薦列表」或「我的收藏」進一步調整。
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <!-- 功能捷徑：工具導向 -->
+        <section>
+            <h2 class="section-title">你可以在這裡做什麼？</h2>
+            <p class="section-subtitle">
+                新來的玩家可以先做測驗；已經玩過一陣子的玩家，也可以直接用下面的工具管理自己的桌遊世界。
+            </p>
+            <div class="shortcut-grid">
+                <div class="shortcut-card">
+                    <div class="shortcut-title">📁 我的桌遊檔案</div>
+                    <div class="shortcut-desc">
+                        查看自己的 MBTI × 桌遊偏好雷達，編輯「喜歡 / 普通 / 不喜歡 / 想玩」等分類，建立專屬收藏牆。
+                    </div>
+                    <div class="shortcut-link">前往「我的檔案」頁（實際版連到 profile.html）</div>
+                </div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">🎯 桌遊推薦</div>
+                    <div class="shortcut-desc">
+                        根據你的偏好與收藏，自動產生今天適合開的桌遊清單，支援依人數、時間、難度快速過濾。
+                    </div>
+                    <div class="shortcut-link">前往「桌遊推薦」頁（實際版連到 recommend.html）</div>
+                </div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">🔍 桌遊探索</div>
+                    <div class="shortcut-desc">
+                        用關鍵字、機制、主題等條件，從資料庫中搜尋適合的新遊戲，並一鍵加入自己的分類或想玩清單。
+                    </div>
+                    <div class="shortcut-link">前往「桌遊探索」頁（實際版連到 explore-list.html）</div>
+                </div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">📍 揪桌趣處</div>
+                    <div class="shortcut-desc">
+                        找到實體桌遊店、線上遊玩平台與各地社群連結，一鍵開啟 Google 地圖或加群組。
+                    </div>
+                    <div class="shortcut-link">前往「揪桌趣處」頁（實際版連到 community.html）</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MBTI 區塊 demo -->
+        <section class="mbti-section">
+            <h2 class="section-title">🎯 16 種人格類型</h2>
+            <p class="section-subtitle">
+                已經知道自己的 MBTI 嗎？點一下，看看這個人格類型通常喜歡什麼樣的桌遊與代表作。
+            </p>
+            <div class="mbti-grid-demo">
+                <div class="mbti-card">
+                    <div class="mbti-code">INFJ · 倡導者</div>
+                    <div class="mbti-desc">重視故事與連結，喜歡有深度的合作與策略。</div>
+                    <div class="mbti-games">代表作：瘟疫危機、幽港迷城</div>
+                </div>
+                <div class="mbti-card">
+                    <div class="mbti-code">ENTP · 辯論家</div>
+                    <div class="mbti-desc">享受腦補與互動，喜歡變化多端、可以耍心機的遊戲。</div>
+                    <div class="mbti-games">代表作：阿瓦隆、血色狂怒</div>
+                </div>
+                <div class="mbti-card">
+                    <div class="mbti-code">ISFP · 冒險家</div>
+                    <div class="mbti-desc">偏好輕鬆有氛圍，享受過程和美術勝過硬派計算。</div>
+                    <div class="mbti-games">代表作：花磚物語、卡斯卡迪亞之旅</div>
+                </div>
+                <div class="mbti-card">
+                    <div class="mbti-code">ESTJ · 管理者</div>
+                    <div class="mbti-desc">喜歡結構清楚、規劃感強的經營或路線規劃遊戲。</div>
+                    <div class="mbti-games">代表作：車票之旅、電力公司</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 熱門桌遊 demo -->
+        <section class="games-section">
+            <h2 class="section-title">🏆 玩家最近都在玩什麼？</h2>
+            <p class="section-subtitle">
+                以下僅為排版示意；正式版會即時統計所有玩家的「喜歡」與「想玩」資料，產生排行榜。
+            </p>
+            <div class="games-grid">
+                <div class="games-card">
+                    <h3>😍 最受歡迎</h3>
+                    <div>
+                        <span class="game-pill">瘟疫危機 · 合作 · 中等</span>
+                        <span class="game-pill">車票之旅 · 家庭 · 輕中</span>
+                        <span class="game-pill">花磚物語 · 抽象 · 輕度</span>
+                    </div>
+                </div>
+                <div class="games-card">
+                    <h3>⭐ 最受期待</h3>
+                    <div>
+                        <span class="game-pill">幽港迷城 · 劇本 · 重度</span>
+                        <span class="game-pill">翼展 · 引擎建構 · 中度</span>
+                        <span class="game-pill">根 · 陣營不對稱 · 中重</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="footer-demo">
+            這是本機 demo 頁面（demo-home.html），僅供版型與文案討論，尚未串接真實資料與導向連結。
+        </div>
+    </div>
+</body>
+</html>
+

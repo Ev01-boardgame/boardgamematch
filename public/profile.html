@@ -921,7 +921,7 @@
             console.log('✅ 簡化版檔案顯示完成');
         }
 
-        // 載入並顯示桌遊偏好 8 軸（僅能透過測驗寫入，不可編輯）
+        // 載入並顯示桌遊偏好 6 軸（僅能透過測驗寫入，不可編輯）
         async function loadAndShowPreferenceProfile() {
             const el = document.getElementById('profile-preference-content');
             if (!el || !currentUser || !currentUser.id) return;
@@ -937,8 +937,15 @@
                     return;
                 }
                 const data = await r.json();
-                const labels = { conflict: '衝突', strategy: '策略', social_fun: '社交', immersion: '沉浸', accessibility: '易學', manipulation: '心機', coop: '合作', luck: '運氣' };
-                const keys = ['conflict', 'strategy', 'social_fun', 'immersion', 'accessibility', 'manipulation', 'coop', 'luck'];
+                const labels = {
+                    axis_entry: '門檻',
+                    axis_mood: '氛圍',
+                    axis_control: '勝負',
+                    axis_openness: '心態',
+                    axis_sociality: '互動',
+                    axis_competition: '立場'
+                };
+                const keys = ['axis_entry','axis_mood','axis_control','axis_openness','axis_sociality','axis_competition'];
                 const parts = keys.map(function(k) { return labels[k] + ' ' + (data[k] ?? 0); });
                 el.textContent = parts.join('、');
             } catch (e) {
