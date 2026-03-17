@@ -822,19 +822,23 @@
         // 顯示總覽統計
         function displayOverallStats() {
             const stats = GameMBTI.calculateStats(allUsers);
-            
-            document.getElementById('total-users').textContent = stats.totalUsers;
-            
+            const elTotalUsers = document.getElementById('total-users');
+            const elTotalGames = document.getElementById('total-games');
+            const elMostType = document.getElementById('most-popular-type');
+            // 若頁面上沒有這些元素（例如新版首頁樣式），則直接略過不顯示統計，避免 throw
+            if (!elTotalUsers || !elTotalGames || !elMostType) return;
+
+            elTotalUsers.textContent = stats.totalUsers;
+
             // 從 site_stats 快速取得總遊戲數
             getSiteStats().then(s => {
-                document.getElementById('total-games').textContent = s.total_games || 0;
+                elTotalGames.textContent = s.total_games || 0;
             });
-            
+
             // 最多玩家類型
             const mostPopular = Object.entries(stats.mbtiDistribution)
                 .sort((a, b) => b[1] - a[1])[0];
-            document.getElementById('most-popular-type').textContent = 
-                mostPopular ? mostPopular[0] : '-';
+            elMostType.textContent = mostPopular ? mostPopular[0] : '-';
         }
         
         // 顯示 MBTI 網格
