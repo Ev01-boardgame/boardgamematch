@@ -168,9 +168,9 @@
             aspect-ratio: 1;
         }
         /* 6 軸結果：發散條（以中立 6 為中心） */
-        .pref-div-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.65rem; align-items: center; }
+        .pref-div-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.65rem; align-items: center; width: 100%; }
         .pref-div-label { font-size: 0.85rem; font-weight: 700; color: var(--text-color); }
-        .pref-div-wrap { position: relative; height: 16px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
+        .pref-div-wrap { position: relative; height: 16px; width: 100%; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
         .pref-div-wrap.endsOverlay { height: 22px; }
         .pref-div-mid { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(148,163,184,0.85); transform: translateX(-1px); }
         /* layout 17：漸變 ① + 曲線 ③（越靠近兩端顏色變化越大） */
@@ -738,7 +738,7 @@
         }
 
         function buildPreferenceSliders(scores) {
-            var html = '<div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.75rem;">';
+            var html = '<div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.75rem;width:100%;align-items:stretch;">';
             PREFERENCE_GROUPS.all.forEach(function(axisKey) {
                 var a = PREFERENCE_AXIS_META[axisKey] || { label: PREFERENCE_LABELS[axisKey] || axisKey, left: '左端', right: '右端' };
                 var v = mapAxisScoreTo012(scores[axisKey] || 0);
