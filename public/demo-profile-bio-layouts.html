@@ -295,16 +295,53 @@
       transform: translateX(-1px);
     }
     .demo17-fillL, .demo17-fillR { position: absolute; top: 0; bottom: 0; }
+    /* ends high / center low */
     .demo17-fillL { right: 50%;
       background: linear-gradient(90deg,
-        rgba(var(--d17-left-rgb1), var(--d17-left-a1)),
-        rgba(var(--d17-left-rgb2), var(--d17-left-a2))
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
       );
     }
     .demo17-fillR { left: 50%;
       background: linear-gradient(90deg,
-        rgba(var(--d17-right-rgb1), var(--d17-right-a1)),
-        rgba(var(--d17-right-rgb2), var(--d17-right-a2))
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
+      );
+    }
+
+    /* ===== ramp curves (讓接近端點顏色變化更大) ===== */
+    .demo-pref-card.ramp-1 .demo17-fillL { /* linear */ }
+    .demo-pref-card.ramp-1 .demo17-fillR { /* linear */ }
+
+    /* ramp-2：偏靠端點，讓 7-12/0-5 更好分 */
+    .demo-pref-card.ramp-2 .demo17-fillL {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb2), calc((var(--d17-left-a1) + var(--d17-left-a2)) / 2)) 60%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
+      );
+    }
+    .demo-pref-card.ramp-2 .demo17-fillR {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb2), calc((var(--d17-right-a1) + var(--d17-right-a2)) / 2)) 60%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
+      );
+    }
+
+    /* ramp-3：更極端（端點更濃，中間更淡） */
+    .demo-pref-card.ramp-3 .demo17-fillL {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb2), calc((var(--d17-left-a1) + var(--d17-left-a2)) / 2)) 75%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
+      );
+    }
+    .demo-pref-card.ramp-3 .demo17-fillR {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb2), calc((var(--d17-right-a1) + var(--d17-right-a2)) / 2)) 75%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
       );
     }
 
@@ -418,7 +455,7 @@
             <div class="btn-lite">✏️ 編輯桌遊（占位）</div>
           </div>
 
-          <div class="demo-pref-card grad-1" id="demoPrefCard">
+          <div class="demo-pref-card grad-1 ramp-2" id="demoPrefCard">
             <div class="demo-pref-title">
               <span>🎯 桌遊偏好（layout 17 卡片）</span>
               <div class="demo-pref-actions">
@@ -429,6 +466,11 @@
                   <option value="2">漸變 ②（高對比）</option>
                   <option value="3">漸變 ③（鮮明冷暖）</option>
                   <option value="4">漸變 ④（更飽和）</option>
+                </select>
+                <select class="grad-select" id="rampSel" title="漸變曲線：越靠端點越濃">
+                  <option value="1">曲線 ①（線性）</option>
+                  <option value="2" selected>曲線 ②（偏端點）</option>
+                  <option value="3">曲線 ③（極端端點）</option>
                 </select>
               </div>
             </div>
@@ -450,6 +492,7 @@
       var btnPrefNeutral = document.getElementById('btnPrefNeutral');
       var btnPrefRandom = document.getElementById('btnPrefRandom');
       var gradSel = document.getElementById('gradSel');
+      var rampSel = document.getElementById('rampSel');
       var demoPrefCard = document.getElementById('demoPrefCard');
 
       var AXES = [
@@ -542,6 +585,12 @@
         demoPrefCard.classList.add('grad-' + v);
       }
 
+      function applyRampStyle(v) {
+        if (!demoPrefCard) return;
+        demoPrefCard.classList.remove('ramp-1', 'ramp-2', 'ramp-3');
+        demoPrefCard.classList.add('ramp-' + v);
+      }
+
       function random012() {
         return Math.floor(Math.random() * 13);
       }
@@ -564,6 +613,13 @@
         applyGradStyle(gradSel.value);
         gradSel.addEventListener('change', function () {
           applyGradStyle(gradSel.value);
+        });
+      }
+
+      if (rampSel) {
+        applyRampStyle(rampSel.value);
+        rampSel.addEventListener('change', function () {
+          applyRampStyle(rampSel.value);
         });
       }
 
