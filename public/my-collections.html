@@ -218,6 +218,22 @@
         }
         @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
 
+        /* Toggle Switch */
+        .toggle-switch { position:relative; width:44px; height:24px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider {
+            position:absolute; inset:0; cursor:pointer;
+            background:var(--border-color); border-radius:24px;
+            transition:background 0.25s;
+        }
+        .toggle-slider::before {
+            content:''; position:absolute; left:3px; top:3px;
+            width:18px; height:18px; background:#fff;
+            border-radius:50%; transition:transform 0.25s; box-shadow:0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider { background:var(--primary-color, #667eea); }
+        .toggle-switch input:checked + .toggle-slider::before { transform:translateX(20px); }
+
         @media (max-width: 600px) {
             .collections-grid { grid-template-columns: 1fr; }
             .modal-box { padding: 1.25rem; }
@@ -356,8 +372,11 @@
             <div class="modal-field">
                 <label>🌐 可見度</label>
                 <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; background:var(--bg-color); border-radius:0.6rem; border:1.5px solid var(--border-color);">
-                    <input type="checkbox" id="m-public" style="width:1.1rem;height:1.1rem;cursor:pointer;accent-color:var(--primary-color);">
-                    <div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="m-public">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div style="flex:1;">
                         <div style="font-weight:600; font-size:0.92rem;" id="m-public-label">🔒 私密</div>
                         <div style="font-size:0.8rem; color:var(--text-light);">開啟後其他玩家可在你的公開檔案看到這份清單</div>
                     </div>
@@ -388,10 +407,6 @@
 
     <script src="js/api-base.js?v=20260302-clear"></script>
     <script src="js/app.js?v=20260311"></script>
-    <script src="js/game-names.js"></script>
-    <script>
-        if (typeof safePatch === 'undefined') { window.safePatch = async function(url, d, h={}) { const sys=['gs_project_id','gs_table_name','gs_created_at','gs_updated_at','created_at','updated_at','deleted','deleted_at','_rid','_id','__rid','__id']; const g=await fetch(url,{headers:h}); const ex=g.ok?await g.json():{}; const cleaned=Object.fromEntries(Object.entries(ex).filter(([k])=>!sys.includes(k))); const merged={...cleaned,...d}; const s={}; for(const [k,v] of Object.entries(merged)){s[k]=(v!==null&&v!==undefined&&typeof v==='object')?JSON.stringify(v):v;} const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json',...h},body:JSON.stringify(s)}); if(!r.ok){const t=await r.text().catch(()=>'');throw new Error('PUT '+r.status+': '+t.slice(0,100));} return r.json(); }; }
-    </script>
     <script>
     // ===== 我的主題清單 =====
 
@@ -400,8 +415,9 @@
     let myCollections = [];
     let editingId     = null;
     let pendingGames  = [];
-    let allDbGames    = [];
     let suggestIdx    = -1;
+    let _suggestTimer = null;
+    const SUGGEST_DEBOUNCE_MS = 280;
     let deletingId    = null;
 
     // ── 登入判斷（與 profile.html 相同邏輯）────────────────────────
@@ -442,21 +458,6 @@
             document.getElementById('not-logged-in').style.display = 'block';
             return;
         }
-
-        // 載入資料庫遊戲供自動建議（分批載入全部）
-        try {
-            const countRes = await fetch('tables/game_database?limit=1');
-            const countData = await countRes.json();
-            const total = countData.total || 0;
-            const batchSize = 100;
-            const pages = Math.ceil(total / batchSize) || 1;
-            let allData = [];
-            for (let p = 1; p <= pages; p++) {
-                const res = await fetch(`tables/game_database?page=${p}&limit=${batchSize}`);
-                if (res.ok) { const d = await res.json(); allData = allData.concat(d.data || []); }
-            }
-            allDbGames = allData;
-        } catch(e) {}
 
         await loadMyCollections();
         updateQuotaBadge();
@@ -607,37 +608,40 @@
 
     // ── 遊戲搜尋建議 ─────────────────────────────────────────────────
     function onSuggestInput() {
-        const q = document.getElementById('m-game-input').value.trim().toLowerCase();
-        if (!q || q.length < 1) { hideSuggest(); return; }
+        const raw = document.getElementById('m-game-input').value.trim();
+        if (!raw) { hideSuggest(); if (_suggestTimer) { clearTimeout(_suggestTimer); _suggestTimer = null; } return; }
 
-        const suggestions = [];
-        const seen = new Set();
-        allDbGames.forEach(g => {
-            const zh = (g.name_zh || '').toLowerCase();
-            const en = (g.name_en || '').toLowerCase();
-            const ja = (g.name_ja || '').toLowerCase();
-            if (zh.includes(q) || en.includes(q) || ja.includes(q)) {
-                const key = g.name_zh || g.name_en;
-                if (!seen.has(key)) {
-                    suggestions.push({ zh: g.name_zh || '', en: g.name_en || '' });
-                    seen.add(key);
-                }
-            }
-        });
+        if (_suggestTimer) clearTimeout(_suggestTimer);
+        _suggestTimer = setTimeout(() => {
+            _suggestTimer = null;
+            const q = document.getElementById('m-game-input').value.trim();
+            if (!q) { hideSuggest(); return; }
 
-        if (suggestions.length === 0) { hideSuggest(); return; }
-        suggestIdx = -1;
-        const dd = document.getElementById('suggest-dropdown');
-        dd.innerHTML = suggestions.slice(0, 8).map((s, i) =>
-            `<div class="suggest-opt"
-                data-name="${escHtml(s.zh || s.en)}"
-                onmousedown="pickSuggest('${escHtml(s.zh || s.en)}')"
-                onmouseover="suggestIdx=${i};highlightSuggest()">
-                <span class="szo-zh">${escHtml(s.zh)}</span>
-                ${s.en ? `<span class="szo-en">${escHtml(s.en)}</span>` : ''}
-            </div>`
-        ).join('');
-        dd.style.display = 'block';
+            fetch(`tables/game_database?search=${encodeURIComponent(q)}&limit=20&page=1`)
+                .then(r => r.json())
+                .then(data => {
+                    if (document.getElementById('m-game-input').value.trim() !== q) return;
+                    const results = (data.data || []).slice(0, 8);
+                    if (results.length === 0) { hideSuggest(); return; }
+
+                    suggestIdx = -1;
+                    const dd = document.getElementById('suggest-dropdown');
+                    dd.innerHTML = results.map((g, i) => {
+                        const zh = g.name_zh || '';
+                        const en = g.name_en || '';
+                        const display = zh || en;
+                        return `<div class="suggest-opt"
+                            data-name="${escHtml(display)}"
+                            onmousedown="pickSuggest('${escHtml(display)}')"
+                            onmouseover="suggestIdx=${i};highlightSuggest()">
+                            <span class="szo-zh">${escHtml(zh)}</span>
+                            ${en ? `<span class="szo-en">${escHtml(en)}</span>` : ''}
+                        </div>`;
+                    }).join('');
+                    dd.style.display = 'block';
+                })
+                .catch(() => hideSuggest());
+        }, SUGGEST_DEBOUNCE_MS);
     }
 
     function onSuggestKeydown(e) {
@@ -739,18 +743,17 @@
         };
 
         try {
-            let res;
             if (editingId) {
-                res = await safePatch(`tables/${TABLE}/${editingId}`, payload);
+                await safePatch(`tables/${TABLE}/${editingId}`, payload);
             } else {
                 payload.id = `uc_${currentUser.id.slice(0,8)}_${Date.now()}`;
-                res = await fetch(`tables/${TABLE}`, {
+                const res = await fetch(`tables/${TABLE}`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(payload)
                 });
+                if (!res.ok) throw new Error('POST ' + res.status);
             }
-            if (!res.ok) throw new Error('Save failed');
             closeModal();
             await loadMyCollections();
             showToast(editingId ? '✅ 清單已更新！' : '✅ 清單已建立！');
