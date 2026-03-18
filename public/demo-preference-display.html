@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo - 桌遊偏好顯示方式</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    .hero {
+      border-radius: 1.25rem;
+      padding: 1.75rem 1.75rem;
+      color: #fff;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 55%, #8b5cf6 100%);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 { margin: 0 0 0.35rem; font-size: 1.55rem; }
+    .hero p { margin: 0; opacity: 0.9; line-height: 1.6; }
+
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border-color);
+      border-radius: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+    }
+    .card h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+    .muted { color: var(--text-light); font-size: 0.85rem; line-height: 1.6; }
+
+    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: none; }
+    .select, .btn-lite {
+      border: 1.5px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+    .btn-lite { cursor: pointer; }
+    .btn-lite:hover { border-color: var(--primary-color); }
+
+    .axis-editor { display: grid; gap: 0.85rem; margin-top: 0.75rem; }
+    .axis-ed {
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 0.85rem;
+    }
+    .axis-ed-top { display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; }
+    .axis-ed-name { font-weight: 700; font-size: 0.92rem; }
+    .axis-ed-val { font-weight: 800; font-size: 0.92rem; color: var(--primary-color); }
+    .axis-ed-ends { display:flex; justify-content: space-between; margin-top: 0.35rem; color: var(--text-light); font-size: 0.8rem; }
+    input[type="range"] { width: 100%; margin-top: 0.55rem; }
+
+    /* ===== Render common ===== */
+    .viz { display: grid; gap: 0.75rem; }
+    .viz-title { display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; }
+    .viz-title h2 { margin: 0; }
+    .badge {
+      font-size: 0.78rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      color: var(--text-light);
+      background: var(--bg-light);
+    }
+
+    /* 1) Bipolar dot track (like current) */
+    .dot-row { display:flex; flex-direction: column; gap: 0.25rem; }
+    .dot-head { display:flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-light); }
+    .dot-head strong { color: var(--text-color); font-weight: 700; }
+    .dot-track {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(59,130,246,0.15), rgba(99,102,241,0.08), rgba(236,72,153,0.15));
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .dot-mid {
+      position:absolute; top: -3px; bottom:-3px; left: 50%;
+      width: 2px; background: rgba(148,163,184,0.7);
+      transform: translateX(-1px);
+    }
+    .dot {
+      position:absolute; top: 50%;
+      width: 14px; height: 14px;
+      border-radius: 999px;
+      background: #0ea5e9;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(14,165,233,0.9);
+      transform: translate(-50%, -50%);
+    }
+    .dot-foot { display:flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-light); }
+
+    /* 2) Diverging bar (center baseline) */
+    .div-row { display:grid; grid-template-columns: 140px 1fr; gap: 0.75rem; align-items: center; }
+    @media (max-width: 520px) { .div-row { grid-template-columns: 1fr; } }
+    .div-label { font-weight: 700; font-size: 0.9rem; }
+    .div-wrap { position: relative; height: 18px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
+    .div-mid { position:absolute; top:0; bottom:0; left:50%; width:2px; background: rgba(148,163,184,0.8); transform: translateX(-1px); }
+    .div-fillL, .div-fillR { position:absolute; top:0; bottom:0; }
+    .div-fillL { right:50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
+    .div-fillR { left:50%;  background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+    .div-meta { display:flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.78rem; color: var(--text-light); }
+    .div-meta strong { color: var(--text-color); font-weight: 700; }
+
+    /* 3) Segmented 13 ticks (0..12) with highlight */
+    .seg-row { display:grid; grid-template-columns: 140px 1fr; gap: 0.75rem; align-items: center; }
+    @media (max-width: 520px) { .seg-row { grid-template-columns: 1fr; } }
+    .seg-track { display:flex; gap: 3px; align-items: center; }
+    .seg {
+      flex: 1;
+      height: 12px;
+      border-radius: 4px;
+      background: rgba(148,163,184,0.22);
+      border: 1px solid rgba(148,163,184,0.15);
+    }
+    .seg.on { background: rgba(14,165,233,0.75); border-color: rgba(14,165,233,0.3); }
+    .seg.mid { background: rgba(99,102,241,0.55); border-color: rgba(99,102,241,0.25); }
+    .seg.ends { background: rgba(236,72,153,0.70); border-color: rgba(236,72,153,0.25); }
+    .seg-meta { display:flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.78rem; color: var(--text-light); }
+
+    /* 4) Two-sided chips (show which side dominates) */
+    .chip-row { display:grid; grid-template-columns: 140px 1fr; gap: 0.75rem; align-items: center; }
+    @media (max-width: 520px) { .chip-row { grid-template-columns: 1fr; } }
+    .chip-pair { display:flex; gap: 0.5rem; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.82rem;
+      background: var(--bg-light);
+      color: var(--text-light);
+      display:flex; align-items:center; gap: 0.35rem;
+    }
+    .chip.strong { background: rgba(14,165,233,0.14); border-color: rgba(14,165,233,0.35); color: var(--text-color); font-weight: 700; }
+    .chip.strong.right { background: rgba(236,72,153,0.12); border-color: rgba(236,72,153,0.28); }
+    .chip .n { font-weight: 800; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+          <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+          <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+        </div>
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="profile.html">我的檔案</a></li>
+        <li><a href="personality-test.html?test=preference">測桌遊偏好</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>🎯 桌遊偏好（6 軸）顯示方式 Demo</h1>
+      <p>左側調整 0–12 數值，右側切換不同呈現方式。這頁只用於挑 UI；選定後我再把同一套搬進正式的 `profile.html`。</p>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>控制台</h2>
+        <div class="row">
+          <label class="muted" for="modeSel">顯示方式</label>
+          <select class="select" id="modeSel">
+            <option value="dot">① 雙極滑桿（中線 + 點）</option>
+            <option value="diverge">② 發散條（以中線分左右）</option>
+            <option value="segments">③ 分段刻度（13 格）</option>
+            <option value="chips">④ 雙邊徽章（強弱感）</option>
+          </select>
+          <button class="btn-lite" id="btnRandom">隨機一組</button>
+          <button class="btn-lite" id="btnReset">回到中立</button>
+        </div>
+
+        <div class="axis-editor" id="axisEditor"></div>
+        <div class="muted" style="margin-top:0.85rem;">
+          提醒：0 表示偏左端、12 偏右端、6 中立。實際偏好存的就是這個值。
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="viz-title">
+          <h2>預覽</h2>
+          <span class="badge" id="modeBadge">—</span>
+        </div>
+        <div class="viz" id="viz"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      var AXES = [
+        { key: 'axis_entry',       label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+        { key: 'axis_mood',        label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+        { key: 'axis_control',     label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+        { key: 'axis_sociality',   label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+        { key: 'axis_openness',    label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+        { key: 'axis_competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+      ];
+
+      var state = {
+        mode: 'dot',
+        values: {
+          axis_entry: 6,
+          axis_mood: 6,
+          axis_control: 6,
+          axis_sociality: 6,
+          axis_openness: 6,
+          axis_competition: 6
+        }
+      };
+
+      var elMode = document.getElementById('modeSel');
+      var elViz = document.getElementById('viz');
+      var elBadge = document.getElementById('modeBadge');
+      var elEditor = document.getElementById('axisEditor');
+
+      function clamp012(v) {
+        v = Number(v);
+        if (isNaN(v)) v = 6;
+        if (v < 0) v = 0;
+        if (v > 12) v = 12;
+        return Math.round(v);
+      }
+
+      function modeLabel(mode) {
+        if (mode === 'dot') return '① 雙極滑桿（中線 + 點）';
+        if (mode === 'diverge') return '② 發散條（以中線分左右）';
+        if (mode === 'segments') return '③ 分段刻度（13 格）';
+        if (mode === 'chips') return '④ 雙邊徽章（強弱感）';
+        return mode;
+      }
+
+      function renderEditor() {
+        elEditor.innerHTML = AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]);
+          return '' +
+            '<div class="axis-ed">' +
+              '<div class="axis-ed-top">' +
+                '<div class="axis-ed-name">' + a.label + '</div>' +
+                '<div class="axis-ed-val" id="val-' + a.key + '">' + v + '/12</div>' +
+              '</div>' +
+              '<div class="axis-ed-ends"><span>' + a.left + '</span><span>' + a.right + '</span></div>' +
+              '<input type="range" min="0" max="12" step="1" value="' + v + '" data-axis="' + a.key + '" aria-label="' + a.label + '">' +
+            '</div>';
+        }).join('');
+
+        elEditor.querySelectorAll('input[type="range"]').forEach(function(r) {
+          r.addEventListener('input', function() {
+            var k = r.dataset.axis;
+            state.values[k] = clamp012(r.value);
+            var el = document.getElementById('val-' + k);
+            if (el) el.textContent = state.values[k] + '/12';
+            renderViz();
+          });
+        });
+      }
+
+      function renderDot() {
+        return AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]); // 0..12
+          var pct = (v / 12) * 100;
+          return '' +
+            '<div class="dot-row">' +
+              '<div class="dot-head">' +
+                '<strong>' + a.label + '</strong>' +
+                '<span>' + v + '/12</span>' +
+              '</div>' +
+              '<div class="dot-track" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+                '<div class="dot-mid"></div>' +
+                '<div class="dot" style="left:' + pct + '%;"></div>' +
+              '</div>' +
+              '<div class="dot-foot"><span>' + a.left + '</span><span>' + a.right + '</span></div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderDiverge() {
+        return AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]); // 0..12
+          var delta = v - 6; // -6..+6
+          var abs = Math.abs(delta) / 6; // 0..1
+          var w = Math.round(abs * 50); // percent of half
+          var leftW = delta < 0 ? w : 0;
+          var rightW = delta > 0 ? w : 0;
+          var side = delta === 0 ? '中立' : (delta < 0 ? a.left : a.right);
+          return '' +
+            '<div>' +
+              '<div class="div-row">' +
+                '<div class="div-label">' + a.label + '</div>' +
+                '<div>' +
+                  '<div class="div-wrap" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+                    '<div class="div-mid"></div>' +
+                    '<div class="div-fillL" style="width:' + leftW + '%;"></div>' +
+                    '<div class="div-fillR" style="width:' + rightW + '%;"></div>' +
+                  '</div>' +
+                  '<div class="div-meta"><span>' + a.left + '</span><strong>' + side + '</strong><span>' + a.right + '</span></div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderSegments() {
+        function segClass(i) {
+          if (i === 6) return 'seg mid';
+          if (i === 0 || i === 12) return 'seg ends';
+          return 'seg';
+        }
+        return AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]);
+          var segs = [];
+          for (var i = 0; i <= 12; i++) {
+            var on = (i === v);
+            segs.push('<div class="' + segClass(i) + (on ? ' on' : '') + '" title="' + i + '"></div>');
+          }
+          return '' +
+            '<div>' +
+              '<div class="seg-row">' +
+                '<div class="div-label">' + a.label + '</div>' +
+                '<div>' +
+                  '<div class="seg-track" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' + segs.join('') + '</div>' +
+                  '<div class="seg-meta"><span>' + a.left + '</span><strong style="color:var(--text-color);font-weight:800;">' + v + '</strong><span>' + a.right + '</span></div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderChips() {
+        return AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]);
+          var delta = v - 6; // -6..+6
+          var leftStrength = Math.max(0, 6 - v); // 0..6
+          var rightStrength = Math.max(0, v - 6); // 0..6
+          var leftStrong = leftStrength >= 3;
+          var rightStrong = rightStrength >= 3;
+          var mid = (delta === 0);
+          return '' +
+            '<div class="chip-row">' +
+              '<div class="div-label">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="chip-pair">' +
+                  '<span class="chip' + (leftStrong ? ' strong' : '') + '">' +
+                    '<span>' + a.left + '</span>' +
+                    '<span class="n">' + leftStrength + '</span>' +
+                  '</span>' +
+                  '<span class="chip' + (rightStrong ? ' strong right' : '') + '">' +
+                    '<span>' + a.right + '</span>' +
+                    '<span class="n">' + rightStrength + '</span>' +
+                  '</span>' +
+                  (mid ? '<span class="chip strong" style="border-color:rgba(99,102,241,0.35);background:rgba(99,102,241,0.12);">中立 0</span>' : '') +
+                '</div>' +
+                '<div class="muted" style="margin-top:0.25rem;">值：' + v + '/12（' + (delta<0 ? '偏左' : delta>0 ? '偏右' : '中立') + '）</div>' +
+              '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderViz() {
+        elBadge.textContent = modeLabel(state.mode);
+        if (state.mode === 'dot') elViz.innerHTML = renderDot();
+        else if (state.mode === 'diverge') elViz.innerHTML = renderDiverge();
+        else if (state.mode === 'segments') elViz.innerHTML = renderSegments();
+        else if (state.mode === 'chips') elViz.innerHTML = renderChips();
+        else elViz.textContent = 'Unknown mode';
+      }
+
+      function randomize() {
+        AXES.forEach(function(a) {
+          state.values[a.key] = Math.floor(Math.random() * 13);
+        });
+      }
+      function resetNeutral() {
+        AXES.forEach(function(a) { state.values[a.key] = 6; });
+      }
+
+      // init
+      elMode.addEventListener('change', function() {
+        state.mode = elMode.value;
+        renderViz();
+      });
+      document.getElementById('btnRandom').addEventListener('click', function() {
+        randomize();
+        renderEditor();
+        renderViz();
+      });
+      document.getElementById('btnReset').addEventListener('click', function() {
+        resetNeutral();
+        renderEditor();
+        renderViz();
+      });
+
+      renderEditor();
+      renderViz();
+    })();
+  </script>
+</body>
+</html>
+
