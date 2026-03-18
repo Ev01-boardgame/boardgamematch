@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo - 桌遊偏好（發散條排版選擇）</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    .hero {
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      color: #fff;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 55%, #8b5cf6 100%);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 { margin: 0 0 0.35rem; font-size: 1.6rem; }
+    .hero p { margin: 0; opacity: 0.92; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: 380px 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border-color);
+      border-radius: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+    }
+    .muted { color: var(--text-light); font-size: 0.85rem; line-height: 1.6; }
+    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: none; }
+    .select, .btn-lite {
+      border: 1.5px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+    .btn-lite { cursor: pointer; }
+    .btn-lite:hover { border-color: var(--primary-color); }
+
+    /* ===== axis editor ===== */
+    .axis-editor { display: grid; gap: 0.85rem; margin-top: 0.85rem; }
+    .axis-ed { background: var(--bg-color); border-radius: 1rem; padding: 0.85rem; border: 1px solid var(--border-color); }
+    .axis-ed-top { display:flex; justify-content:space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.15rem; }
+    .axis-ed-name { font-weight: 800; color: var(--text-color); font-size: 0.95rem; }
+    .axis-ed-val { font-weight: 900; color: var(--primary-color); font-size: 0.95rem; }
+    .axis-ed-ends { display:flex; justify-content: space-between; gap: 0.6rem; color: var(--text-light); font-size: 0.78rem; margin: 0.15rem 0 0.35rem; }
+    input[type="range"] { width: 100%; }
+
+    /* ===== diverging bar ===== */
+    .div-wrap { position: relative; height: 18px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
+    .div-mid { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(148,163,184,0.85); transform: translateX(-1px); }
+    .div-fillL, .div-fillR { position:absolute; top:0; bottom:0; }
+    .div-fillL { right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
+    .div-fillR { left: 50%; background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+
+    /* ===== layout variants ===== */
+    .preview { display: grid; gap: 0.85rem; }
+    .axis-row {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    @media (max-width: 520px) { .axis-row { grid-template-columns: 1fr; } }
+    .axis-name { font-weight: 900; color: var(--text-color); font-size: 0.92rem; }
+    .ends {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+    .endL strong, .endR strong { font-weight: 900; }
+    .endL.active { color: var(--primary-color); }
+    .endR.active { color: #db2777; }
+
+    /* Layout 1: axis label + diverging bar +左右端（只有兩端，無數字） */
+    .layout-1 .ends { margin-top: 0.25rem; }
+
+    /* Layout 2: dominant side as bold chip, the other muted (still no numeric) */
+    .layout-2 .endChipRow { display:flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.35rem; }
+    .chip {
+      border: 1px solid var(--border-color);
+      background: var(--bg-light);
+      border-radius: 999px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--text-light);
+      white-space: nowrap;
+    }
+    .chip.left { background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.25); color: var(--text-color); }
+    .chip.right { background: rgba(236,72,153,0.10); border-color: rgba(236,72,153,0.25); color: var(--text-color); }
+    .chip.muted { opacity: 0.55; font-weight: 700; }
+
+    /* Layout 3: endpoints aligned left/right around the bar */
+    .layout-3 .barWithEnds {
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    /* Allow using the same "bar with ends" layout in other variants too (e.g. layout 1) */
+    .barWithEnds {
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    .endText { color: var(--text-light); font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+    .endText.left.active { color: var(--primary-color); }
+    .endText.right.active { color: #db2777; }
+
+    /* tiny badge for mode */
+    .badge { font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--border-color); background: var(--bg-light); color: var(--text-light); display:inline-block; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+          <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+          <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+        </div>
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="profile.html">我的檔案</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>桌遊偏好發散條：排版 Demo</h1>
+      <p>0–12（0 偏左、6 中立、12 偏右）。此頁刻意不顯示「幾分之幾」，只呈現左右端 emoji+文字。</p>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="row">
+          <label class="muted" for="layoutSel">呈現排版</label>
+          <select id="layoutSel" class="select">
+            <option value="1">① 左右端 + 發散條（最直覺）</option>
+            <option value="2">② 主導端徽章（強弱感）</option>
+            <option value="3">③ 左右端環繞發散條</option>
+          </select>
+          <span class="badge" id="layoutBadge">—</span>
+        </div>
+
+        <div class="row" style="margin-top: 0.75rem;">
+          <button class="btn-lite" id="btnRandom">隨機一組</button>
+          <button class="btn-lite" id="btnNeutral">全設中立</button>
+        </div>
+
+        <div class="axis-editor" id="axisEditor"></div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1.05rem;">預覽</h2>
+          <div class="muted">選你喜歡的排版，回我 ①/②/③</div>
+        </div>
+        <div class="preview" id="preview"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      var AXES = [
+        { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+        { key: 'mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+        { key: 'control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+        { key: 'sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+        { key: 'openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+        { key: 'competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+      ];
+
+      var state = {
+        layout: '1',
+        values: AXES.reduce(function(acc, a) { acc[a.key] = 6; return acc; }, {})
+      };
+
+      var elLayoutSel = document.getElementById('layoutSel');
+      var elLayoutBadge = document.getElementById('layoutBadge');
+      var elAxisEditor = document.getElementById('axisEditor');
+      var elPreview = document.getElementById('preview');
+
+      function clamp012(v) {
+        v = Number(v);
+        if (isNaN(v)) v = 6;
+        if (v < 0) v = 0;
+        if (v > 12) v = 12;
+        return Math.round(v);
+      }
+
+      function layoutName(layout) {
+        if (layout === '1') return '① 左右端 + 發散條';
+        if (layout === '2') return '② 主導端徽章';
+        if (layout === '3') return '③ 左右端環繞';
+        return layout;
+      }
+
+      function dominantSide(delta) {
+        if (delta === 0) return 'neutral';
+        return delta < 0 ? 'left' : 'right';
+      }
+
+      function divergingFillStyles(v) {
+        // v: 0..12, 中立 6，兩側最大寬度各 50%
+        var delta = v - 6; // -6..+6
+        var abs = Math.abs(delta) / 6; // 0..1
+        var w = Math.round(abs * 50); // 0..50 (半邊寬度百分比)
+        var leftW = delta < 0 ? w : 0;
+        var rightW = delta > 0 ? w : 0;
+        return { leftW: leftW, rightW: rightW, delta: delta };
+      }
+
+      function renderAxisEditor() {
+        elAxisEditor.innerHTML = AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]);
+          return '' +
+            '<div class="axis-ed">' +
+              '<div class="axis-ed-top">' +
+                '<div class="axis-ed-name">' + a.label + '</div>' +
+                '<div class="axis-ed-val" id="val-' + a.key + '">' + v + '</div>' +
+              '</div>' +
+              '<div class="axis-ed-ends">' +
+                '<span>' + a.left + '</span>' +
+                '<span>' + a.right + '</span>' +
+              '</div>' +
+              '<input type="range" min="0" max="12" step="1" value="' + v + '" data-axis="' + a.key + '" aria-label="' + a.label + '">' +
+            '</div>';
+        }).join('');
+
+        elAxisEditor.querySelectorAll('input[type="range"]').forEach(function(r) {
+          r.addEventListener('input', function() {
+            var k = r.dataset.axis;
+            state.values[k] = clamp012(r.value);
+            var elVal = document.getElementById('val-' + k);
+            if (elVal) elVal.textContent = state.values[k];
+            renderPreview();
+          });
+        });
+      }
+
+      function renderDivergeBar(v) {
+        var parts = divergingFillStyles(v);
+        return '' +
+          '<div class="div-wrap" role="img" aria-label="偏好 ' + v + '/12">' +
+            '<div class="div-mid"></div>' +
+            '<div class="div-fillL" style="width:' + parts.leftW + '%;"></div>' +
+            '<div class="div-fillR" style="width:' + parts.rightW + '%;"></div>' +
+          '</div>';
+      }
+
+      function renderRowAxis(a) {
+        var v = clamp012(state.values[a.key]);
+        var parts = divergingFillStyles(v);
+        var side = dominantSide(parts.delta);
+
+        // 只留下左右端 emoji+文字；不顯示 v/12、也不顯示「三組」資訊
+        if (state.layout === '1') {
+          return '' +
+            '<div class="axis-row layout-1">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '2') {
+          var leftMuted = side === 'right' ? 'muted' : '';
+          var rightMuted = side === 'left' ? 'muted' : '';
+          var isNeutral = side === 'neutral';
+          // neutral 時左右都不 muted，兩個端點都顯示為同等強度（只是這頁不顯示數字）
+          if (isNeutral) { leftMuted = ''; rightMuted = ''; }
+          return '' +
+            '<div class="axis-row layout-2">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div>' + renderDivergeBar(v) + '</div>' +
+                '<div class="endChipRow">' +
+                  '<div class="chip left ' + leftMuted + '">' + a.left + '</div>' +
+                  '<div class="chip right ' + rightMuted + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        // layout 3
+        return '' +
+          '<div class="axis-row layout-3">' +
+            '<div class="axis-name">' + a.label + '</div>' +
+            '<div>' +
+              '<div class="barWithEnds">' +
+                '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                renderDivergeBar(v) +
+                '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      function renderPreview() {
+        elLayoutBadge.textContent = layoutName(state.layout);
+        elPreview.innerHTML = AXES.map(renderRowAxis).join('');
+      }
+
+      function randomize() {
+        AXES.forEach(function(a) {
+          state.values[a.key] = Math.floor(Math.random() * 13);
+        });
+        // 讓 editor 立刻同步
+        renderAxisEditor();
+        renderPreview();
+      }
+
+      function setNeutral() {
+        AXES.forEach(function(a) { state.values[a.key] = 6; });
+        renderAxisEditor();
+        renderPreview();
+      }
+
+      elLayoutSel.addEventListener('change', function() {
+        state.layout = elLayoutSel.value;
+        renderPreview();
+      });
+      document.getElementById('btnRandom').addEventListener('click', function() { randomize(); });
+      document.getElementById('btnNeutral').addEventListener('click', function() { setNeutral(); });
+
+      // init
+      renderAxisEditor();
+      renderPreview();
+    })();
+  </script>
+</body>
+</html>
+
