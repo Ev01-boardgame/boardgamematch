@@ -396,22 +396,20 @@
                             <p id="profile-bio-display" style="display:none; color:var(--text-color); font-size:0.95rem; line-height:1.6; margin-bottom:1rem; padding:0.6rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid var(--primary-color);"></p>
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start;">
-                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
-                                <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
-                                <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
-                                <a href="my-collections.html" class="btn btn-secondary">📚 我的清單</a>
-                                <button class="btn btn-secondary" onclick="profileLogout()"
-                                        style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
-                                    🚪 登出
-                                </button>
-                            </div>
-                            <!-- 桌遊偏好（僅能透過測驗寫入，不可編輯） -->
-                            <div id="profile-preference-section" style="padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                                <div style="color: var(--text-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem;">🎯 桌遊偏好</div>
-                                <div id="profile-preference-content" style="color: var(--text-light); font-size: 0.9rem;">載入中...</div>
-                            </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
+                            <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
+                            <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
+                            <a href="my-collections.html" class="btn btn-secondary">📚 我的清單</a>
+                            <button class="btn btn-secondary" onclick="profileLogout()"
+                                    style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
+                                🚪 登出
+                            </button>
+                        </div>
+                        <!-- 桌遊偏好（僅能透過測驗寫入，不可編輯） -->
+                        <div id="profile-preference-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <div style="color: var(--text-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem;">🎯 桌遊偏好</div>
+                            <div id="profile-preference-content" style="color: var(--text-light); font-size: 0.9rem;">載入中...</div>
                         </div>
                     </div>
 
