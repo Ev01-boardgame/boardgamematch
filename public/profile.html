@@ -3345,6 +3345,11 @@
             }
         }
 
+        function _escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        var escHtml = typeof escHtml === 'function' ? escHtml : _escHtml;
+
         function renderOwnerCollectionCard(c, raterMap) {
             const games = Array.isArray(c.games) ? c.games
                 : (typeof c.games === 'string' ? (() => { try { return JSON.parse(c.games); } catch(e) { return []; } })() : []);
