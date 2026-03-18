@@ -173,8 +173,9 @@
         .pref-div-wrap { position: relative; height: 16px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
         .pref-div-wrap.endsOverlay { height: 22px; }
         .pref-div-mid { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(148,163,184,0.85); transform: translateX(-1px); }
-        .pref-div-fillL { position: absolute; top: 0; bottom: 0; right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
-        .pref-div-fillR { position: absolute; top: 0; bottom: 0; left: 50%;  background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+        /* layout 17：漸變 ① + 曲線 ③（越靠近兩端顏色變化越大） */
+        .pref-div-fillL { position: absolute; top: 0; bottom: 0; right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.55) 0%, rgba(59,130,246,0.325) 75%, rgba(59,130,246,0.10) 100%); }
+        .pref-div-fillR { position: absolute; top: 0; bottom: 0; left: 50%;  background: linear-gradient(90deg, rgba(236,72,153,0.10) 0%, rgba(236,72,153,0.325) 75%, rgba(236,72,153,0.55) 100%); }
         .pref-div-bar-with-ends { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.55rem; align-items: center; }
         .pref-div-end { color: var(--text-light); font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
         .pref-div-end.left.active { color: var(--primary-color); }
@@ -789,26 +790,20 @@
                 elResultMbtiBadge.style.display = 'block';
                 elResultMbtiBadge.textContent = code;
                 elResultTypeName.style.display = 'none';
+                elResultDesc.style.display = 'block';
                 elResultDesc.textContent = desc;
             } else if (c.resultType === 'preference') {
                 var scores = state.scores;
                 elResultEmoji.style.display = 'none';
                 elResultMbtiBadge.style.display = 'none';
-                elResultTypeName.textContent = '你的桌遊偏好輪廓（6 軸）';
+                elResultTypeName.textContent = '你的桌遊偏好輪廓';
                 elResultTypeName.style.background = 'linear-gradient(135deg, #059669, #047857)';
                 elResultTypeName.style.display = 'inline-block';
+                elResultDesc.style.display = 'none';
                 if (elRadarWrap) {
                     elRadarWrap.innerHTML = buildPreferenceSliders(scores);
                     elRadarWrap.style.display = 'block';
                 }
-                var keys = PREFERENCE_GROUPS.all;
-                var lines = keys.map(function(k) { return PREFERENCE_LABELS[k] + '：' + (scores[k] || 0); });
-                var sorted = keys.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
-                var top5 = sorted.slice(0, 5);
-                var descParts = [];
-                if (top5.length) descParts.push('<strong>前幾個明顯偏好</strong><br>' + top5.map(function(k, i) { return (i + 1) + '. ' + PREFERENCE_LABELS[k] + '（' + (scores[k] || 0) + '）'; }).join(' '));
-                descParts.push('<strong>偏好分數</strong><br>' + lines.join('、'));
-                elResultDesc.innerHTML = descParts.join('<br><br>');
             }
             // 顯示/隱藏「儲存到我的檔案」（僅登入顯示按鈕）
             var saveWrap = document.getElementById('result-save-wrap');
