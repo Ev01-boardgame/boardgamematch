@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile 頂部佈局 Demo</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { padding: 1.25rem; }
+    .demo-wrap { max-width: 1100px; margin: 0 auto; }
+
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .controls label { font-weight: 700; color: var(--text-color); font-size: 0.95rem; }
+    .controls select {
+      padding: 0.6rem 0.85rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* 簡化版「profile 頂部卡片」骨架 */
+    .profile-card {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .profile-gradient {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      border-radius: 1rem 1rem 0 0;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);
+    }
+
+    .profile-header {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+      align-items: flex-start;
+    }
+
+    .left-block {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .right-block {
+      min-width: 290px;
+    }
+
+    .avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .avatar-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid var(--primary-color);
+      background: linear-gradient(135deg, rgba(102,126,234,0.18), rgba(118,75,162,0.18));
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+    }
+    .avatar-meta h1 {
+      font-size: 2rem;
+      margin: 0 0 0.5rem;
+    }
+    .region-row {
+      font-size: 0.88rem;
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+    .social-links-inline {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+
+    /* 讓 MBTI tag 看起來像正式頁 */
+    .mbti-tag {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      user-select: none;
+      margin-top: 0.25rem;
+    }
+    .mbti-name { color: var(--text-light); }
+    .created-at { color: var(--text-light); margin-top: 0.25rem; font-size: 0.9rem; }
+
+    .bio-card {
+      display: none;
+      color: var(--text-color);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      padding: 0.6rem 0.8rem;
+      background: var(--bg-color);
+      border-radius: 0.5rem;
+      border-left: 3px solid var(--primary-color);
+    }
+    .bio-card.show { display: block; }
+
+    .actions-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pref-block {
+      border-top: 1px solid var(--border-color);
+      padding-top: 1rem;
+      margin-top: 0.2rem;
+    }
+    .pref-title {
+      color: var(--text-color);
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+    .pref-content {
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+
+    /* ====== Layout variants for area #1 ====== */
+    /* 101: 舊式 space-between 但把 right 變兩段直欄（接近你目前做的 1） */
+    .layout-101 .profile-header { justify-content: space-between; gap: 1rem; }
+    .layout-101 .right-block { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+
+    /* 102: 更緊湊（右側間距更小、pref 更貼近） */
+    .layout-102 .profile-header { justify-content: space-between; gap: 0.75rem; }
+    .layout-102 .right-block { display: flex; flex-direction: column; gap: 0.55rem; align-items: flex-start; }
+    .layout-102 .pref-block { padding-top: 0.75rem; margin-top: 0; }
+
+    /* 103: 左右兩欄固定 gap（不使用 space-between） */
+    .layout-103 .profile-header { justify-content: flex-start; gap: 1.25rem; }
+    .layout-103 .right-block { display: flex; flex-direction: column; gap: 0.9rem; align-items: flex-start; }
+
+    /* 104: Right block 內用 grid 讓按鈕更容易換行（偏向手機版視覺） */
+    .layout-104 .profile-header { justify-content: space-between; gap: 0.9rem; }
+    .layout-104 .right-block { display: grid; grid-template-columns: 1fr; gap: 0.65rem; }
+    .layout-104 .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; align-items: start; }
+    @media (max-width: 700px) {
+      .layout-104 .actions-row { grid-template-columns: 1fr; }
+    }
+
+    /* 105: 右側兩段共用同一個 container，不拆 pref 的 margin */
+    .layout-105 .profile-header { justify-content: space-between; gap: 1rem; align-items: flex-start; }
+    .layout-105 .right-block { display: flex; flex-direction: column; gap: 0.7rem; }
+    .layout-105 .pref-block { margin-top: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="demo-wrap">
+    <div class="controls">
+      <label for="layoutSel">Profile 佈局選項（只看「區塊 1」：左頭貼/基本 + 右按鈕/偏好）</label>
+      <select id="layoutSel">
+        <option value="101">⑴ Layout 101：兩欄 + 右側直欄（空隙較均衡）</option>
+        <option value="102">⑵ Layout 102：兩欄緊湊（pref 更貼近按鈕）</option>
+        <option value="103">⑶ Layout 103：固定 gap（更像一般兩欄）</option>
+        <option value="104">⑷ Layout 104：右側按鈕 grid（換行更漂亮）</option>
+        <option value="105">⑸ Layout 105：兩段 container（維持距離更穩定）</option>
+      </select>
+      <button class="btn-lite" id="btnToggleBio" type="button" style="padding:0.6rem 0.9rem;">切換顯示個人簡介</button>
+    </div>
+
+    <section id="preview" class="profile-card layout-101">
+      <div class="profile-gradient" id="profile-gradient"></div>
+
+      <div class="profile-header">
+        <div class="left-block">
+          <div class="avatar-row">
+            <div class="avatar-circle">🎯</div>
+            <div class="avatar-meta">
+              <h1>仲軒</h1>
+              <div class="region-row">台灣 • 台北 / 想找桌友</div>
+              <div class="social-links-inline">
+                <span class="chip" style="border-color: rgba(124,58,237,0.3); background: rgba(124,58,237,0.15); color: var(--primary-color);">IG</span>
+                <span class="chip" style="border-color: rgba(59,130,246,0.25); background: rgba(59,130,246,0.10); color: var(--primary-color);">Discord</span>
+              </div>
+              <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+                <div class="mbti-tag">🎭 INTJ<span style="display:none;">🔒</span></div>
+                <div class="mbti-name" style="font-weight:700;">建築師</div>
+              </div>
+              <div class="created-at">加入於 2026/03/18</div>
+              <p id="bioCardDemo" class="bio-card show">
+                目前狀態：只要好玩就行。喜歡策略與合作，也願意在局末一起複盤。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-block">
+          <div class="actions-row">
+            <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
+            <button type="button" class="btn btn-secondary" style="cursor:default;">📝 編輯簡介</button>
+            <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
+            <a href="my-collections.html" class="btn btn-secondary">📚 我的清單</a>
+            <button type="button" class="btn btn-secondary" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color:white; border:none; cursor:default;">🚪 登出</button>
+          </div>
+
+          <div class="pref-block">
+            <div class="pref-title">🎯 桌遊偏好</div>
+            <div class="pref-content">（demo）載入中…</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      var sel = document.getElementById('layoutSel');
+      var preview = document.getElementById('preview');
+      var bioBtn = document.getElementById('btnToggleBio');
+      var bioCard = document.getElementById('bioCardDemo');
+
+      function setLayout(val) {
+        // 清掉舊 layout class
+        preview.className = preview.className.replace(/\\blayout-\\d+\\b/g, '').trim();
+        preview.classList.add('layout-' + val);
+      }
+
+      sel.addEventListener('change', function () {
+        setLayout(sel.value);
+      });
+
+      bioBtn.addEventListener('click', function () {
+        bioCard.classList.toggle('show');
+      });
+    })();
+  </script>
+</body>
+</html>
+

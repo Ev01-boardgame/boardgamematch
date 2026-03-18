@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo - 桌遊偏好（發散條排版選擇）</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    .hero {
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      color: #fff;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 55%, #8b5cf6 100%);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 { margin: 0 0 0.35rem; font-size: 1.6rem; }
+    .hero p { margin: 0; opacity: 0.92; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: 380px 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border-color);
+      border-radius: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+    }
+    .muted { color: var(--text-light); font-size: 0.85rem; line-height: 1.6; }
+    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: none; }
+    .select, .btn-lite {
+      border: 1.5px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+    .btn-lite { cursor: pointer; }
+    .btn-lite:hover { border-color: var(--primary-color); }
+
+    /* ===== axis editor ===== */
+    .axis-editor { display: grid; gap: 0.85rem; margin-top: 0.85rem; }
+    .axis-ed { background: var(--bg-color); border-radius: 1rem; padding: 0.85rem; border: 1px solid var(--border-color); }
+    .axis-ed-top { display:flex; justify-content:space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.15rem; }
+    .axis-ed-name { font-weight: 800; color: var(--text-color); font-size: 0.95rem; }
+    .axis-ed-val { font-weight: 900; color: var(--primary-color); font-size: 0.95rem; }
+    .axis-ed-ends { display:flex; justify-content: space-between; gap: 0.6rem; color: var(--text-light); font-size: 0.78rem; margin: 0.15rem 0 0.35rem; }
+    input[type="range"] { width: 100%; }
+
+    /* ===== diverging bar ===== */
+    .div-wrap { position: relative; height: 18px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
+    .div-wrap.endsOverlay { height: 22px; }
+    .div-mid { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(148,163,184,0.85); transform: translateX(-1px); }
+    .div-fillL, .div-fillR { position:absolute; top:0; bottom:0; }
+    .div-fillL { right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
+    .div-fillR { left: 50%; background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+
+    /* Ends overlay inside diverging bar (layouts 9-12) */
+    .div-endInBar {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      font-size: 0.78rem;
+      font-weight: 900;
+      padding: 0.18rem 0.42rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 44%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.01em;
+      pointer-events: none;
+      border: 1px solid transparent;
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.9;
+    }
+    .div-endInBar.left { left: 4px; }
+    .div-endInBar.right { right: 4px; }
+    .div-endInBar.left.active {
+      background: rgba(59,130,246,0.14);
+      border-color: rgba(59,130,246,0.35);
+      color: var(--text-color);
+    }
+    .div-endInBar.left.muted {
+      background: rgba(59,130,246,0.06);
+      border-color: rgba(59,130,246,0.20);
+      color: var(--text-light);
+      opacity: 0.65;
+    }
+    .div-endInBar.right.active {
+      background: rgba(236,72,153,0.14);
+      border-color: rgba(236,72,153,0.35);
+      color: var(--text-color);
+    }
+    .div-endInBar.right.muted {
+      background: rgba(236,72,153,0.06);
+      border-color: rgba(236,72,153,0.20);
+      color: var(--text-light);
+      opacity: 0.65;
+    }
+    .div-endInBar.neutralMuted {
+      background: rgba(148,163,184,0.10);
+      border-color: rgba(148,163,184,0.25);
+      color: var(--text-light);
+      opacity: 0.7;
+    }
+
+    .div-endInBar.noFrame {
+      border: none !important;
+    }
+
+    /* ===== 微調：避免端點與 bar 之間出現空隙 ===== */
+    .div-wrap.barInset2 { padding: 0 2px; box-sizing: border-box; }
+    .div-wrap.barInset3 { padding: 0 3px; box-sizing: border-box; }
+
+    .div-endInBar.noFrameTight0.left { left: 0px; }
+    .div-endInBar.noFrameTight0.right { right: 0px; }
+
+    .div-endInBar.noFrameTightPadMed {
+      padding: 0.16rem 0.34rem;
+      max-width: 42%;
+      font-size: 0.76rem;
+    }
+    .div-endInBar.noFrameTightPadSm {
+      padding: 0.12rem 0.28rem;
+      max-width: 40%;
+      font-size: 0.74rem;
+    }
+
+    /* ===== layout variants ===== */
+    .preview { display: grid; gap: 0.85rem; }
+    .axis-row {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    @media (max-width: 520px) { .axis-row { grid-template-columns: 1fr; } }
+    .axis-name { font-weight: 900; color: var(--text-color); font-size: 0.92rem; }
+    .ends {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+    .endL strong, .endR strong { font-weight: 900; }
+    .endL.active { color: var(--primary-color); }
+    .endR.active { color: #db2777; }
+
+    /* Layout 1: axis label + diverging bar +左右端（只有兩端，無數字） */
+    .layout-1 .ends { margin-top: 0.25rem; }
+
+    /* Layout 2: dominant side as bold chip, the other muted (still no numeric) */
+    .layout-2 .endChipRow { display:flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.35rem; }
+    .chip {
+      border: 1px solid var(--border-color);
+      background: var(--bg-light);
+      border-radius: 999px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--text-light);
+      white-space: nowrap;
+    }
+    .chip.left { background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.25); color: var(--text-color); }
+    .chip.right { background: rgba(236,72,153,0.10); border-color: rgba(236,72,153,0.25); color: var(--text-color); }
+    .chip.muted { opacity: 0.55; font-weight: 700; }
+
+    /* Layout 3: endpoints aligned left/right around the bar */
+    .layout-3 .barWithEnds {
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    /* Allow using the same "bar with ends" layout in other variants too (e.g. layout 1) */
+    .barWithEnds {
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    .endText { color: var(--text-light); font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+    .endText.left.active { color: var(--primary-color); }
+    .endText.right.active { color: #db2777; }
+
+    /* Layout 6 pills */
+    .endTextPill {
+      padding: 0.28rem 0.55rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      font-weight: 800;
+      white-space: nowrap;
+      color: var(--text-light);
+    }
+    .endTextPill.left.active {
+      color: var(--text-color);
+      border-color: rgba(59,130,246,0.35);
+      background: rgba(59,130,246,0.12);
+    }
+    .endTextPill.right.active {
+      color: var(--text-color);
+      border-color: rgba(236,72,153,0.35);
+      background: rgba(236,72,153,0.12);
+    }
+
+    /* tiny badge for mode */
+    .badge { font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--border-color); background: var(--bg-light); color: var(--text-light); display:inline-block; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+          <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+          <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+        </div>
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="profile.html">我的檔案</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="hero">
+      <h1>桌遊偏好發散條：排版 Demo</h1>
+      <p>0–12（0 偏左、6 中立、12 偏右）。此頁刻意不顯示「幾分之幾」，只呈現左右端 emoji+文字。</p>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="row">
+          <label class="muted" for="layoutSel">呈現排版</label>
+          <select id="layoutSel" class="select">
+            <option value="9">⑨ 發散條內嵌兩端文字/emoji（像 1+8）</option>
+            <option value="10">⑩ 發散條內嵌兩端文字/emoji（兩端同強）</option>
+            <option value="11">⑪ 主導端彩色底疊字、另一端灰底</option>
+            <option value="12">⑫ 兩端彩色但透明度隨強度</option>
+            <option value="13">⑬ 發散條內嵌兩端文字/emoji（像 1+8，無外框）</option>
+            <option value="14">⑭ 發散條內嵌兩端文字/emoji（兩端同強，無外框）</option>
+            <option value="15">⑮ 主導端彩色底疊字、另一端灰底（無外框）</option>
+            <option value="16">⑯ 兩端彩色但透明度隨強度（無外框）</option>
+            <option value="17">⑰ 15 微調：左右端貼更緊（0px inset）</option>
+            <option value="18">⑱ 15 微調：縮小左右端 padding（仍貼邊）</option>
+            <option value="19">⑲ 15 微調：0px inset + 小 padding（最貼近）</option>
+            <option value="20">⑳ 15 微調：bar 內縮（縮短發散條）+ 端點貼邊</option>
+            <option value="21">㉑ 15 微調：bar 更內縮 + 0px inset + 小 padding</option>
+          </select>
+          <span class="badge" id="layoutBadge">—</span>
+        </div>
+
+        <div class="row" style="margin-top: 0.75rem;">
+          <button class="btn-lite" id="btnRandom">隨機一組</button>
+          <button class="btn-lite" id="btnNeutral">全設中立</button>
+        </div>
+
+        <div class="axis-editor" id="axisEditor"></div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <h2 style="margin: 0; font-size: 1.05rem;">預覽</h2>
+          <div class="muted">選你喜歡的排版，回我 ⑮/⑰/⑱/⑲/⑳/㉑</div>
+        </div>
+        <div class="preview" id="preview"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      var AXES = [
+        { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+        { key: 'mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+        { key: 'control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+        { key: 'sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+        { key: 'openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+        { key: 'competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+      ];
+
+      var state = {
+        layout: '15',
+        values: AXES.reduce(function(acc, a) { acc[a.key] = 6; return acc; }, {})
+      };
+
+      var elLayoutSel = document.getElementById('layoutSel');
+      var elLayoutBadge = document.getElementById('layoutBadge');
+      var elAxisEditor = document.getElementById('axisEditor');
+      var elPreview = document.getElementById('preview');
+
+      function clamp012(v) {
+        v = Number(v);
+        if (isNaN(v)) v = 6;
+        if (v < 0) v = 0;
+        if (v > 12) v = 12;
+        return Math.round(v);
+      }
+
+      function layoutName(layout) {
+        if (layout === '1') return '① 左右端（條下方）+ 發散條';
+        if (layout === '2') return '② 主導端徽章（條下方）';
+        if (layout === '3') return '③ 左右端環繞發散條';
+        if (layout === '4') return '④ 兩端徽章貼條兩端（強弱感）';
+        if (layout === '5') return '⑤ 主導端放大徽章（貼條兩端）';
+        if (layout === '6') return '⑥ 活躍端膠囊（兩端都在）';
+        if (layout === '7') return '⑦ 單邊主導徽章 + 另一端淡字';
+        if (layout === '8') return '⑧ 強度調色雙端徽章';
+        if (layout === '9') return '⑨ 發散條內嵌兩端文字/emoji（像 1+8）';
+        if (layout === '10') return '⑩ 發散條內嵌兩端文字/emoji（兩端同強）';
+        if (layout === '11') return '⑪ 主導端彩色、另一端灰底';
+        if (layout === '12') return '⑫ 兩端彩色透明度隨強度';
+        if (layout === '13') return '⑬ 9 的無外框版';
+        if (layout === '14') return '⑭ 10 的無外框版';
+        if (layout === '15') return '⑮ 11 的無外框版';
+        if (layout === '16') return '⑯ 12 的無外框版';
+        if (layout === '17') return '⑰ 15 微調：端點貼邊';
+        if (layout === '18') return '⑱ 15 微調：端點縮 padding';
+        if (layout === '19') return '⑲ 15 微調：0px inset + 小 padding';
+        if (layout === '20') return '⑳ 15 微調：bar 內縮';
+        if (layout === '21') return '㉑ 15 微調：更內縮 + 貼邊';
+        return layout;
+      }
+
+      function dominantSide(delta) {
+        if (delta === 0) return 'neutral';
+        return delta < 0 ? 'left' : 'right';
+      }
+
+      function divergingFillStyles(v) {
+        // v: 0..12, 中立 6，兩側最大寬度各 50%
+        var delta = v - 6; // -6..+6
+        var abs = Math.abs(delta) / 6; // 0..1
+        var w = Math.round(abs * 50); // 0..50 (半邊寬度百分比)
+        var leftW = delta < 0 ? w : 0;
+        var rightW = delta > 0 ? w : 0;
+        return { leftW: leftW, rightW: rightW, delta: delta };
+      }
+
+      function renderAxisEditor() {
+        elAxisEditor.innerHTML = AXES.map(function(a) {
+          var v = clamp012(state.values[a.key]);
+          return '' +
+            '<div class="axis-ed">' +
+              '<div class="axis-ed-top">' +
+                '<div class="axis-ed-name">' + a.label + '</div>' +
+                '<div class="axis-ed-val" id="val-' + a.key + '">' + v + '</div>' +
+              '</div>' +
+              '<div class="axis-ed-ends">' +
+                '<span>' + a.left + '</span>' +
+                '<span>' + a.right + '</span>' +
+              '</div>' +
+              '<input type="range" min="0" max="12" step="1" value="' + v + '" data-axis="' + a.key + '" aria-label="' + a.label + '">' +
+            '</div>';
+        }).join('');
+
+        elAxisEditor.querySelectorAll('input[type="range"]').forEach(function(r) {
+          r.addEventListener('input', function() {
+            var k = r.dataset.axis;
+            state.values[k] = clamp012(r.value);
+            var elVal = document.getElementById('val-' + k);
+            if (elVal) elVal.textContent = state.values[k];
+            renderPreview();
+          });
+        });
+      }
+
+      function renderDivergeBar(v) {
+        var parts = divergingFillStyles(v);
+        return '' +
+          '<div class="div-wrap" role="img" aria-label="偏好 ' + v + '/12">' +
+            '<div class="div-mid"></div>' +
+            '<div class="div-fillL" style="width:' + parts.leftW + '%;"></div>' +
+            '<div class="div-fillR" style="width:' + parts.rightW + '%;"></div>' +
+          '</div>';
+      }
+
+      function renderDivergeBarWithEnds(v, a, side, strength, variant) {
+        var parts = divergingFillStyles(v);
+        var leftClass = 'div-endInBar left';
+        var rightClass = 'div-endInBar right';
+        var leftStyle = '';
+        var rightStyle = '';
+
+        // 13-16 是 9-12 的無外框版本
+        var noFrame = (variant === '13' || variant === '14' || variant === '15' || variant === '16' ||
+                        variant === '17' || variant === '18' || variant === '19' || variant === '20' || variant === '21');
+
+        // 新增：17-21 以 15 的配色/主導端樣式為基底，再微調端點貼邊或 bar 內縮
+        var baseVariant = variant;
+        if (variant === '13') baseVariant = '9';
+        if (variant === '14') baseVariant = '10';
+        if (variant === '15' || variant === '17' || variant === '18' || variant === '19') baseVariant = '11';
+        if (variant === '16' || variant === '20' || variant === '21') baseVariant = '11'; // 20/21 也是以 15 的視覺邏輯為主
+
+        var endExtraClass = '';
+        var wrapExtraClass = '';
+        if (variant === '17') endExtraClass = 'noFrameTight0';
+        if (variant === '18') endExtraClass = 'noFrameTight0 noFrameTightPadMed';
+        if (variant === '19') endExtraClass = 'noFrameTight0 noFrameTightPadSm';
+        if (variant === '20') { wrapExtraClass = 'barInset2'; endExtraClass = 'noFrameTight0 noFrameTightPadMed'; }
+        if (variant === '21') { wrapExtraClass = 'barInset3'; endExtraClass = 'noFrameTight0 noFrameTightPadSm'; }
+
+        if (baseVariant === '9' || baseVariant === '11') {
+          var leftActive = side === 'left';
+          var rightActive = side === 'right';
+          var isNeutral = side === 'neutral';
+
+          if (baseVariant === '9') {
+            // 9：主導彩色、另一端淡彩色，neutral 兩端灰
+            if (isNeutral) {
+              leftClass = 'div-endInBar left neutralMuted';
+              rightClass = 'div-endInBar right neutralMuted';
+            } else {
+              leftClass = 'div-endInBar left ' + (leftActive ? 'active' : 'muted');
+              rightClass = 'div-endInBar right ' + (rightActive ? 'active' : 'muted');
+            }
+          } else {
+            // 11：主導彩色、另一端灰底，neutral 兩端灰
+            if (isNeutral) {
+              leftClass = 'div-endInBar left neutralMuted';
+              rightClass = 'div-endInBar right neutralMuted';
+            } else {
+              leftClass = 'div-endInBar left ' + (leftActive ? 'active' : 'neutralMuted');
+              rightClass = 'div-endInBar right ' + (rightActive ? 'active' : 'neutralMuted');
+            }
+          }
+        } else if (baseVariant === '10') {
+          // 10：兩端同強（兩端都用 active）
+          leftClass = 'div-endInBar left active';
+          rightClass = 'div-endInBar right active';
+        } else if (baseVariant === '12') {
+          // 12：透明度隨強度（兩端彩色，但主導端更濃）
+          var leftAlpha8 = side === 'left' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
+          var rightAlpha8 = side === 'right' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
+          if (side === 'neutral') { leftAlpha8 = 0.18; rightAlpha8 = 0.18; }
+
+          var leftBorderAlpha = Math.min(0.6, leftAlpha8 * 1.4);
+          var rightBorderAlpha = Math.min(0.6, rightAlpha8 * 1.4);
+          var leftColor = (side === 'left' || side === 'neutral') ? 'var(--text-color)' : 'var(--text-light)';
+          var rightColor = (side === 'right' || side === 'neutral') ? 'var(--text-color)' : 'var(--text-light)';
+          var leftOpacity = (side === 'left') ? (0.95) : (0.70 + (1 - strength) * 0.15);
+          var rightOpacity = (side === 'right') ? (0.95) : (0.70 + (1 - strength) * 0.15);
+
+          leftClass = 'div-endInBar left';
+          rightClass = 'div-endInBar right';
+          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); color:' + leftColor + '; opacity:' + leftOpacity + '; border-color:rgba(59,130,246,' + leftBorderAlpha + ');';
+          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); color:' + rightColor + '; opacity:' + rightOpacity + '; border-color:rgba(236,72,153,' + rightBorderAlpha + ');';
+        } else {
+          // fallback：兩端灰
+          leftClass = 'div-endInBar left neutralMuted';
+          rightClass = 'div-endInBar right neutralMuted';
+        }
+
+        if (noFrame) {
+          leftClass += ' noFrame';
+          rightClass += ' noFrame';
+        }
+
+        if (endExtraClass) {
+          leftClass += ' ' + endExtraClass;
+          rightClass += ' ' + endExtraClass;
+        }
+
+        var wrapExtra = wrapExtraClass ? (' ' + wrapExtraClass) : '';
+
+        return '' +
+          '<div class="div-wrap endsOverlay' + wrapExtra + '" role="img" aria-label="偏好 ' + v + '/12">' +
+            '<div class="div-mid"></div>' +
+            '<div class="div-fillL" style="width:' + parts.leftW + '%;"></div>' +
+            '<div class="div-fillR" style="width:' + parts.rightW + '%;"></div>' +
+            '<div class="' + leftClass + '"' + (leftStyle ? (' style="' + leftStyle + '"') : '') + '>' + a.left + '</div>' +
+            '<div class="' + rightClass + '"' + (rightStyle ? (' style="' + rightStyle + '"') : '') + '>' + a.right + '</div>' +
+          '</div>';
+      }
+
+      function renderRowAxis(a) {
+        var v = clamp012(state.values[a.key]);
+        var parts = divergingFillStyles(v);
+        var side = dominantSide(parts.delta);
+        var strength = Math.abs(parts.delta) / 6; // 0..1
+
+        // 只留下左右端 emoji+文字；不顯示 v/12、也不顯示「三組」資訊
+        if (state.layout === '1') {
+          return '' +
+            '<div class="axis-row layout-1">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div>' + renderDivergeBar(v) + '</div>' +
+                '<div class="ends">' +
+                  '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                  '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '2') {
+          var leftMuted = side === 'right' ? 'muted' : '';
+          var rightMuted = side === 'left' ? 'muted' : '';
+          var isNeutral = side === 'neutral';
+          // neutral 時左右都不 muted，兩個端點都顯示為同等強度（只是這頁不顯示數字）
+          if (isNeutral) { leftMuted = ''; rightMuted = ''; }
+          return '' +
+            '<div class="axis-row layout-2">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div>' + renderDivergeBar(v) + '</div>' +
+                '<div class="endChipRow">' +
+                  '<div class="chip left ' + leftMuted + '">' + a.left + '</div>' +
+                  '<div class="chip right ' + rightMuted + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '3') {
+          return '' +
+            '<div class="axis-row layout-3">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '4') {
+          var leftMuted4 = side === 'right' ? 'muted' : '';
+          var rightMuted4 = side === 'left' ? 'muted' : '';
+          if (side === 'neutral') { leftMuted4 = ''; rightMuted4 = ''; }
+          return '' +
+            '<div class="axis-row layout-4">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left ' + leftMuted4 + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right ' + rightMuted4 + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '5') {
+          var leftActive5 = side === 'left';
+          var rightActive5 = side === 'right';
+          var leftScale5 = side === 'neutral' ? 1 : (leftActive5 ? (1 + strength * 0.28) : (1 - strength * 0.12));
+          var rightScale5 = side === 'neutral' ? 1 : (rightActive5 ? (1 + strength * 0.28) : (1 - strength * 0.12));
+          return '' +
+            '<div class="axis-row layout-5">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left" style="transform:scale(' + leftScale5 + '); transform-origin:center;">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right" style="transform:scale(' + rightScale5 + '); transform-origin:center;">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '6') {
+          var leftActive6 = side === 'left';
+          var rightActive6 = side === 'right';
+          if (side === 'neutral') { leftActive6 = false; rightActive6 = false; }
+          return '' +
+            '<div class="axis-row layout-6">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="endTextPill left ' + (leftActive6 ? 'active' : '') + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="endTextPill right ' + (rightActive6 ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '7') {
+          var leftActive7 = side === 'left';
+          var rightActive7 = side === 'right';
+          var leftNode7 = leftActive7
+            ? ('<div class="chip left">' + a.left + '</div>')
+            : ('<div class="endText left" style="opacity:0.55;">' + a.left + '</div>');
+          var rightNode7 = rightActive7
+            ? ('<div class="chip right">' + a.right + '</div>')
+            : ('<div class="endText right" style="opacity:0.55;">' + a.right + '</div>');
+          if (side === 'neutral') {
+            leftNode7 = '<div class="chip left muted">' + a.left + '</div>';
+            rightNode7 = '<div class="chip right muted">' + a.right + '</div>';
+          }
+          return '' +
+            '<div class="axis-row layout-7">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  leftNode7 +
+                  renderDivergeBar(v) +
+                  rightNode7 +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '8') {
+          var leftAlpha8 = side === 'left' ? (0.06 + strength * 0.26) : (0.06 + (1 - strength) * 0.10);
+          var rightAlpha8 = side === 'right' ? (0.06 + strength * 0.26) : (0.06 + (1 - strength) * 0.10);
+          if (side === 'neutral') { leftAlpha8 = 0.14; rightAlpha8 = 0.14; }
+          return '' +
+            '<div class="axis-row layout-8">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left" style="background:rgba(59,130,246,' + leftAlpha8 + '); border-color:rgba(59,130,246,' + (leftAlpha8 * 1.2) + ');">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right" style="background:rgba(236,72,153,' + rightAlpha8 + '); border-color:rgba(236,72,153,' + (rightAlpha8 * 1.2) + ');">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '9') {
+          return '' +
+            '<div class="axis-row layout-9">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '9') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '10') {
+          return '' +
+            '<div class="axis-row layout-10">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '10') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '11') {
+          return '' +
+            '<div class="axis-row layout-11">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '11') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '12') {
+          return '' +
+            '<div class="axis-row layout-12">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '12') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '13') {
+          return '' +
+            '<div class="axis-row layout-13">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '13') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '14') {
+          return '' +
+            '<div class="axis-row layout-14">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '14') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '15') {
+          return '' +
+            '<div class="axis-row layout-15">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '15') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '16') {
+          return '' +
+            '<div class="axis-row layout-16">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '16') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '17') {
+          return '' +
+            '<div class="axis-row layout-17">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '17') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '18') {
+          return '' +
+            '<div class="axis-row layout-18">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '18') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '19') {
+          return '' +
+            '<div class="axis-row layout-19">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '19') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '20') {
+          return '' +
+            '<div class="axis-row layout-20">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '20') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '21') {
+          return '' +
+            '<div class="axis-row layout-21">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '21') + '</div>' +
+            '</div>';
+        }
+
+        // fallback: layout 3
+        return '' +
+          '<div class="axis-row layout-3">' +
+            '<div class="axis-name">' + a.label + '</div>' +
+            '<div>' +
+              '<div class="barWithEnds">' +
+                '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                renderDivergeBar(v) +
+                '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      function renderPreview() {
+        elLayoutBadge.textContent = layoutName(state.layout);
+        elPreview.innerHTML = AXES.map(renderRowAxis).join('');
+      }
+
+      function randomize() {
+        AXES.forEach(function(a) {
+          state.values[a.key] = Math.floor(Math.random() * 13);
+        });
+        // 讓 editor 立刻同步
+        renderAxisEditor();
+        renderPreview();
+      }
+
+      function setNeutral() {
+        AXES.forEach(function(a) { state.values[a.key] = 6; });
+        renderAxisEditor();
+        renderPreview();
+      }
+
+      elLayoutSel.addEventListener('change', function() {
+        state.layout = elLayoutSel.value;
+        renderPreview();
+      });
+      document.getElementById('btnRandom').addEventListener('click', function() { randomize(); });
+      document.getElementById('btnNeutral').addEventListener('click', function() { setNeutral(); });
+
+      // init
+      renderAxisEditor();
+      renderPreview();
+    })();
+  </script>
+</body>
+</html>
+

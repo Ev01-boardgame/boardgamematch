@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile 簡介區塊 Demo（離線）</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { padding: 1.25rem; }
+    .demo-wrap { max-width: 1100px; margin: 0 auto; }
+
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .controls label { font-weight: 800; color: var(--text-color); font-size: 0.95rem; }
+    .controls select {
+      padding: 0.6rem 0.85rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+    }
+    .controls .btn-toggle {
+      padding: 0.6rem 0.9rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .profile-card {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .profile-gradient {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      border-radius: 1rem 1rem 0 0;
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #4f46e5 100%);
+    }
+
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+    }
+
+    .left-block { flex: 1; min-width: 260px; }
+    .right-block { min-width: 290px; }
+
+    .avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .avatar-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid var(--primary-color);
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      background: linear-gradient(135deg, rgba(102,126,234,0.18), rgba(118,75,162,0.18));
+    }
+    .avatar-meta h1 { margin: 0 0 0.5rem; font-size: 2rem; }
+    .region-row {
+      font-size: 0.88rem;
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+    .social-links-inline { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .chip {
+      border: 1px solid var(--border-color);
+      background: var(--bg-light);
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem;
+      font-weight: 800;
+      color: var(--text-light);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .mbti-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+    .mbti-tag {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      user-select: none;
+    }
+    .mbti-name { color: var(--text-light); font-weight: 800; }
+
+    .created-at { color: var(--text-light); margin-top: 0.25rem; font-size: 0.9rem; }
+
+    /* ===== bio card (這就是你要調的「簡介」區塊）===== */
+    .bio-card {
+      margin-top: 0.4rem;
+      padding: 0.6rem 0.8rem;
+      background: var(--bg-color);
+      border-radius: 0.5rem;
+      border-left: 3px solid var(--primary-color);
+      color: var(--text-color);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      display: none;
+    }
+    .bio-card.show { display: block; }
+
+    /* right block: 只做占位，避免你在討論 bio 時被按鈕/偏好干擾 */
+    .actions-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .actions-row .btn-lite {
+      padding: 0.7rem 1rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 900;
+      text-align: left;
+    }
+
+    /* ===== Preferences card (layout 17 only) ===== */
+    .demo-pref-card {
+      margin-top: 0.75rem;
+      padding: 0.9rem 1rem 0.75rem;
+      border-radius: 1rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg);
+      box-shadow: var(--shadow-sm);
+
+      /* default gradient style: ① */
+      --d17-left-rgb1: 59,130,246;  /* blue low */
+      --d17-left-a1: 0.10;
+      --d17-left-rgb2: 59,130,246;  /* blue high */
+      --d17-left-a2: 0.55;
+
+      --d17-right-rgb1: 236,72,153; /* pink high (near center) */
+      --d17-right-a1: 0.55;
+      --d17-right-rgb2: 236,72,153; /* pink low (near edge) */
+      --d17-right-a2: 0.10;
+    }
+
+    /* gradient presets (only diverging bar fill colors) */
+    .demo-pref-card.grad-2 {
+      --d17-left-rgb1: 59,130,246;
+      --d17-left-a1: 0.03;
+      --d17-left-rgb2: 59,130,246;
+      --d17-left-a2: 0.85;
+
+      --d17-right-rgb1: 236,72,153;
+      --d17-right-a1: 0.85;
+      --d17-right-rgb2: 236,72,153;
+      --d17-right-a2: 0.03;
+    }
+    .demo-pref-card.grad-3 {
+      --d17-left-rgb1: 96,165,250;
+      --d17-left-a1: 0.06;
+      --d17-left-rgb2: 37,99,235;
+      --d17-left-a2: 0.86;
+
+      --d17-right-rgb1: 244,114,182;
+      --d17-right-a1: 0.82;
+      --d17-right-rgb2: 190,18,60;
+      --d17-right-a2: 0.06;
+    }
+    .demo-pref-card.grad-4 {
+      --d17-left-rgb1: 59,130,246;
+      --d17-left-a1: 0.16;
+      --d17-left-rgb2: 59,130,246;
+      --d17-left-a2: 0.78;
+
+      --d17-right-rgb1: 236,72,153;
+      --d17-right-a1: 0.78;
+      --d17-right-rgb2: 236,72,153;
+      --d17-right-a2: 0.16;
+    }
+    .demo-pref-title {
+      font-weight: 900;
+      color: var(--text-color);
+      margin-bottom: 0.65rem;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .demo-pref-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .demo-pref-btn {
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-color);
+      background: var(--bg-light);
+      font-weight: 900;
+      cursor: pointer;
+      color: var(--text-color);
+      font-size: 0.82rem;
+    }
+
+    .grad-select {
+      padding: 0.35rem 0.6rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 900;
+      cursor: pointer;
+      outline: none;
+      font-size: 0.82rem;
+    }
+
+    .demo17-axis-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      margin-bottom: 0.55rem;
+    }
+    .demo17-axis-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .demo17-axis-label {
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--text-color);
+      white-space: nowrap;
+    }
+    .demo17-axis-meta {
+      color: var(--text-light);
+      font-weight: 700;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .demo17-pref-row {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    /* Diverging bar (layout 17: ends inside bar, 0px inset) */
+    .demo17-bar-wrap {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .demo17-bar-wrap.endsOverlay { height: 22px; }
+    .demo17-bar-mid {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: rgba(148,163,184,0.85);
+      transform: translateX(-1px);
+    }
+    .demo17-fillL, .demo17-fillR { position: absolute; top: 0; bottom: 0; }
+    /* ends high / center low */
+    .demo17-fillL { right: 50%;
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
+      );
+    }
+    .demo17-fillR { left: 50%;
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
+      );
+    }
+
+    /* ===== ramp curves (讓接近端點顏色變化更大) ===== */
+    .demo-pref-card.ramp-1 .demo17-fillL { /* linear */ }
+    .demo-pref-card.ramp-1 .demo17-fillR { /* linear */ }
+
+    /* ramp-2：偏靠端點，讓 7-12/0-5 更好分 */
+    .demo-pref-card.ramp-2 .demo17-fillL {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb2), calc((var(--d17-left-a1) + var(--d17-left-a2)) / 2)) 60%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
+      );
+    }
+    .demo-pref-card.ramp-2 .demo17-fillR {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb2), calc((var(--d17-right-a1) + var(--d17-right-a2)) / 2)) 60%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
+      );
+    }
+
+    /* ramp-3：更極端（端點更濃，中間更淡） */
+    .demo-pref-card.ramp-3 .demo17-fillL {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2)) 0%,
+        rgba(var(--d17-left-rgb2), calc((var(--d17-left-a1) + var(--d17-left-a2)) / 2)) 75%,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)) 100%
+      );
+    }
+    .demo-pref-card.ramp-3 .demo17-fillR {
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2)) 0%,
+        rgba(var(--d17-right-rgb2), calc((var(--d17-right-a1) + var(--d17-right-a2)) / 2)) 75%,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)) 100%
+      );
+    }
+
+    .demo17-endInBar {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      font-size: 0.76rem;
+      font-weight: 900;
+      padding: 0.14rem 0.22rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 52%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      border: none;
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.9;
+    }
+    .demo17-endInBar.left { left: 0px; }
+    .demo17-endInBar.right { right: 0px; }
+    .demo17-endInBar.left.active {
+      background: rgba(59,130,246,0.14);
+      color: var(--text-color);
+    }
+    .demo17-endInBar.right.active {
+      background: rgba(236,72,153,0.14);
+      color: var(--text-color);
+    }
+    .demo17-endInBar.neutralMuted {
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.7;
+    }
+
+    /* ================== Layout variants ================== */
+    /* 201：目前風格（bio 在 created-at 下方、固定 margin-top） */
+    .layout-201 .bio-card { margin-top: 0.4rem; }
+    .layout-201 .profile-header { justify-content: space-between; }
+
+    /* 202：bio 與 created-at 更貼（縮小 margin）+ 適度減 padding */
+    .layout-202 .bio-card { margin-top: 0.15rem; padding: 0.5rem 0.75rem; }
+
+    /* 203：bio 靠近 MBTI 列（把 bio 向上吃掉一點空間，視覺上更緊湊） */
+    .layout-203 .bio-card { margin-top: 0.15rem; }
+    .layout-203 .created-at { margin-top: 0.05rem; }
+    .layout-203 .avatar-row { margin-bottom: 0.75rem; }
+
+    /* 204：bio 全寬跨兩欄（在右側區塊下方，讓長文字更好呈現） */
+    .layout-204 .profile-header { gap: 0.75rem; }
+    .layout-204 .right-block { min-width: 250px; flex: 0 0 320px; }
+    .layout-204 .bio-card { width: 100%; margin-top: 0.75rem; }
+    .layout-204 .profile-card { }
+    .layout-204 .left-block { flex: 1 1 520px; }
+
+    /* 205：手機友善（右欄在下、bio 保持一致間距，主要是視覺比例） */
+    .layout-205 .profile-header { flex-direction: column; align-items: stretch; }
+    .layout-205 .right-block { min-width: 0; }
+    .layout-205 .bio-card { margin-top: 0.35rem; }
+  </style>
+</head>
+<body>
+  <div class="demo-wrap">
+    <div class="controls">
+      <label for="layoutSel">Profile 簡介排版（只調 bio 區塊）</label>
+      <select id="layoutSel">
+        <option value="201">⑵ 201：目前風格（基準）</option>
+        <option value="202">⑵ 202：bio 更貼、padding 輕微縮</option>
+        <option value="203">⑵ 203：往上靠近 MBTI</option>
+        <option value="204">⑵ 204：bio 全寬跨兩欄</option>
+        <option value="205" selected>⑵ 205：手機友善（右欄下移）</option>
+      </select>
+      <button class="btn-toggle" id="btnToggleBio" type="button">切換顯示/隱藏 bio</button>
+    </div>
+
+    <section class="profile-card layout-205" id="preview">
+      <div class="profile-gradient"></div>
+
+      <div class="profile-header">
+        <div class="left-block">
+          <div class="avatar-row">
+            <div class="avatar-circle">🎯</div>
+            <div class="avatar-meta">
+              <h1>仲軒</h1>
+              <div class="region-row">台灣 • 台北 / 想找桌友</div>
+              <div class="social-links-inline">
+                <span class="chip" style="border-color: rgba(124,58,237,0.3); background: rgba(124,58,237,0.15); color: var(--primary-color);">IG</span>
+                <span class="chip" style="border-color: rgba(59,130,246,0.25); background: rgba(59,130,246,0.10); color: var(--primary-color);">Discord</span>
+              </div>
+              <div class="mbti-row">
+                <div class="mbti-tag">🎭 INTJ<span style="display:none;">🔒</span></div>
+                <div class="mbti-name">建築師</div>
+              </div>
+              <div class="created-at">加入於 2026/03/18</div>
+            </div>
+          </div>
+
+          <p class="bio-card show" id="bioCardDemo">
+            目前狀態：只要好玩就行。喜歡策略與合作，也願意在局末一起複盤。<br>
+            目前最常玩的類型是：輕策略卡牌、合作桌遊，偶爾也會來一局劇本推理。
+          </p>
+        </div>
+
+        <div class="right-block">
+          <div class="actions-row">
+            <div class="btn-lite">🧪 桌友適性測驗（占位）</div>
+            <div class="btn-lite">📝 編輯簡介（占位）</div>
+            <div class="btn-lite">✏️ 編輯桌遊（占位）</div>
+          </div>
+
+          <div class="demo-pref-card grad-1 ramp-2" id="demoPrefCard">
+            <div class="demo-pref-title">
+              <span>🎯 桌遊偏好（layout 17 卡片）</span>
+              <div class="demo-pref-actions">
+                <button class="demo-pref-btn" id="btnPrefNeutral" type="button">全中立</button>
+                <button class="demo-pref-btn" id="btnPrefRandom" type="button">隨機</button>
+                <select class="grad-select" id="gradSel" title="調整發散條漸變差異">
+                  <option value="1" selected>漸變 ①（基準）</option>
+                  <option value="2">漸變 ②（高對比）</option>
+                  <option value="3">漸變 ③（鮮明冷暖）</option>
+                  <option value="4">漸變 ④（更飽和）</option>
+                </select>
+                <select class="grad-select" id="rampSel" title="漸變曲線：越靠端點越濃">
+                  <option value="1">曲線 ①（線性）</option>
+                  <option value="2">曲線 ②（偏端點）</option>
+                  <option value="3" selected>曲線 ③（極端端點）</option>
+                </select>
+              </div>
+            </div>
+            <div id="demoPrefBody"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      var sel = document.getElementById('layoutSel');
+      var preview = document.getElementById('preview');
+      var btn = document.getElementById('btnToggleBio');
+      var bio = document.getElementById('bioCardDemo');
+      var demoPrefBody = document.getElementById('demoPrefBody');
+      var btnPrefNeutral = document.getElementById('btnPrefNeutral');
+      var btnPrefRandom = document.getElementById('btnPrefRandom');
+      var gradSel = document.getElementById('gradSel');
+      var rampSel = document.getElementById('rampSel');
+      var demoPrefCard = document.getElementById('demoPrefCard');
+
+      var AXES = [
+        { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+        { key: 'mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+        { key: 'control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+        { key: 'sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+        { key: 'openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+        { key: 'competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+      ];
+
+      function renderDivergingBar17(v, a) {
+        var delta = v - 6; // -6..+6
+        var abs = Math.abs(delta) / 6; // 0..1
+        var w = Math.round(abs * 50);
+        var leftW = delta < 0 ? w : 0;
+        var rightW = delta > 0 ? w : 0;
+        var side = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'neutral');
+        var leftEndClass = 'demo17-endInBar left ' + (side === 'left' ? 'active' : 'neutralMuted');
+        var rightEndClass = 'demo17-endInBar right ' + (side === 'right' ? 'active' : 'neutralMuted');
+
+        return '' +
+          '<div class="demo17-pref-row">' +
+            '<div class="demo17-axis-label">' + a.label + '</div>' +
+            '<div class="demo17-bar-wrap endsOverlay" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+              '<div class="demo17-bar-mid"></div>' +
+              '<div class="demo17-fillL" style="width:' + leftW * 2 + '%; right:50%;"></div>' +
+              '<div class="demo17-fillR" style="width:' + rightW * 2 + '%; left:50%;"></div>' +
+              // ends inside bar
+              '<div class="' + leftEndClass + '">' + a.left + '</div>' +
+              '<div class="' + rightEndClass + '">' + a.right + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      function divergingFillStyles(v) {
+        var delta = v - 6;
+        var abs = Math.abs(delta) / 6;
+        var w = Math.round(abs * 50);
+        return {
+          leftW: delta < 0 ? w : 0,
+          rightW: delta > 0 ? w : 0
+        };
+      }
+
+      function renderDivergingBar17Fixed(v, a) {
+        var parts = divergingFillStyles(v);
+        var delta = v - 6;
+        var side = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'neutral');
+        var leftEndClass = 'demo17-endInBar left ' + (side === 'left' ? 'active' : 'neutralMuted');
+        var rightEndClass = 'demo17-endInBar right ' + (side === 'right' ? 'active' : 'neutralMuted');
+
+        return '' +
+          '<div class="demo17-pref-row">' +
+            '<div class="demo17-axis-label">' + a.label + '</div>' +
+            '<div class="demo17-bar-wrap endsOverlay" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+              '<div class="demo17-bar-mid"></div>' +
+              '<div class="demo17-fillL" style="width:' + parts.leftW + '%;"></div>' +
+              '<div class="demo17-fillR" style="width:' + parts.rightW + '%;"></div>' +
+              '<div class="' + leftEndClass + '">' + a.left + '</div>' +
+              '<div class="' + rightEndClass + '">' + a.right + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      var prefState = {
+        entry: 3,
+        mood: 11,
+        control: 6,
+        sociality: 2,
+        openness: 0,
+        competition: 9
+      };
+
+      function renderPref() {
+        if (!demoPrefBody) return;
+        demoPrefBody.innerHTML = AXES.map(function(a) {
+          var v = Number(prefState[a.key] ?? 6);
+          if (isNaN(v)) v = 6;
+          if (v < 0) v = 0;
+          if (v > 12) v = 12;
+          v = Math.round(v);
+          return '<div class="demo17-axis-row">' + renderDivergingBar17Fixed(v, a) + '</div>';
+        }).join('');
+      }
+
+      function applyGradStyle(v) {
+        if (!demoPrefCard) return;
+        demoPrefCard.classList.remove('grad-1', 'grad-2', 'grad-3', 'grad-4');
+        demoPrefCard.classList.add('grad-' + v);
+      }
+
+      function applyRampStyle(v) {
+        if (!demoPrefCard) return;
+        demoPrefCard.classList.remove('ramp-1', 'ramp-2', 'ramp-3');
+        demoPrefCard.classList.add('ramp-' + v);
+      }
+
+      function random012() {
+        return Math.floor(Math.random() * 13);
+      }
+
+      if (btnPrefNeutral) {
+        btnPrefNeutral.addEventListener('click', function () {
+          AXES.forEach(function(a) { prefState[a.key] = 6; });
+          renderPref();
+        });
+      }
+
+      if (btnPrefRandom) {
+        btnPrefRandom.addEventListener('click', function () {
+          AXES.forEach(function(a) { prefState[a.key] = random012(); });
+          renderPref();
+        });
+      }
+
+      if (gradSel) {
+        applyGradStyle(gradSel.value);
+        gradSel.addEventListener('change', function () {
+          applyGradStyle(gradSel.value);
+        });
+      }
+
+      if (rampSel) {
+        applyRampStyle(rampSel.value);
+        rampSel.addEventListener('change', function () {
+          applyRampStyle(rampSel.value);
+        });
+      }
+
+      function setLayout(val) {
+        preview.className = preview.className.replace(/\\blayout-\\d+\\b/g, ' ').trim();
+        preview.classList.add('layout-' + val);
+      }
+
+      sel.addEventListener('change', function () {
+        setLayout(sel.value);
+      });
+
+      btn.addEventListener('click', function () {
+        bio.classList.toggle('show');
+      });
+
+      renderPref();
+    })();
+  </script>
+</body>
+</html>
+
