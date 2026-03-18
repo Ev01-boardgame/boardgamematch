@@ -158,6 +158,52 @@
       border: 1.5px solid var(--border-color);
       background: var(--card-bg);
       box-shadow: var(--shadow-sm);
+
+      /* default gradient style: ① */
+      --d17-left-rgb1: 59,130,246;  /* blue low */
+      --d17-left-a1: 0.10;
+      --d17-left-rgb2: 59,130,246;  /* blue high */
+      --d17-left-a2: 0.55;
+
+      --d17-right-rgb1: 236,72,153; /* pink high (near center) */
+      --d17-right-a1: 0.55;
+      --d17-right-rgb2: 236,72,153; /* pink low (near edge) */
+      --d17-right-a2: 0.10;
+    }
+
+    /* gradient presets (only diverging bar fill colors) */
+    .demo-pref-card.grad-2 {
+      --d17-left-rgb1: 59,130,246;
+      --d17-left-a1: 0.03;
+      --d17-left-rgb2: 59,130,246;
+      --d17-left-a2: 0.85;
+
+      --d17-right-rgb1: 236,72,153;
+      --d17-right-a1: 0.85;
+      --d17-right-rgb2: 236,72,153;
+      --d17-right-a2: 0.03;
+    }
+    .demo-pref-card.grad-3 {
+      --d17-left-rgb1: 96,165,250;
+      --d17-left-a1: 0.06;
+      --d17-left-rgb2: 37,99,235;
+      --d17-left-a2: 0.86;
+
+      --d17-right-rgb1: 244,114,182;
+      --d17-right-a1: 0.82;
+      --d17-right-rgb2: 190,18,60;
+      --d17-right-a2: 0.06;
+    }
+    .demo-pref-card.grad-4 {
+      --d17-left-rgb1: 59,130,246;
+      --d17-left-a1: 0.16;
+      --d17-left-rgb2: 59,130,246;
+      --d17-left-a2: 0.78;
+
+      --d17-right-rgb1: 236,72,153;
+      --d17-right-a1: 0.78;
+      --d17-right-rgb2: 236,72,153;
+      --d17-right-a2: 0.16;
     }
     .demo-pref-title {
       font-weight: 900;
@@ -183,6 +229,18 @@
       font-weight: 900;
       cursor: pointer;
       color: var(--text-color);
+      font-size: 0.82rem;
+    }
+
+    .grad-select {
+      padding: 0.35rem 0.6rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      color: var(--text-color);
+      font-weight: 900;
+      cursor: pointer;
+      outline: none;
       font-size: 0.82rem;
     }
 
@@ -237,8 +295,18 @@
       transform: translateX(-1px);
     }
     .demo17-fillL, .demo17-fillR { position: absolute; top: 0; bottom: 0; }
-    .demo17-fillL { right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
-    .demo17-fillR { left: 50%; background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+    .demo17-fillL { right: 50%;
+      background: linear-gradient(90deg,
+        rgba(var(--d17-left-rgb1), var(--d17-left-a1)),
+        rgba(var(--d17-left-rgb2), var(--d17-left-a2))
+      );
+    }
+    .demo17-fillR { left: 50%;
+      background: linear-gradient(90deg,
+        rgba(var(--d17-right-rgb1), var(--d17-right-a1)),
+        rgba(var(--d17-right-rgb2), var(--d17-right-a2))
+      );
+    }
 
     .demo17-endInBar {
       position: absolute;
@@ -350,12 +418,18 @@
             <div class="btn-lite">✏️ 編輯桌遊（占位）</div>
           </div>
 
-          <div class="demo-pref-card" id="demoPrefCard">
+          <div class="demo-pref-card grad-1" id="demoPrefCard">
             <div class="demo-pref-title">
               <span>🎯 桌遊偏好（layout 17 卡片）</span>
               <div class="demo-pref-actions">
                 <button class="demo-pref-btn" id="btnPrefNeutral" type="button">全中立</button>
                 <button class="demo-pref-btn" id="btnPrefRandom" type="button">隨機</button>
+                <select class="grad-select" id="gradSel" title="調整發散條漸變差異">
+                  <option value="1" selected>漸變 ①（基準）</option>
+                  <option value="2">漸變 ②（高對比）</option>
+                  <option value="3">漸變 ③（鮮明冷暖）</option>
+                  <option value="4">漸變 ④（更飽和）</option>
+                </select>
               </div>
             </div>
             <div id="demoPrefBody"></div>
@@ -375,6 +449,8 @@
       var demoPrefBody = document.getElementById('demoPrefBody');
       var btnPrefNeutral = document.getElementById('btnPrefNeutral');
       var btnPrefRandom = document.getElementById('btnPrefRandom');
+      var gradSel = document.getElementById('gradSel');
+      var demoPrefCard = document.getElementById('demoPrefCard');
 
       var AXES = [
         { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
@@ -460,6 +536,12 @@
         }).join('');
       }
 
+      function applyGradStyle(v) {
+        if (!demoPrefCard) return;
+        demoPrefCard.classList.remove('grad-1', 'grad-2', 'grad-3', 'grad-4');
+        demoPrefCard.classList.add('grad-' + v);
+      }
+
       function random012() {
         return Math.floor(Math.random() * 13);
       }
@@ -475,6 +557,13 @@
         btnPrefRandom.addEventListener('click', function () {
           AXES.forEach(function(a) { prefState[a.key] = random012(); });
           renderPref();
+        });
+      }
+
+      if (gradSel) {
+        applyGradStyle(gradSel.value);
+        gradSel.addEventListener('change', function () {
+          applyGradStyle(gradSel.value);
         });
       }
 
