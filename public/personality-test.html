@@ -790,26 +790,20 @@
                 elResultMbtiBadge.style.display = 'block';
                 elResultMbtiBadge.textContent = code;
                 elResultTypeName.style.display = 'none';
+                elResultDesc.style.display = 'block';
                 elResultDesc.textContent = desc;
             } else if (c.resultType === 'preference') {
                 var scores = state.scores;
                 elResultEmoji.style.display = 'none';
                 elResultMbtiBadge.style.display = 'none';
-                elResultTypeName.textContent = '你的桌遊偏好輪廓（6 軸）';
+                elResultTypeName.textContent = '你的桌遊偏好輪廓';
                 elResultTypeName.style.background = 'linear-gradient(135deg, #059669, #047857)';
                 elResultTypeName.style.display = 'inline-block';
+                elResultDesc.style.display = 'none';
                 if (elRadarWrap) {
                     elRadarWrap.innerHTML = buildPreferenceSliders(scores);
                     elRadarWrap.style.display = 'block';
                 }
-                var keys = PREFERENCE_GROUPS.all;
-                var lines = keys.map(function(k) { return PREFERENCE_LABELS[k] + '：' + (scores[k] || 0); });
-                var sorted = keys.slice().sort(function(a, b) { return (scores[b] || 0) - (scores[a] || 0); });
-                var top5 = sorted.slice(0, 5);
-                var descParts = [];
-                if (top5.length) descParts.push('<strong>前幾個明顯偏好</strong><br>' + top5.map(function(k, i) { return (i + 1) + '. ' + PREFERENCE_LABELS[k] + '（' + (scores[k] || 0) + '）'; }).join(' '));
-                descParts.push('<strong>偏好分數</strong><br>' + lines.join('、'));
-                elResultDesc.innerHTML = descParts.join('<br><br>');
             }
             // 顯示/隱藏「儲存到我的檔案」（僅登入顯示按鈕）
             var saveWrap = document.getElementById('result-save-wrap');
