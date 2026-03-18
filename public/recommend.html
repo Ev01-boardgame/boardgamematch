@@ -1535,12 +1535,12 @@
         // 取得玩家對某遊戲的舊評分（未登入無評分）
         function getOldRating(gameName) {
             if (!currentUser) return null;
-            if ((currentUser.super_liked_games || []).includes(gameName)) return 'super_like';
-            if ((currentUser.liked_games || []).includes(gameName)) return 'like';
-            if ((currentUser.neutral_games || []).includes(gameName)) return 'neutral';
-            if ((currentUser.disliked_games || []).includes(gameName)) return 'dislike';
-            if ((currentUser.wishlist || []).includes(gameName)) return 'wishlist';
-            if ((currentUser.no_interest_games || []).includes(gameName)) return 'no_interest';
+            if (_isGameInList(gameName, currentUser.super_liked_games || [])) return 'super_like';
+            if (_isGameInList(gameName, currentUser.liked_games || [])) return 'like';
+            if (_isGameInList(gameName, currentUser.neutral_games || [])) return 'neutral';
+            if (_isGameInList(gameName, currentUser.disliked_games || [])) return 'dislike';
+            if (_isGameInList(gameName, currentUser.wishlist || [])) return 'wishlist';
+            if (_isGameInList(gameName, currentUser.no_interest_games || [])) return 'no_interest';
             return null;
         }
 
