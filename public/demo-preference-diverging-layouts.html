@@ -52,10 +52,63 @@
 
     /* ===== diverging bar ===== */
     .div-wrap { position: relative; height: 18px; border-radius: 999px; background: var(--bg-light); border: 1px solid var(--border-color); overflow: hidden; }
+    .div-wrap.endsOverlay { height: 22px; }
     .div-mid { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(148,163,184,0.85); transform: translateX(-1px); }
     .div-fillL, .div-fillR { position:absolute; top:0; bottom:0; }
     .div-fillL { right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
     .div-fillR { left: 50%; background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+
+    /* Ends overlay inside diverging bar (layouts 9-12) */
+    .div-endInBar {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      font-size: 0.78rem;
+      font-weight: 900;
+      padding: 0.18rem 0.42rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 44%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.01em;
+      pointer-events: none;
+      border: 1px solid transparent;
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.9;
+    }
+    .div-endInBar.left { left: 4px; }
+    .div-endInBar.right { right: 4px; }
+    .div-endInBar.left.active {
+      background: rgba(59,130,246,0.14);
+      border-color: rgba(59,130,246,0.35);
+      color: var(--text-color);
+    }
+    .div-endInBar.left.muted {
+      background: rgba(59,130,246,0.06);
+      border-color: rgba(59,130,246,0.20);
+      color: var(--text-light);
+      opacity: 0.65;
+    }
+    .div-endInBar.right.active {
+      background: rgba(236,72,153,0.14);
+      border-color: rgba(236,72,153,0.35);
+      color: var(--text-color);
+    }
+    .div-endInBar.right.muted {
+      background: rgba(236,72,153,0.06);
+      border-color: rgba(236,72,153,0.20);
+      color: var(--text-light);
+      opacity: 0.65;
+    }
+    .div-endInBar.neutralMuted {
+      background: rgba(148,163,184,0.10);
+      border-color: rgba(148,163,184,0.25);
+      color: var(--text-light);
+      opacity: 0.7;
+    }
 
     /* ===== layout variants ===== */
     .preview { display: grid; gap: 0.85rem; }
@@ -117,6 +170,27 @@
     .endText.left.active { color: var(--primary-color); }
     .endText.right.active { color: #db2777; }
 
+    /* Layout 6 pills */
+    .endTextPill {
+      padding: 0.28rem 0.55rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-light);
+      font-weight: 800;
+      white-space: nowrap;
+      color: var(--text-light);
+    }
+    .endTextPill.left.active {
+      color: var(--text-color);
+      border-color: rgba(59,130,246,0.35);
+      background: rgba(59,130,246,0.12);
+    }
+    .endTextPill.right.active {
+      color: var(--text-color);
+      border-color: rgba(236,72,153,0.35);
+      background: rgba(236,72,153,0.12);
+    }
+
     /* tiny badge for mode */
     .badge { font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--border-color); background: var(--bg-light); color: var(--text-light); display:inline-block; }
   </style>
@@ -150,6 +224,15 @@
             <option value="1">① 左右端 + 發散條（最直覺）</option>
             <option value="2">② 主導端徽章（強弱感）</option>
             <option value="3">③ 左右端環繞發散條</option>
+            <option value="4">④ 兩端徽章貼在條兩端（強弱感）</option>
+            <option value="5">⑤ 主導端放大徽章（貼條兩端）</option>
+            <option value="6">⑥ 活躍端膠囊（兩端都在）</option>
+            <option value="7">⑦ 單邊主導徽章 + 另一端淡字</option>
+            <option value="8">⑧ 強度調色的雙端徽章</option>
+            <option value="9">⑨ 發散條內嵌兩端文字/emoji（像 1+8）</option>
+            <option value="10">⑩ 發散條內嵌兩端文字/emoji（兩端同強）</option>
+            <option value="11">⑪ 主導端彩色底疊字、另一端灰底</option>
+            <option value="12">⑫ 兩端彩色但透明度隨強度</option>
           </select>
           <span class="badge" id="layoutBadge">—</span>
         </div>
@@ -165,7 +248,7 @@
       <section class="card">
         <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
           <h2 style="margin: 0; font-size: 1.05rem;">預覽</h2>
-          <div class="muted">選你喜歡的排版，回我 ①/②/③</div>
+          <div class="muted">選你喜歡的排版，回我 ①/②/③/④/⑤/⑥/⑦/⑧/⑨/⑩/⑪/⑫</div>
         </div>
         <div class="preview" id="preview"></div>
       </section>
@@ -204,9 +287,18 @@
       }
 
       function layoutName(layout) {
-        if (layout === '1') return '① 左右端 + 發散條';
-        if (layout === '2') return '② 主導端徽章';
-        if (layout === '3') return '③ 左右端環繞';
+        if (layout === '1') return '① 左右端（條下方）+ 發散條';
+        if (layout === '2') return '② 主導端徽章（條下方）';
+        if (layout === '3') return '③ 左右端環繞發散條';
+        if (layout === '4') return '④ 兩端徽章貼條兩端（強弱感）';
+        if (layout === '5') return '⑤ 主導端放大徽章（貼條兩端）';
+        if (layout === '6') return '⑥ 活躍端膠囊（兩端都在）';
+        if (layout === '7') return '⑦ 單邊主導徽章 + 另一端淡字';
+        if (layout === '8') return '⑧ 強度調色雙端徽章';
+        if (layout === '9') return '⑨ 發散條內嵌兩端文字/emoji（像 1+8）';
+        if (layout === '10') return '⑩ 發散條內嵌兩端文字/emoji（兩端同強）';
+        if (layout === '11') return '⑪ 主導端彩色、另一端灰底';
+        if (layout === '12') return '⑫ 兩端彩色透明度隨強度';
         return layout;
       }
 
@@ -263,10 +355,79 @@
           '</div>';
       }
 
+      function renderDivergeBarWithEnds(v, a, side, strength, variant) {
+        var parts = divergingFillStyles(v);
+        var leftClass = 'div-endInBar left';
+        var rightClass = 'div-endInBar right';
+        var leftStyle = '';
+        var rightStyle = '';
+
+        if (variant === '9' || variant === '11') {
+          var leftActive = side === 'left';
+          var rightActive = side === 'right';
+          var isNeutral = side === 'neutral';
+
+          if (variant === '9') {
+            // 9：主導彩色、另一端淡彩色，neutral 兩端灰
+            if (isNeutral) {
+              leftClass = 'div-endInBar left neutralMuted';
+              rightClass = 'div-endInBar right neutralMuted';
+            } else {
+              leftClass = 'div-endInBar left ' + (leftActive ? 'active' : 'muted');
+              rightClass = 'div-endInBar right ' + (rightActive ? 'active' : 'muted');
+            }
+          } else {
+            // 11：主導彩色、另一端灰底，neutral 兩端灰
+            if (isNeutral) {
+              leftClass = 'div-endInBar left neutralMuted';
+              rightClass = 'div-endInBar right neutralMuted';
+            } else {
+              leftClass = 'div-endInBar left ' + (leftActive ? 'active' : 'neutralMuted');
+              rightClass = 'div-endInBar right ' + (rightActive ? 'active' : 'neutralMuted');
+            }
+          }
+        } else if (variant === '10') {
+          // 10：兩端同強（兩端都用 active）
+          leftClass = 'div-endInBar left active';
+          rightClass = 'div-endInBar right active';
+        } else if (variant === '12') {
+          // 12：透明度隨強度（兩端彩色，但主導端更濃）
+          var leftAlpha8 = side === 'left' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
+          var rightAlpha8 = side === 'right' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
+          if (side === 'neutral') { leftAlpha8 = 0.18; rightAlpha8 = 0.18; }
+
+          var leftBorderAlpha = Math.min(0.6, leftAlpha8 * 1.4);
+          var rightBorderAlpha = Math.min(0.6, rightAlpha8 * 1.4);
+          var leftColor = (side === 'left' || side === 'neutral') ? 'var(--text-color)' : 'var(--text-light)';
+          var rightColor = (side === 'right' || side === 'neutral') ? 'var(--text-color)' : 'var(--text-light)';
+          var leftOpacity = (side === 'left') ? (0.95) : (0.70 + (1 - strength) * 0.15);
+          var rightOpacity = (side === 'right') ? (0.95) : (0.70 + (1 - strength) * 0.15);
+
+          leftClass = 'div-endInBar left';
+          rightClass = 'div-endInBar right';
+          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); border-color:rgba(59,130,246,' + leftBorderAlpha + '); color:' + leftColor + '; opacity:' + leftOpacity + ';';
+          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); border-color:rgba(236,72,153,' + rightBorderAlpha + '); color:' + rightColor + '; opacity:' + rightOpacity + ';';
+        } else {
+          // fallback：兩端灰
+          leftClass = 'div-endInBar left neutralMuted';
+          rightClass = 'div-endInBar right neutralMuted';
+        }
+
+        return '' +
+          '<div class="div-wrap endsOverlay" role="img" aria-label="偏好 ' + v + '/12">' +
+            '<div class="div-mid"></div>' +
+            '<div class="div-fillL" style="width:' + parts.leftW + '%;"></div>' +
+            '<div class="div-fillR" style="width:' + parts.rightW + '%;"></div>' +
+            '<div class="' + leftClass + '"' + (leftStyle ? (' style="' + leftStyle + '"') : '') + '>' + a.left + '</div>' +
+            '<div class="' + rightClass + '"' + (rightStyle ? (' style="' + rightStyle + '"') : '') + '>' + a.right + '</div>' +
+          '</div>';
+      }
+
       function renderRowAxis(a) {
         var v = clamp012(state.values[a.key]);
         var parts = divergingFillStyles(v);
         var side = dominantSide(parts.delta);
+        var strength = Math.abs(parts.delta) / 6; // 0..1
 
         // 只留下左右端 emoji+文字；不顯示 v/12、也不顯示「三組」資訊
         if (state.layout === '1') {
@@ -274,9 +435,9 @@
             '<div class="axis-row layout-1">' +
               '<div class="axis-name">' + a.label + '</div>' +
               '<div>' +
-                '<div class="barWithEnds">' +
+                '<div>' + renderDivergeBar(v) + '</div>' +
+                '<div class="ends">' +
                   '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
-                  renderDivergeBar(v) +
                   '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
                 '</div>' +
               '</div>' +
@@ -302,7 +463,148 @@
             '</div>';
         }
 
-        // layout 3
+        if (state.layout === '3') {
+          return '' +
+            '<div class="axis-row layout-3">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="endText left ' + (side === 'left' ? 'active' : '') + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="endText right ' + (side === 'right' ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '4') {
+          var leftMuted4 = side === 'right' ? 'muted' : '';
+          var rightMuted4 = side === 'left' ? 'muted' : '';
+          if (side === 'neutral') { leftMuted4 = ''; rightMuted4 = ''; }
+          return '' +
+            '<div class="axis-row layout-4">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left ' + leftMuted4 + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right ' + rightMuted4 + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '5') {
+          var leftActive5 = side === 'left';
+          var rightActive5 = side === 'right';
+          var leftScale5 = side === 'neutral' ? 1 : (leftActive5 ? (1 + strength * 0.28) : (1 - strength * 0.12));
+          var rightScale5 = side === 'neutral' ? 1 : (rightActive5 ? (1 + strength * 0.28) : (1 - strength * 0.12));
+          return '' +
+            '<div class="axis-row layout-5">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left" style="transform:scale(' + leftScale5 + '); transform-origin:center;">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right" style="transform:scale(' + rightScale5 + '); transform-origin:center;">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '6') {
+          var leftActive6 = side === 'left';
+          var rightActive6 = side === 'right';
+          if (side === 'neutral') { leftActive6 = false; rightActive6 = false; }
+          return '' +
+            '<div class="axis-row layout-6">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="endTextPill left ' + (leftActive6 ? 'active' : '') + '">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="endTextPill right ' + (rightActive6 ? 'active' : '') + '">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '7') {
+          var leftActive7 = side === 'left';
+          var rightActive7 = side === 'right';
+          var leftNode7 = leftActive7
+            ? ('<div class="chip left">' + a.left + '</div>')
+            : ('<div class="endText left" style="opacity:0.55;">' + a.left + '</div>');
+          var rightNode7 = rightActive7
+            ? ('<div class="chip right">' + a.right + '</div>')
+            : ('<div class="endText right" style="opacity:0.55;">' + a.right + '</div>');
+          if (side === 'neutral') {
+            leftNode7 = '<div class="chip left muted">' + a.left + '</div>';
+            rightNode7 = '<div class="chip right muted">' + a.right + '</div>';
+          }
+          return '' +
+            '<div class="axis-row layout-7">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  leftNode7 +
+                  renderDivergeBar(v) +
+                  rightNode7 +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '8') {
+          var leftAlpha8 = side === 'left' ? (0.06 + strength * 0.26) : (0.06 + (1 - strength) * 0.10);
+          var rightAlpha8 = side === 'right' ? (0.06 + strength * 0.26) : (0.06 + (1 - strength) * 0.10);
+          if (side === 'neutral') { leftAlpha8 = 0.14; rightAlpha8 = 0.14; }
+          return '' +
+            '<div class="axis-row layout-8">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' +
+                '<div class="barWithEnds">' +
+                  '<div class="chip left" style="background:rgba(59,130,246,' + leftAlpha8 + '); border-color:rgba(59,130,246,' + (leftAlpha8 * 1.2) + ');">' + a.left + '</div>' +
+                  renderDivergeBar(v) +
+                  '<div class="chip right" style="background:rgba(236,72,153,' + rightAlpha8 + '); border-color:rgba(236,72,153,' + (rightAlpha8 * 1.2) + ');">' + a.right + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '9') {
+          return '' +
+            '<div class="axis-row layout-9">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '9') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '10') {
+          return '' +
+            '<div class="axis-row layout-10">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '10') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '11') {
+          return '' +
+            '<div class="axis-row layout-11">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '11') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '12') {
+          return '' +
+            '<div class="axis-row layout-12">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '12') + '</div>' +
+            '</div>';
+        }
+
+        // fallback: layout 3
         return '' +
           '<div class="axis-row layout-3">' +
             '<div class="axis-name">' + a.label + '</div>' +
