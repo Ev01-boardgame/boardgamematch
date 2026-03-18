@@ -94,6 +94,28 @@
         }
         .test-q-num { font-size: 0.8rem; font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem; }
         .test-q-text { font-size: 1.1rem; font-weight: 600; line-height: 1.6; color: var(--text-color); margin-bottom: 1.25rem; }
+        .test-q-axis-hint {
+            display: none;
+            margin: -0.9rem 0 1rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.75rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+        .test-q-axis-hint.show { display: block; }
+        .test-q-axis-hint .axis-ends {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-top: 0.35rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .test-q-axis-hint .axis-ends span { flex: 1; }
+        .test-q-axis-hint .axis-ends span:last-child { text-align: right; }
         .test-options { display: grid; gap: 0.75rem; }
         .test-opt-btn {
             width: 100%;
@@ -270,6 +292,7 @@
                     <div class="test-q-card">
                         <div class="test-q-num" id="q-num">題目 1</div>
                         <div class="test-q-text" id="q-text"></div>
+                        <div class="test-q-axis-hint" id="q-axis-hint"></div>
                         <div class="test-options" id="q-options"></div>
                         <div class="test-next-wrap">
                             <button type="button" class="test-next-btn" id="btn-next" disabled>下一題</button>
@@ -368,6 +391,15 @@
             entry: '門檻', mood: '氛圍', control: '勝負（運氣↔策略）',
             openness: '心態（磊落↔心機）', sociality: '互動', competition: '立場（合作↔對抗）'
         };
+        // 用於端點文案（Issue #55：避免「左端/右端」含糊不清）
+        var PREFERENCE_AXIS_META = {
+            entry:       { label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+            mood:        { label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+            control:     { label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+            sociality:   { label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+            openness:    { label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+            competition: { label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+        };
         var PREFERENCE_GROUPS = { all: ['entry', 'mood', 'control', 'openness', 'sociality', 'competition'] };
 
         // 題庫：與 demo-axes-player-6axes.html 保持同步（可之後再擴充）
@@ -451,13 +483,14 @@
             return picked.map(function(q) {
                 var axisKey = q.axis;
                 var w = q.weights[axisKey] || { left: -2, right: 2 };
+                var meta = PREFERENCE_AXIS_META[axisKey] || { label: PREFERENCE_LABELS[axisKey] || axisKey, left: '左端', right: '右端' };
                 return {
                     text: q.text,
                     axis: axisKey,
                     options: shuffle([
-                        { text: '比較偏向左端敘述', scores: buildAxisScore(axisKey, w.left) },
+                        { text: '比較偏向「' + meta.left + '」', scores: buildAxisScore(axisKey, w.left) },
                         { text: '兩邊都可以／看情況', scores: {} },
-                        { text: '比較偏向右端敘述', scores: buildAxisScore(axisKey, w.right) }
+                        { text: '比較偏向「' + meta.right + '」', scores: buildAxisScore(axisKey, w.right) }
                     ])
                 };
             });
@@ -496,6 +529,7 @@
         var elProgressFill = document.getElementById('progress-fill');
         var elQNum = document.getElementById('q-num');
         var elQText = document.getElementById('q-text');
+        var elQAxisHint = document.getElementById('q-axis-hint');
         var elQOptions = document.getElementById('q-options');
         var elBtnNext = document.getElementById('btn-next');
         var elResultEmoji = document.getElementById('result-emoji');
@@ -636,6 +670,10 @@
             elQOptions.innerHTML = '';
             state.selectedIndex = -1;
             elBtnNext.disabled = true;
+            if (elQAxisHint) {
+                elQAxisHint.classList.remove('show');
+                elQAxisHint.textContent = '';
+            }
 
             var c = TEST_CONFIG[state.testId];
             if (c.resultType === 'mbti') {
@@ -660,6 +698,13 @@
                     elQOptions.appendChild(btn);
                 });
             } else {
+                if (c.resultType === 'preference' && elQAxisHint) {
+                    var meta = PREFERENCE_AXIS_META[q.axis] || { label: PREFERENCE_LABELS[q.axis] || q.axis, left: '左端', right: '右端' };
+                    elQAxisHint.innerHTML =
+                        '<div><strong>此題對應：</strong>' + meta.label + '（左 ↔ 右）</div>' +
+                        '<div class="axis-ends"><span>' + meta.left + '</span><span>' + meta.right + '</span></div>';
+                    elQAxisHint.classList.add('show');
+                }
                 q.options.forEach(function(opt, i) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
@@ -712,17 +757,10 @@
         }
 
         function buildPreferenceSliders(scores) {
-            var axes = [
-                { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
-                { key: 'mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
-                { key: 'control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
-                { key: 'sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
-                { key: 'openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
-                { key: 'competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
-            ];
             var html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.75rem;">';
-            axes.forEach(function(a) {
-                var v = mapAxisScoreTo012(scores[a.key] || 0);
+            PREFERENCE_GROUPS.all.forEach(function(axisKey) {
+                var a = PREFERENCE_AXIS_META[axisKey] || { label: PREFERENCE_LABELS[axisKey] || axisKey, left: '左端', right: '右端' };
+                var v = mapAxisScoreTo012(scores[axisKey] || 0);
                 var pct = (v / 12) * 100;
                 html += '<div style="display:flex;flex-direction:column;gap:0.25rem;">' +
                     '<div style="font-size:0.85rem;font-weight:600;">' + a.label + '</div>' +
