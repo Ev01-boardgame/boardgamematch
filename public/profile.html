@@ -528,10 +528,15 @@
 
             <!-- 我的主題清單快速入口 -->
             <section style="margin-bottom: 3rem;" id="explore-list-section">
-                <div style="background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 1rem; box-shadow: var(--shadow-md);">
-                    <h2 style="font-size: 1.3rem; margin-bottom: 0.3rem;">📚 我的主題清單</h2>
-                    <p style="color:var(--text-light); font-size:0.9rem; margin:0;" id="explore-list-summary">載入中...</p>
-                </div>
+                <a href="my-collections.html" style="text-decoration:none; color:inherit; display:block;">
+                    <div style="background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 1rem; box-shadow: var(--shadow-md); transition: box-shadow 0.2s, transform 0.2s; cursor:pointer;" onmouseover="this.style.boxShadow='var(--shadow-lg)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='var(--shadow-md)';this.style.transform=''">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h2 style="font-size: 1.3rem; margin-bottom: 0.3rem;">📚 我的主題清單</h2>
+                            <span style="color:var(--text-light); font-size:1.2rem;">›</span>
+                        </div>
+                        <p style="color:var(--text-light); font-size:0.9rem; margin:0;" id="explore-list-summary">載入中...</p>
+                    </div>
+                </a>
             </section>
 
             <!-- 推薦區域 -->
@@ -1418,7 +1423,7 @@
                     GameMBTI.getUserStats(currentUser.id),
                     GameMBTI.getAllAchievements().catch(() => []),
                     fetchAllPages('tables/game_votes').then(d => ({ data: d.filter(v => v.user_id === currentUser.id) })).catch(() => ({ data: [] })),
-                    fetchAllPages('tables/user_collections').then(d => ({ data: d.filter(c => c.user_id === currentUser.id) })).catch(() => ({ data: [] })),
+                    fetchAllPages('tables/user_collections').then(d => ({ data: d.filter(c => c.created_by === currentUser.id) })).catch(() => ({ data: [] })),
                 ]);
 
                 // ③ 從已抓到的資料計算各項統計
@@ -3278,10 +3283,8 @@
             const el = document.getElementById('explore-list-summary');
             if (!el || !currentUser) return;
             try {
-                const r = await fetch(`tables/user_collections?limit=100`);
-                if (!r.ok) throw new Error();
-                const d = await r.json();
-                const mine = (d.data || []).filter(c => c.created_by === currentUser.id);
+                const allCollections = await fetchAllPages('tables/user_collections');
+                const mine = allCollections.filter(c => c.created_by === currentUser.id);
                 if (mine.length === 0) {
                     el.textContent = '還沒有建立任何主題清單，點「管理清單」開始吧！';
                 } else {
