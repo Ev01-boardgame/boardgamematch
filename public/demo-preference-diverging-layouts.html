@@ -74,7 +74,7 @@
       text-overflow: ellipsis;
       letter-spacing: 0.01em;
       pointer-events: none;
-      border: none;
+      border: 1px solid transparent;
       background: rgba(148,163,184,0.10);
       color: var(--text-light);
       opacity: 0.9;
@@ -83,26 +83,35 @@
     .div-endInBar.right { right: 4px; }
     .div-endInBar.left.active {
       background: rgba(59,130,246,0.14);
+      border-color: rgba(59,130,246,0.35);
       color: var(--text-color);
     }
     .div-endInBar.left.muted {
       background: rgba(59,130,246,0.06);
+      border-color: rgba(59,130,246,0.20);
       color: var(--text-light);
       opacity: 0.65;
     }
     .div-endInBar.right.active {
       background: rgba(236,72,153,0.14);
+      border-color: rgba(236,72,153,0.35);
       color: var(--text-color);
     }
     .div-endInBar.right.muted {
       background: rgba(236,72,153,0.06);
+      border-color: rgba(236,72,153,0.20);
       color: var(--text-light);
       opacity: 0.65;
     }
     .div-endInBar.neutralMuted {
       background: rgba(148,163,184,0.10);
+      border-color: rgba(148,163,184,0.25);
       color: var(--text-light);
       opacity: 0.7;
+    }
+
+    .div-endInBar.noFrame {
+      border: none !important;
     }
 
     /* ===== layout variants ===== */
@@ -220,6 +229,10 @@
             <option value="10">⑩ 發散條內嵌兩端文字/emoji（兩端同強）</option>
             <option value="11">⑪ 主導端彩色底疊字、另一端灰底</option>
             <option value="12">⑫ 兩端彩色但透明度隨強度</option>
+            <option value="13">⑬ 發散條內嵌兩端文字/emoji（像 1+8，無外框）</option>
+            <option value="14">⑭ 發散條內嵌兩端文字/emoji（兩端同強，無外框）</option>
+            <option value="15">⑮ 主導端彩色底疊字、另一端灰底（無外框）</option>
+            <option value="16">⑯ 兩端彩色但透明度隨強度（無外框）</option>
           </select>
           <span class="badge" id="layoutBadge">—</span>
         </div>
@@ -235,7 +248,7 @@
       <section class="card">
         <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
           <h2 style="margin: 0; font-size: 1.05rem;">預覽</h2>
-          <div class="muted">選你喜歡的排版，回我 ⑨/⑩/⑪/⑫</div>
+          <div class="muted">選你喜歡的排版，回我 ⑨/⑩/⑪/⑫/⑬/⑭/⑮/⑯</div>
         </div>
         <div class="preview" id="preview"></div>
       </section>
@@ -286,6 +299,10 @@
         if (layout === '10') return '⑩ 發散條內嵌兩端文字/emoji（兩端同強）';
         if (layout === '11') return '⑪ 主導端彩色、另一端灰底';
         if (layout === '12') return '⑫ 兩端彩色透明度隨強度';
+        if (layout === '13') return '⑬ 9 的無外框版';
+        if (layout === '14') return '⑭ 10 的無外框版';
+        if (layout === '15') return '⑮ 11 的無外框版';
+        if (layout === '16') return '⑯ 12 的無外框版';
         return layout;
       }
 
@@ -349,12 +366,20 @@
         var leftStyle = '';
         var rightStyle = '';
 
-        if (variant === '9' || variant === '11') {
+        // 13-16 是 9-12 的無外框版本
+        var noFrame = (variant === '13' || variant === '14' || variant === '15' || variant === '16');
+        var baseVariant = variant;
+        if (variant === '13') baseVariant = '9';
+        if (variant === '14') baseVariant = '10';
+        if (variant === '15') baseVariant = '11';
+        if (variant === '16') baseVariant = '12';
+
+        if (baseVariant === '9' || baseVariant === '11') {
           var leftActive = side === 'left';
           var rightActive = side === 'right';
           var isNeutral = side === 'neutral';
 
-          if (variant === '9') {
+          if (baseVariant === '9') {
             // 9：主導彩色、另一端淡彩色，neutral 兩端灰
             if (isNeutral) {
               leftClass = 'div-endInBar left neutralMuted';
@@ -373,11 +398,11 @@
               rightClass = 'div-endInBar right ' + (rightActive ? 'active' : 'neutralMuted');
             }
           }
-        } else if (variant === '10') {
+        } else if (baseVariant === '10') {
           // 10：兩端同強（兩端都用 active）
           leftClass = 'div-endInBar left active';
           rightClass = 'div-endInBar right active';
-        } else if (variant === '12') {
+        } else if (baseVariant === '12') {
           // 12：透明度隨強度（兩端彩色，但主導端更濃）
           var leftAlpha8 = side === 'left' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
           var rightAlpha8 = side === 'right' ? (0.10 + strength * 0.35) : (0.06 + (1 - strength) * 0.10);
@@ -392,12 +417,17 @@
 
           leftClass = 'div-endInBar left';
           rightClass = 'div-endInBar right';
-          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); color:' + leftColor + '; opacity:' + leftOpacity + ';';
-          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); color:' + rightColor + '; opacity:' + rightOpacity + ';';
+          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); color:' + leftColor + '; opacity:' + leftOpacity + '; border-color:rgba(59,130,246,' + leftBorderAlpha + ');';
+          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); color:' + rightColor + '; opacity:' + rightOpacity + '; border-color:rgba(236,72,153,' + rightBorderAlpha + ');';
         } else {
           // fallback：兩端灰
           leftClass = 'div-endInBar left neutralMuted';
           rightClass = 'div-endInBar right neutralMuted';
+        }
+
+        if (noFrame) {
+          leftClass += ' noFrame';
+          rightClass += ' noFrame';
         }
 
         return '' +
@@ -588,6 +618,38 @@
             '<div class="axis-row layout-12">' +
               '<div class="axis-name">' + a.label + '</div>' +
               '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '12') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '13') {
+          return '' +
+            '<div class="axis-row layout-13">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '13') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '14') {
+          return '' +
+            '<div class="axis-row layout-14">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '14') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '15') {
+          return '' +
+            '<div class="axis-row layout-15">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '15') + '</div>' +
+            '</div>';
+        }
+
+        if (state.layout === '16') {
+          return '' +
+            '<div class="axis-row layout-16">' +
+              '<div class="axis-name">' + a.label + '</div>' +
+              '<div>' + renderDivergeBarWithEnds(v, a, side, strength, '16') + '</div>' +
             '</div>';
         }
 
