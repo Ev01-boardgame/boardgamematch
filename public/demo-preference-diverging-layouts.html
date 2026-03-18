@@ -74,7 +74,7 @@
       text-overflow: ellipsis;
       letter-spacing: 0.01em;
       pointer-events: none;
-      border: 1px solid transparent;
+      border: none;
       background: rgba(148,163,184,0.10);
       color: var(--text-light);
       opacity: 0.9;
@@ -83,29 +83,24 @@
     .div-endInBar.right { right: 4px; }
     .div-endInBar.left.active {
       background: rgba(59,130,246,0.14);
-      border-color: rgba(59,130,246,0.35);
       color: var(--text-color);
     }
     .div-endInBar.left.muted {
       background: rgba(59,130,246,0.06);
-      border-color: rgba(59,130,246,0.20);
       color: var(--text-light);
       opacity: 0.65;
     }
     .div-endInBar.right.active {
       background: rgba(236,72,153,0.14);
-      border-color: rgba(236,72,153,0.35);
       color: var(--text-color);
     }
     .div-endInBar.right.muted {
       background: rgba(236,72,153,0.06);
-      border-color: rgba(236,72,153,0.20);
       color: var(--text-light);
       opacity: 0.65;
     }
     .div-endInBar.neutralMuted {
       background: rgba(148,163,184,0.10);
-      border-color: rgba(148,163,184,0.25);
       color: var(--text-light);
       opacity: 0.7;
     }
@@ -221,14 +216,6 @@
         <div class="row">
           <label class="muted" for="layoutSel">呈現排版</label>
           <select id="layoutSel" class="select">
-            <option value="1">① 左右端 + 發散條（最直覺）</option>
-            <option value="2">② 主導端徽章（強弱感）</option>
-            <option value="3">③ 左右端環繞發散條</option>
-            <option value="4">④ 兩端徽章貼在條兩端（強弱感）</option>
-            <option value="5">⑤ 主導端放大徽章（貼條兩端）</option>
-            <option value="6">⑥ 活躍端膠囊（兩端都在）</option>
-            <option value="7">⑦ 單邊主導徽章 + 另一端淡字</option>
-            <option value="8">⑧ 強度調色的雙端徽章</option>
             <option value="9">⑨ 發散條內嵌兩端文字/emoji（像 1+8）</option>
             <option value="10">⑩ 發散條內嵌兩端文字/emoji（兩端同強）</option>
             <option value="11">⑪ 主導端彩色底疊字、另一端灰底</option>
@@ -248,7 +235,7 @@
       <section class="card">
         <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
           <h2 style="margin: 0; font-size: 1.05rem;">預覽</h2>
-          <div class="muted">選你喜歡的排版，回我 ①/②/③/④/⑤/⑥/⑦/⑧/⑨/⑩/⑪/⑫</div>
+          <div class="muted">選你喜歡的排版，回我 ⑨/⑩/⑪/⑫</div>
         </div>
         <div class="preview" id="preview"></div>
       </section>
@@ -269,7 +256,7 @@
       ];
 
       var state = {
-        layout: '1',
+        layout: '9',
         values: AXES.reduce(function(acc, a) { acc[a.key] = 6; return acc; }, {})
       };
 
@@ -405,8 +392,8 @@
 
           leftClass = 'div-endInBar left';
           rightClass = 'div-endInBar right';
-          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); border-color:rgba(59,130,246,' + leftBorderAlpha + '); color:' + leftColor + '; opacity:' + leftOpacity + ';';
-          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); border-color:rgba(236,72,153,' + rightBorderAlpha + '); color:' + rightColor + '; opacity:' + rightOpacity + ';';
+          leftStyle = 'background:rgba(59,130,246,' + leftAlpha8 + '); color:' + leftColor + '; opacity:' + leftOpacity + ';';
+          rightStyle = 'background:rgba(236,72,153,' + rightAlpha8 + '); color:' + rightColor + '; opacity:' + rightOpacity + ';';
         } else {
           // fallback：兩端灰
           leftClass = 'div-endInBar left neutralMuted';
