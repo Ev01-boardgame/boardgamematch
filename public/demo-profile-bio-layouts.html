@@ -150,6 +150,131 @@
       text-align: left;
     }
 
+    /* ===== Preferences card (layout 17 only) ===== */
+    .demo-pref-card {
+      margin-top: 0.75rem;
+      padding: 0.9rem 1rem 0.75rem;
+      border-radius: 1rem;
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg);
+      box-shadow: var(--shadow-sm);
+    }
+    .demo-pref-title {
+      font-weight: 900;
+      color: var(--text-color);
+      margin-bottom: 0.65rem;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .demo-pref-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .demo-pref-btn {
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-color);
+      background: var(--bg-light);
+      font-weight: 900;
+      cursor: pointer;
+      color: var(--text-color);
+      font-size: 0.82rem;
+    }
+
+    .demo17-axis-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      margin-bottom: 0.55rem;
+    }
+    .demo17-axis-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .demo17-axis-label {
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--text-color);
+      white-space: nowrap;
+    }
+    .demo17-axis-meta {
+      color: var(--text-light);
+      font-weight: 700;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .demo17-pref-row {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    /* Diverging bar (layout 17: ends inside bar, 0px inset) */
+    .demo17-bar-wrap {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .demo17-bar-wrap.endsOverlay { height: 22px; }
+    .demo17-bar-mid {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: rgba(148,163,184,0.85);
+      transform: translateX(-1px);
+    }
+    .demo17-fillL, .demo17-fillR { position: absolute; top: 0; bottom: 0; }
+    .demo17-fillL { right: 50%; background: linear-gradient(90deg, rgba(59,130,246,0.10), rgba(59,130,246,0.55)); }
+    .demo17-fillR { left: 50%; background: linear-gradient(90deg, rgba(236,72,153,0.55), rgba(236,72,153,0.10)); }
+
+    .demo17-endInBar {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      font-size: 0.78rem;
+      font-weight: 900;
+      padding: 0.18rem 0.42rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 44%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      border: none;
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.9;
+    }
+    .demo17-endInBar.left { left: 0px; }
+    .demo17-endInBar.right { right: 0px; }
+    .demo17-endInBar.left.active {
+      background: rgba(59,130,246,0.14);
+      color: var(--text-color);
+    }
+    .demo17-endInBar.right.active {
+      background: rgba(236,72,153,0.14);
+      color: var(--text-color);
+    }
+    .demo17-endInBar.neutralMuted {
+      background: rgba(148,163,184,0.10);
+      color: var(--text-light);
+      opacity: 0.7;
+    }
+
     /* ================== Layout variants ================== */
     /* 201：目前風格（bio 在 created-at 下方、固定 margin-top） */
     .layout-201 .bio-card { margin-top: 0.4rem; }
@@ -224,7 +349,17 @@
             <div class="btn-lite">📝 編輯簡介（占位）</div>
             <div class="btn-lite">✏️ 編輯桌遊（占位）</div>
           </div>
-          <!-- 不放偏好/發散條，避免你在挑 bio 的時候被其它東西干擾 -->
+
+          <div class="demo-pref-card" id="demoPrefCard">
+            <div class="demo-pref-title">
+              <span>🎯 桌遊偏好（layout 17 卡片）</span>
+              <div class="demo-pref-actions">
+                <button class="demo-pref-btn" id="btnPrefNeutral" type="button">全中立</button>
+                <button class="demo-pref-btn" id="btnPrefRandom" type="button">隨機</button>
+              </div>
+            </div>
+            <div id="demoPrefBody"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -237,6 +372,111 @@
       var preview = document.getElementById('preview');
       var btn = document.getElementById('btnToggleBio');
       var bio = document.getElementById('bioCardDemo');
+      var demoPrefBody = document.getElementById('demoPrefBody');
+      var btnPrefNeutral = document.getElementById('btnPrefNeutral');
+      var btnPrefRandom = document.getElementById('btnPrefRandom');
+
+      var AXES = [
+        { key: 'entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
+        { key: 'mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
+        { key: 'control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
+        { key: 'sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
+        { key: 'openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
+        { key: 'competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
+      ];
+
+      function renderDivergingBar17(v, a) {
+        var delta = v - 6; // -6..+6
+        var abs = Math.abs(delta) / 6; // 0..1
+        var w = Math.round(abs * 50);
+        var leftW = delta < 0 ? w : 0;
+        var rightW = delta > 0 ? w : 0;
+        var side = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'neutral');
+        var leftEndClass = 'demo17-endInBar left ' + (side === 'left' ? 'active' : 'neutralMuted');
+        var rightEndClass = 'demo17-endInBar right ' + (side === 'right' ? 'active' : 'neutralMuted');
+
+        return '' +
+          '<div class="demo17-pref-row">' +
+            '<div class="demo17-axis-label">' + a.label + '</div>' +
+            '<div class="demo17-bar-wrap endsOverlay" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+              '<div class="demo17-bar-mid"></div>' +
+              '<div class="demo17-fillL" style="width:' + leftW * 2 + '%; right:50%;"></div>' +
+              '<div class="demo17-fillR" style="width:' + rightW * 2 + '%; left:50%;"></div>' +
+              // ends inside bar
+              '<div class="' + leftEndClass + '">' + a.left + '</div>' +
+              '<div class="' + rightEndClass + '">' + a.right + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      function divergingFillStyles(v) {
+        var delta = v - 6;
+        var abs = Math.abs(delta) / 6;
+        var w = Math.round(abs * 50);
+        return {
+          leftW: delta < 0 ? w : 0,
+          rightW: delta > 0 ? w : 0
+        };
+      }
+
+      function renderDivergingBar17Fixed(v, a) {
+        var parts = divergingFillStyles(v);
+        var delta = v - 6;
+        var side = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'neutral');
+        var leftEndClass = 'demo17-endInBar left ' + (side === 'left' ? 'active' : 'neutralMuted');
+        var rightEndClass = 'demo17-endInBar right ' + (side === 'right' ? 'active' : 'neutralMuted');
+
+        return '' +
+          '<div class="demo17-pref-row">' +
+            '<div class="demo17-axis-label">' + a.label + '</div>' +
+            '<div class="demo17-bar-wrap endsOverlay" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
+              '<div class="demo17-bar-mid"></div>' +
+              '<div class="demo17-fillL" style="width:' + parts.leftW + '%;"></div>' +
+              '<div class="demo17-fillR" style="width:' + parts.rightW + '%;"></div>' +
+              '<div class="' + leftEndClass + '">' + a.left + '</div>' +
+              '<div class="' + rightEndClass + '">' + a.right + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      var prefState = {
+        entry: 3,
+        mood: 11,
+        control: 6,
+        sociality: 2,
+        openness: 0,
+        competition: 9
+      };
+
+      function renderPref() {
+        if (!demoPrefBody) return;
+        demoPrefBody.innerHTML = AXES.map(function(a) {
+          var v = Number(prefState[a.key] ?? 6);
+          if (isNaN(v)) v = 6;
+          if (v < 0) v = 0;
+          if (v > 12) v = 12;
+          v = Math.round(v);
+          return '<div class="demo17-axis-row">' + renderDivergingBar17Fixed(v, a) + '</div>';
+        }).join('');
+      }
+
+      function random012() {
+        return Math.floor(Math.random() * 13);
+      }
+
+      if (btnPrefNeutral) {
+        btnPrefNeutral.addEventListener('click', function () {
+          AXES.forEach(function(a) { prefState[a.key] = 6; });
+          renderPref();
+        });
+      }
+
+      if (btnPrefRandom) {
+        btnPrefRandom.addEventListener('click', function () {
+          AXES.forEach(function(a) { prefState[a.key] = random012(); });
+          renderPref();
+        });
+      }
 
       function setLayout(val) {
         preview.className = preview.className.replace(/\\blayout-\\d+\\b/g, ' ').trim();
@@ -250,6 +490,8 @@
       btn.addEventListener('click', function () {
         bio.classList.toggle('show');
       });
+
+      renderPref();
     })();
   </script>
 </body>
