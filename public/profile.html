@@ -55,6 +55,7 @@
             border: 1.5px solid var(--border-color);
             overflow: hidden;
         }
+        .pref-card.collection-card { overflow: visible; }
         .pref-card-header {
             padding: 1.25rem 1.5rem 0;
         }
@@ -92,59 +93,6 @@
         .pref-tab.owned.active { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
         .pref-tab.buy.active   { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
         .pref-tab-divider { height: 2px; background: var(--border-color); margin: 1rem 0 0; }
-        .collection-add-row { display:flex; gap:0.45rem; margin-top:0.25rem; }
-        .collection-add-row .ac-wrap { position: relative; flex: 1; }
-        .collection-input {
-            width: 100%;
-            padding: 0.45rem 0.65rem;
-            border: 1.5px solid var(--border-color);
-            border-radius: 0.55rem;
-            background: var(--bg-color);
-            color: var(--text-color);
-            font-size: 0.85rem;
-            box-sizing: border-box;
-        }
-        .collection-input:focus { outline: none; border-color: var(--primary-color); }
-        .collection-ac-dropdown {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            right: 0;
-            background: var(--card-bg);
-            border: 1.5px solid var(--primary-color);
-            border-radius: 0.55rem;
-            box-shadow: var(--shadow-md);
-            max-height: 240px;
-            overflow-y: auto;
-            z-index: 20;
-            display: none;
-        }
-        .collection-ac-dropdown.open { display: block; }
-        .collection-ac-item {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.45rem 0.55rem;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .collection-ac-item:last-child { border-bottom: none; }
-        .collection-ac-item:hover, .collection-ac-item.highlighted { background: var(--bg-color); }
-        .collection-ac-name { display:flex; flex-direction:column; min-width:0; }
-        .collection-ac-name-zh { font-size:0.82rem; font-weight:600; color:var(--text-color); }
-        .collection-ac-name-en { font-size:0.74rem; color:var(--text-light); }
-        .collection-tag-remove {
-            margin-left: 0.35rem;
-            border: none;
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-            opacity: 0.7;
-            font-size: 0.8rem;
-            line-height: 1;
-            padding: 0;
-        }
-        .collection-tag-remove:hover { opacity: 1; }
         .pref-card-body { padding: 1.25rem 1.5rem; min-height: 80px; }
         .pref-panel { display: none; flex-wrap: wrap; gap: 0.5rem; }
         .pref-panel.active { display: flex; }
@@ -477,6 +425,7 @@
                                 <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
                                 <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
                                 <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
+                                <a href="edit-game-collection.html" class="btn btn-secondary">🏠 編輯遊戲收藏</a>
                                 <a href="rankings.html" class="btn btn-secondary">🥇 編輯排行榜</a>
                                 <button class="btn btn-secondary" onclick="profileLogout()"
                                         style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
@@ -600,7 +549,7 @@
                 </div>
 
                 <!-- ── 卡片三：我的遊戲收藏 ── -->
-                <div class="pref-card" style="margin-top:1.5rem;">
+                <div class="pref-card collection-card" style="margin-top:1.5rem;">
                     <div class="pref-card-header">
                         <h2 class="pref-card-title">🏠 我的遊戲收藏</h2>
                         <div class="pref-tab-row">
@@ -611,20 +560,6 @@
                                 🛒 想買的 <span class="pref-tab-count" id="count-to_buy">0</span>
                             </button>
                         </div>
-                        <div class="collection-add-row">
-                            <div class="ac-wrap">
-                                <input id="collection-game-input" class="collection-input" type="text" maxlength="80"
-                                    placeholder="輸入遊戲名稱搜尋..."
-                                    autocomplete="off"
-                                    oninput="onCollectionAcInput(this)"
-                                    onfocus="onCollectionAcInput(this)"
-                                    onblur="closeCollectionAc()"
-                                    onkeydown="onCollectionAcKey(event)">
-                                <div class="collection-ac-dropdown" id="collection-game-drop"></div>
-                            </div>
-                            <button class="btn btn-secondary" style="font-size:0.82rem; padding:0.42rem 0.75rem;" onclick="addGameToCollectionFromInput()">新增</button>
-                        </div>
-                        <div id="collection-save-hint" style="font-size:0.76rem; color:var(--text-light); margin-top:0.35rem;"></div>
                     </div>
                     <div class="pref-tab-divider"></div>
                     <div class="pref-card-body">
@@ -1944,213 +1879,6 @@
 
         // 顯示遊戲列表
         // ── Tab 切換函式（全域）──
-        let _canPersistOwnedToBuy = null;
-        let _ownedToBuyHintShown = false;
-        let _collectionAcDebounceTimer = null;
-        const COLLECTION_AC_DEBOUNCE_MS = 240;
-
-        async function canPersistOwnedToBuyFields() {
-            if (_canPersistOwnedToBuy !== null) return _canPersistOwnedToBuy;
-            try {
-                const r = await fetch(`tables/users/${currentUser.id}`);
-                if (!r.ok) { _canPersistOwnedToBuy = false; return false; }
-                const u = await r.json();
-                _canPersistOwnedToBuy = Object.prototype.hasOwnProperty.call(u, 'owned_games') &&
-                    Object.prototype.hasOwnProperty.call(u, 'to_buy_games');
-                return _canPersistOwnedToBuy;
-            } catch (e) {
-                _canPersistOwnedToBuy = false;
-                return false;
-            }
-        }
-
-        async function persistOwnedToBuy() {
-            const hintEl = document.getElementById('collection-save-hint');
-            const canWrite = await canPersistOwnedToBuyFields();
-            if (!canWrite) {
-                if (hintEl) {
-                    hintEl.textContent = '目前資料庫尚未啟用「擁有的/想買的」欄位，暫時僅保留在本機。';
-                }
-                if (!_ownedToBuyHintShown) {
-                    console.warn('owned_games / to_buy_games 尚未在 users schema 啟用');
-                    _ownedToBuyHintShown = true;
-                }
-                return false;
-            }
-            try {
-                await safePatch(`tables/users/${currentUser.id}`, {
-                    owned_games: currentUser.owned_games || [],
-                    to_buy_games: currentUser.to_buy_games || []
-                });
-                if (hintEl) hintEl.textContent = '已儲存到你的檔案';
-                return true;
-            } catch (e) {
-                if (hintEl) hintEl.textContent = '儲存失敗，請稍後再試';
-                console.error('儲存擁有/想買清單失敗:', e);
-                return false;
-            }
-        }
-
-        function normalizeGameName(name) {
-            const raw = String(name || '').trim();
-            if (!raw) return '';
-            try {
-                if (typeof GameNames !== 'undefined' && typeof GameNames.lookup === 'function') {
-                    const info = GameNames.lookup(raw);
-                    if (info) return info.name_zh || info.name_en || raw;
-                }
-            } catch (e) {}
-            return raw;
-        }
-
-        function onCollectionAcInput(inputEl) {
-            const drop = document.getElementById('collection-game-drop');
-            if (!drop || !inputEl) return;
-
-            const raw = inputEl.value.trim();
-            if (!raw) {
-                drop.classList.remove('open');
-                drop.innerHTML = '';
-                if (_collectionAcDebounceTimer) {
-                    clearTimeout(_collectionAcDebounceTimer);
-                    _collectionAcDebounceTimer = null;
-                }
-                return;
-            }
-
-            if (_collectionAcDebounceTimer) clearTimeout(_collectionAcDebounceTimer);
-            _collectionAcDebounceTimer = setTimeout(() => {
-                _collectionAcDebounceTimer = null;
-                const query = inputEl.value.trim();
-                if (!query) { drop.classList.remove('open'); drop.innerHTML = ''; return; }
-
-                fetch(`tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`)
-                    .then(r => r.ok ? r.json() : { data: [] })
-                    .then(data => {
-                        if (inputEl.value.trim() !== query) return;
-                        const results = (data.data || []).slice(0, 20);
-                        if (results.length === 0) {
-                            drop.innerHTML = '<div class="collection-ac-item" style="color:var(--text-light);">找不到符合的遊戲，可直接新增文字</div>';
-                            drop.classList.add('open');
-                            return;
-                        }
-                        drop.innerHTML = results.map(g => {
-                            const displayName = g.name_zh || g.name_en || g.name_ja || '';
-                            const subName = (g.name_zh && g.name_en ? g.name_en : (g.name_ja && displayName !== g.name_ja ? g.name_ja : '')) || '';
-                            const safe = displayName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                            const imgHtml = g.image_url
-                                ? `<img src="${g.image_url}" style="width:26px;height:26px;border-radius:0.35rem;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
-                                : `<div style="width:26px;height:26px;background:var(--border-color);border-radius:0.35rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
-                            return `<div class="collection-ac-item" onmousedown="onCollectionAcSelect('${safe}')">
-                                ${imgHtml}
-                                <div class="collection-ac-name">
-                                    <div class="collection-ac-name-zh">${displayName}</div>
-                                    ${subName ? `<div class="collection-ac-name-en">${subName}</div>` : ''}
-                                </div>
-                            </div>`;
-                        }).join('');
-                        drop.classList.add('open');
-                    })
-                    .catch(() => {
-                        if (inputEl.value.trim() !== query) return;
-                        drop.innerHTML = '<div class="collection-ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
-                        drop.classList.add('open');
-                    });
-            }, COLLECTION_AC_DEBOUNCE_MS);
-        }
-
-        function onCollectionAcSelect(value) {
-            const input = document.getElementById('collection-game-input');
-            const drop = document.getElementById('collection-game-drop');
-            if (input) input.value = value;
-            if (drop) drop.classList.remove('open');
-        }
-
-        function closeCollectionAc() {
-            setTimeout(() => {
-                const drop = document.getElementById('collection-game-drop');
-                if (drop) drop.classList.remove('open');
-            }, 180);
-        }
-
-        function onCollectionAcKey(e) {
-            const drop = document.getElementById('collection-game-drop');
-            if (!drop) return;
-            const items = drop.querySelectorAll('.collection-ac-item');
-            let idx = [...items].findIndex(el => el.classList.contains('highlighted'));
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (idx < items.length - 1) {
-                    if (idx >= 0) items[idx].classList.remove('highlighted');
-                    items[idx + 1].classList.add('highlighted');
-                    items[idx + 1].scrollIntoView({ block: 'nearest' });
-                }
-                return;
-            }
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (idx > 0) {
-                    items[idx].classList.remove('highlighted');
-                    items[idx - 1].classList.add('highlighted');
-                }
-                return;
-            }
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (idx >= 0) {
-                    const val = items[idx].querySelector('.collection-ac-name-zh')?.textContent || '';
-                    if (val) onCollectionAcSelect(val.trim());
-                } else {
-                    addGameToCollectionFromInput();
-                }
-                return;
-            }
-            if (e.key === 'Escape') {
-                drop.classList.remove('open');
-            }
-        }
-
-        async function addGameToCollectionFromInput() {
-            const input = document.getElementById('collection-game-input');
-            if (!input || !currentUser) return;
-            const gameName = normalizeGameName(input.value || '');
-            if (!gameName) return;
-
-            const tab = window._profileCurrentCollectionTab || 'owned';
-            const targetField = tab === 'owned' ? 'owned_games' : 'to_buy_games';
-            const oppositeField = tab === 'owned' ? 'to_buy_games' : 'owned_games';
-
-            currentUser[targetField] = Array.isArray(currentUser[targetField]) ? currentUser[targetField] : [];
-            currentUser[oppositeField] = Array.isArray(currentUser[oppositeField]) ? currentUser[oppositeField] : [];
-
-            if (currentUser[targetField].includes(gameName)) {
-                const hintEl = document.getElementById('collection-save-hint');
-                if (hintEl) hintEl.textContent = '這款遊戲已在目前分類中';
-                return;
-            }
-
-            currentUser[oppositeField] = currentUser[oppositeField].filter(g => g !== gameName);
-            currentUser[targetField].push(gameName);
-            GameMBTI.setCurrentUser(currentUser);
-            window.currentUser = currentUser;
-            input.value = '';
-            const drop = document.getElementById('collection-game-drop');
-            if (drop) drop.classList.remove('open');
-
-            await displayGames();
-            await persistOwnedToBuy();
-        }
-
-        async function removeGameFromCollection(field, gameName) {
-            if (!currentUser) return;
-            if (!['owned_games', 'to_buy_games'].includes(field)) return;
-            const arr = Array.isArray(currentUser[field]) ? currentUser[field] : [];
-            currentUser[field] = arr.filter(g => g !== gameName);
-            GameMBTI.setCurrentUser(currentUser);
-            window.currentUser = currentUser;
-            await displayGames();
-            await persistOwnedToBuy();
-        }
 
         function switchPrefTab(tab, btn) {
             // 按鈕 active
@@ -2283,10 +2011,6 @@
                     }
 
                     panel.innerHTML = display.map(game => {
-                        const safeGame = String(game).replace(/'/g, "\\'");
-                        if (cat.field === 'owned_games' || cat.field === 'to_buy_games') {
-                            return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game)}<button class="collection-tag-remove" title="移除" onclick="removeGameFromCollection('${cat.field}','${safeGame}')">✕</button></div>`;
-                        }
                         return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game)}</div>`;
                     }).join('');
                 }

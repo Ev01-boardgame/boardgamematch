@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>編輯遊戲收藏 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .cards-wrap {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+        .collection-card {
+            background: var(--card-bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            padding: 1rem 1rem 1.15rem;
+            overflow: visible;
+        }
+        .collection-title {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:0.8rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .collection-count {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .add-row {
+            display:flex;
+            gap:0.5rem;
+            margin-bottom:0.8rem;
+        }
+        .ac-wrap {
+            position: relative;
+            flex: 1;
+        }
+        .add-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.5rem 0.7rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 0.55rem;
+            font-size: 0.9rem;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+        .add-input:focus { outline: none; border-color: var(--primary-color); }
+        .ac-drop {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 1.5px solid var(--primary-color);
+            border-radius: 0.55rem;
+            box-shadow: var(--shadow-md);
+            max-height: 260px;
+            overflow-y: auto;
+            display: none;
+            z-index: 30;
+        }
+        .ac-drop.open { display:block; }
+        .ac-item {
+            display:flex;
+            align-items:center;
+            gap:0.45rem;
+            padding:0.45rem 0.55rem;
+            border-bottom:1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .ac-item:last-child { border-bottom:none; }
+        .ac-item:hover, .ac-item.highlighted { background: var(--bg-color); }
+        .ac-name-zh { font-size:0.83rem; font-weight:600; color:var(--text-color); }
+        .ac-name-en { font-size:0.74rem; color:var(--text-light); }
+        .tag-list {
+            display:flex;
+            flex-wrap:wrap;
+            gap:0.4rem;
+            min-height: 2.5rem;
+        }
+        .tag {
+            display:inline-flex;
+            align-items:center;
+            gap:0.35rem;
+            padding:0.28rem 0.55rem;
+            border-radius:1rem;
+            font-size:0.82rem;
+            font-weight:500;
+        }
+        .tag-owned { background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; }
+        .tag-buy { background:#fef3c7; color:#b45309; border:1px solid #fcd34d; }
+        .tag-remove {
+            border:none;
+            background:transparent;
+            color:inherit;
+            cursor:pointer;
+            padding:0;
+            opacity:0.72;
+            line-height:1;
+            font-size:0.82rem;
+        }
+        .tag-remove:hover { opacity: 1; }
+        .hint {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            margin-top: 0.65rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 980px; padding-top: 1.5rem;">
+        <div id="loading-state" style="text-align:center; padding:3rem 1rem;">
+            <p style="color:var(--text-light);">⏳ 載入中...</p>
+        </div>
+
+        <div id="main-content" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; margin-bottom:0.4rem;">
+                <div>
+                    <h1 style="font-size:1.6rem; margin:0 0 0.3rem;">🏠 編輯遊戲收藏</h1>
+                    <p style="color:var(--text-light); margin:0;">管理你的「📚 擁有的」與「🛒 想買的」遊戲收藏。</p>
+                </div>
+                <a href="profile.html" class="btn btn-secondary">← 返回我的檔案</a>
+            </div>
+
+            <div class="cards-wrap">
+                <section class="collection-card">
+                    <div class="collection-title">
+                        <span>📚 擁有的</span>
+                        <span class="collection-count" id="owned-count">0 款</span>
+                    </div>
+                    <div class="add-row">
+                        <div class="ac-wrap">
+                            <input id="owned-input" class="add-input" type="text" autocomplete="off" maxlength="80"
+                                placeholder="輸入遊戲名稱搜尋..."
+                                oninput="onAcInput(this, 'owned-drop')"
+                                onfocus="onAcInput(this, 'owned-drop')"
+                                onblur="closeAc('owned-drop')"
+                                onkeydown="onAcKey(event, 'owned-drop', 'owned')">
+                            <div id="owned-drop" class="ac-drop"></div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="addGame('owned')" style="font-size:0.85rem;">新增</button>
+                    </div>
+                    <div id="owned-list" class="tag-list"></div>
+                </section>
+
+                <section class="collection-card">
+                    <div class="collection-title">
+                        <span>🛒 想買的</span>
+                        <span class="collection-count" id="buy-count">0 款</span>
+                    </div>
+                    <div class="add-row">
+                        <div class="ac-wrap">
+                            <input id="buy-input" class="add-input" type="text" autocomplete="off" maxlength="80"
+                                placeholder="輸入遊戲名稱搜尋..."
+                                oninput="onAcInput(this, 'buy-drop')"
+                                onfocus="onAcInput(this, 'buy-drop')"
+                                onblur="closeAc('buy-drop')"
+                                onkeydown="onAcKey(event, 'buy-drop', 'buy')">
+                            <div id="buy-drop" class="ac-drop"></div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="addGame('buy')" style="font-size:0.85rem;">新增</button>
+                    </div>
+                    <div id="buy-list" class="tag-list"></div>
+                </section>
+            </div>
+
+            <div style="display:flex; gap:0.7rem; margin-top:1.2rem; flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="saveChanges()">💾 儲存變更</button>
+                <span id="save-hint" class="hint"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api-base.js?v=20260318"></script>
+    <script src="js/app.js?v=20260318"></script>
+    <script src="js/game-names.js"></script>
+    <script>
+        let currentUser = null;
+        let ownedGames = [];
+        let toBuyGames = [];
+        let acDebounce = null;
+        let schemaChecked = null;
+
+        function toArr(v) {
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string' && v) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch(e) {} }
+            return [];
+        }
+
+        function normalizeGameName(name) {
+            const raw = String(name || '').trim();
+            if (!raw) return '';
+            try {
+                const info = GameNames.lookup(raw);
+                if (info) return info.name_zh || info.name_en || raw;
+            } catch (e) {}
+            return raw;
+        }
+
+        async function loadPage() {
+            const localUser = GameMBTI.getCurrentUser();
+            if (!localUser || !localUser.id) { location.href = 'index.html'; return; }
+            currentUser = await GameMBTI.getUserById(localUser.id);
+            if (!currentUser) { location.href = 'profile.html'; return; }
+
+            ownedGames = toArr(currentUser.owned_games);
+            toBuyGames = toArr(currentUser.to_buy_games);
+
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            renderAll();
+        }
+
+        function renderAll() {
+            document.getElementById('owned-count').textContent = `${ownedGames.length} 款`;
+            document.getElementById('buy-count').textContent = `${toBuyGames.length} 款`;
+
+            const ownedEl = document.getElementById('owned-list');
+            ownedEl.innerHTML = ownedGames.length
+                ? ownedGames.map(g => `<span class="tag tag-owned">${GameNames.formatTag(g)}<button class="tag-remove" title="移除" onclick="removeGame('owned', '${String(g).replace(/'/g, "\\'")}')">✕</button></span>`).join('')
+                : '<span class="hint">尚未新增</span>';
+
+            const buyEl = document.getElementById('buy-list');
+            buyEl.innerHTML = toBuyGames.length
+                ? toBuyGames.map(g => `<span class="tag tag-buy">${GameNames.formatTag(g)}<button class="tag-remove" title="移除" onclick="removeGame('buy', '${String(g).replace(/'/g, "\\'")}')">✕</button></span>`).join('')
+                : '<span class="hint">尚未新增</span>';
+        }
+
+        function removeGame(type, gameName) {
+            if (type === 'owned') ownedGames = ownedGames.filter(g => g !== gameName);
+            else toBuyGames = toBuyGames.filter(g => g !== gameName);
+            renderAll();
+        }
+
+        function addGame(type) {
+            const input = document.getElementById(type === 'owned' ? 'owned-input' : 'buy-input');
+            const val = normalizeGameName(input.value);
+            if (!val) return;
+
+            const target = type === 'owned' ? ownedGames : toBuyGames;
+            const other = type === 'owned' ? toBuyGames : ownedGames;
+            if (target.includes(val)) {
+                document.getElementById('save-hint').textContent = '這款遊戲已存在於目前分類';
+                return;
+            }
+            const idx = other.indexOf(val);
+            if (idx >= 0) other.splice(idx, 1);
+            target.push(val);
+
+            input.value = '';
+            closeAc(type === 'owned' ? 'owned-drop' : 'buy-drop');
+            renderAll();
+        }
+
+        function onAcInput(inputEl, dropId) {
+            const drop = document.getElementById(dropId);
+            if (!drop) return;
+            const raw = inputEl.value.trim();
+            if (!raw) { drop.classList.remove('open'); drop.innerHTML = ''; if (acDebounce) clearTimeout(acDebounce); return; }
+            if (acDebounce) clearTimeout(acDebounce);
+            acDebounce = setTimeout(() => {
+                const query = inputEl.value.trim();
+                if (!query) return;
+                fetch(`tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`)
+                    .then(r => r.ok ? r.json() : { data: [] })
+                    .then(d => {
+                        if (inputEl.value.trim() !== query) return;
+                        const list = (d.data || []).slice(0, 20);
+                        if (!list.length) {
+                            drop.innerHTML = '<div class="ac-item" style="color:var(--text-light);">找不到符合的遊戲，可直接新增文字</div>';
+                            drop.classList.add('open');
+                            return;
+                        }
+                        drop.innerHTML = list.map(g => {
+                            const displayName = g.name_zh || g.name_en || g.name_ja || '';
+                            const subName = (g.name_zh && g.name_en ? g.name_en : '') || '';
+                            const safe = displayName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            const img = g.image_url
+                                ? `<img src="${g.image_url}" style="width:24px;height:24px;border-radius:0.3rem;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
+                                : `<div style="width:24px;height:24px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
+                            return `<div class="ac-item" onmousedown="selectAc('${inputEl.id}','${dropId}','${safe}')">
+                                ${img}
+                                <div>
+                                    <div class="ac-name-zh">${displayName}</div>
+                                    ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
+                                </div>
+                            </div>`;
+                        }).join('');
+                        drop.classList.add('open');
+                    })
+                    .catch(() => {
+                        if (inputEl.value.trim() !== query) return;
+                        drop.innerHTML = '<div class="ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
+                        drop.classList.add('open');
+                    });
+            }, 240);
+        }
+
+        function selectAc(inputId, dropId, value) {
+            const input = document.getElementById(inputId);
+            const drop = document.getElementById(dropId);
+            if (input) input.value = value;
+            if (drop) drop.classList.remove('open');
+        }
+
+        function closeAc(dropId) {
+            setTimeout(() => {
+                const drop = document.getElementById(dropId);
+                if (drop) drop.classList.remove('open');
+            }, 180);
+        }
+
+        function onAcKey(e, dropId, type) {
+            const drop = document.getElementById(dropId);
+            if (!drop) return;
+            const items = drop.querySelectorAll('.ac-item');
+            let idx = [...items].findIndex(el => el.classList.contains('highlighted'));
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (idx < items.length - 1) {
+                    if (idx >= 0) items[idx].classList.remove('highlighted');
+                    items[idx + 1].classList.add('highlighted');
+                }
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (idx > 0) {
+                    items[idx].classList.remove('highlighted');
+                    items[idx - 1].classList.add('highlighted');
+                }
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (idx >= 0) {
+                    const value = items[idx].querySelector('.ac-name-zh')?.textContent || '';
+                    if (value) selectAc(type === 'owned' ? 'owned-input' : 'buy-input', dropId, value.trim());
+                } else {
+                    addGame(type);
+                }
+                return;
+            }
+            if (e.key === 'Escape') {
+                drop.classList.remove('open');
+            }
+        }
+
+        async function canPersistSchema() {
+            if (schemaChecked !== null) return schemaChecked;
+            try {
+                const r = await fetch(`tables/users/${currentUser.id}`);
+                if (!r.ok) { schemaChecked = false; return false; }
+                const u = await r.json();
+                schemaChecked = Object.prototype.hasOwnProperty.call(u, 'owned_games') &&
+                    Object.prototype.hasOwnProperty.call(u, 'to_buy_games');
+                return schemaChecked;
+            } catch (e) {
+                schemaChecked = false;
+                return false;
+            }
+        }
+
+        async function saveChanges() {
+            currentUser.owned_games = [...ownedGames];
+            currentUser.to_buy_games = [...toBuyGames];
+            GameMBTI.setCurrentUser(currentUser);
+
+            const hint = document.getElementById('save-hint');
+            hint.textContent = '儲存中...';
+            const canWrite = await canPersistSchema();
+            if (!canWrite) {
+                hint.textContent = '已保存在本機（資料庫尚未啟用欄位）';
+                return;
+            }
+
+            try {
+                await safePatch(`tables/users/${currentUser.id}`, {
+                    owned_games: ownedGames,
+                    to_buy_games: toBuyGames
+                });
+                hint.textContent = '已儲存到你的檔案';
+            } catch (e) {
+                hint.textContent = '儲存失敗，請稍後再試';
+            }
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.ac-wrap')) {
+                document.querySelectorAll('.ac-drop.open').forEach(el => el.classList.remove('open'));
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', loadPage);
+    </script>
+</body>
+</html>
