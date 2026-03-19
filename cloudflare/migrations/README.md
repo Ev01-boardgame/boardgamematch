@@ -77,3 +77,29 @@ npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/remove_x
 cd cloudflare
 npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_users_region_want_contact.sql
 ```
+
+---
+
+## add_users_owned_to_buy_games.sql
+
+為 `users` 表新增 `owned_games`（擁有的遊戲）、`to_buy_games`（想買的遊戲），皆為 JSON 陣列字串（TEXT，預設 `[]`）。  
+**未執行前**：`edit-game-collection.html` 會退回本機暫存模式，重新整理或換裝置後不保留。
+
+### 方式一：Cloudflare 主控台
+
+1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. **Workers & Pages** → **D1** → 選 **boardgame-match-db**
+3. 分頁選 **Console**
+4. **一次貼上一行**執行：
+   ```sql
+   ALTER TABLE users ADD COLUMN owned_games TEXT DEFAULT '[]';
+   ALTER TABLE users ADD COLUMN to_buy_games TEXT DEFAULT '[]';
+   ```
+5. 按 **Run**
+
+### 方式二：本機 wrangler（遠端 DB）
+
+```bash
+cd cloudflare
+npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_users_owned_to_buy_games.sql
+```

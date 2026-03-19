@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
   disliked_games TEXT DEFAULT '[]',
   no_interest_games TEXT DEFAULT '[]',
   wishlist TEXT DEFAULT '[]',
+  owned_games TEXT DEFAULT '[]',
+  to_buy_games TEXT DEFAULT '[]',
   pinned_games TEXT,
   daily_question_count INTEGER DEFAULT 0,
   last_question_date INTEGER,
@@ -391,3 +393,4 @@ CREATE TABLE IF NOT EXISTS user_preference_profiles (
 --     ALTER TABLE user_preference_profiles ADD COLUMN axis_competition INTEGER DEFAULT 0;
 -- 既有 DB 若曾建 description/source，可移除：ALTER TABLE game_database DROP COLUMN description; ALTER TABLE game_database DROP COLUMN source;
 -- 既有 users 表補欄位（地區、是否想被桌友連絡）：ALTER TABLE users ADD COLUMN region TEXT; ALTER TABLE users ADD COLUMN want_contact INTEGER DEFAULT 0;
+-- 既有 users 表補欄位（擁有 / 想買遊戲）：ALTER TABLE users ADD COLUMN owned_games TEXT DEFAULT '[]'; ALTER TABLE users ADD COLUMN to_buy_games TEXT DEFAULT '[]';
