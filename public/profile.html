@@ -2005,69 +2005,6 @@
             }
         }
 
-        // 顯示推薦遊戲
-        async function displayRecommendations() {
-            try {
-                console.log('🎯 開始顯示推薦...');
-                
-                const container = document.getElementById('recommendations');
-                if (!container) {
-                    console.error('❌ 找不到 recommendations 容器');
-                    return;
-                }
-                
-                const popularGames = GameMBTI.getPopularGamesByMBTI(allUsers, currentUser.mbti_type);
-                
-                // 🎯 過濾掉使用者已評分過的所有遊戲（六種分類全部排除）
-                const userRatedGames = new Set([
-                    ...(currentUser.super_liked_games || []),
-                    ...(currentUser.liked_games || []),
-                    ...(currentUser.neutral_games || []),
-                    ...(currentUser.disliked_games || []),
-                    ...(currentUser.wishlist || []),
-                    ...(currentUser.no_interest_games || []),
-                ]);
-                const recommendations = popularGames
-                    .filter(item => !userRatedGames.has(item.game))
-                    .slice(0, 10);
-                
-                if (recommendations.length === 0) {
-                    container.innerHTML = '<p style="color: var(--text-light);">目前沒有新的推薦，請稍後再來看看！</p>';
-                    console.log('⚠️ 沒有推薦遊戲');
-                    return;
-                }
-                
-                container.innerHTML = recommendations.map(item => {
-                    return `
-                        <div style="display:flex;align-items:center;gap:0.5rem;background:var(--bg-color);padding:0.75rem;border-radius:0.5rem;margin-bottom:0.5rem;">
-                            <div style="flex:1;">
-                                <strong>${GameNames.formatInline(item.game)}</strong>
-                                <span style="opacity:0.7;font-size:0.85rem;margin-left:0.5rem;">❤️ ${item.count} 位同類型玩家喜歡</span>
-                            </div>
-                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.2rem;min-width:108px;">
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','super_liked',this)" class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="超喜歡">🤩</button>
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','liked',this)"       class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="喜歡">😍</button>
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','neutral',this)"     class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="普普">😐</button>
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','disliked',this)"    class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="不喜歡">😕</button>
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','wishlist',this)"    class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="想玩">⭐</button>
-                                <button onclick="quickRate('${item.game.replace(/'/g,"\\'")}','no_interest',this)" class="btn btn-secondary" style="padding:0.3rem 0;font-size:0.9rem;text-align:center;" title="沒興趣">🚫</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-                console.log('✅ 已顯示推薦遊戲:', recommendations.length);
-                
-            } catch (error) {
-                console.error('❌ displayRecommendations() 錯誤:', error);
-                console.error('錯誤堆疊:', error.stack);
-                const container = document.getElementById('recommendations');
-                if (container) {
-                    container.innerHTML = '<p style="color: var(--text-light);">載入推薦時發生錯誤</p>';
-                }
-            }
-        }
-
         // 獲取使用者投票記錄
         async function getUserVotes() {
             try {
