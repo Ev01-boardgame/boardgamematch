@@ -20,7 +20,7 @@
 | 推薦頁 | `/recommend.html` | 依 MBTI 推薦桌遊、評分功能 |
 | 玩家頁 | `/player.html` | 公開玩家檔案、成就展示 |
 | 探索清單 | `/explore-list.html` | 自訂探索清單管理 |
-| 我的收藏 | `/my-collections.html` | 桌遊收藏 CRUD |
+| 我的各類排行榜 | `/rankings.html` | 桌遊排行榜 CRUD |
 | 排行榜 | `/leaderboard.html` | XP 排行、成就排行 |
 | 遊戲清單 | `/games-list.html` | 全部桌遊瀏覽 |
 | 遊戲選擇器 | `/game-picker.html` | 隨機遊戲推薦工具 |

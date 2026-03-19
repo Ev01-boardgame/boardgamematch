@@ -246,7 +246,7 @@
         .ro-btn-no-interest:hover { background:linear-gradient(135deg,#4b5563 0%,#1f2937 100%); }
         .ro-done-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:8001; align-items:center; justify-content:center; padding:1rem; }
         .ro-done-overlay.open { display:flex; }
-        /* 主題清單卡片（與 my-collections.html 一致）*/
+        /* 排行榜卡片（與 rankings.html 一致）*/
         .pc-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -570,7 +570,7 @@
         return params.get('id');
     }
 
-    // 取得當前登入使用者（與 profile.html / my-collections.html 相同邏輯）
+    // 取得當前登入使用者（與 profile.html / rankings.html 相同邏輯）
     async function loadCurrentUser() {
         const toArr = v => {
             if (Array.isArray(v)) return v;

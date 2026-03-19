@@ -531,10 +531,10 @@
             listEl.innerHTML = `
                 <div style="text-align:center; padding:1.5rem 1rem;">
                     <div style="font-size:2.5rem; margin-bottom:0.75rem;">📭</div>
-                    <div style="font-size:0.9rem; font-weight:600; color:var(--text-color); margin-bottom:0.4rem;">你還沒有建立任何清單</div>
-                    <div style="font-size:0.82rem; color:var(--text-light); margin-bottom:1rem;">先建立一個遊戲清單，再來產生封面牆吧！</div>
-                    <a href="my-collections.html" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.2rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:0.65rem;font-size:0.85rem;font-weight:600;text-decoration:none;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                        ➕ 去建立清單
+                    <div style="font-size:0.9rem; font-weight:600; color:var(--text-color); margin-bottom:0.4rem;">你還沒有建立任何排行榜</div>
+                    <div style="font-size:0.82rem; color:var(--text-light); margin-bottom:1rem;">先建立一個遊戲排行榜，再來產生封面牆吧！</div>
+                    <a href="rankings.html" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.2rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:0.65rem;font-size:0.85rem;font-weight:600;text-decoration:none;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                        ➕ 去建立排行榜
                     </a>
                 </div>`;
             return;
@@ -543,10 +543,10 @@
             <div class="collection-item" id="col-item-${i}" onclick="selectCollection(${i})">
                 <span class="collection-icon">📋</span>
                 <div class="collection-info">
-                    <div class="collection-title">${c.title || '未命名清單'}</div>
+                    <div class="collection-title">${c.title || '未命名排行榜'}</div>
                     <div class="collection-count">${(c.games || []).length} 款遊戲</div>
                 </div>
-                <a href="my-collections.html?edit=${c.id}" onclick="event.stopPropagation()"
+                <a href="rankings.html?edit=${c.id}" onclick="event.stopPropagation()"
                    style="flex-shrink:0;padding:0.28rem 0.65rem;font-size:0.75rem;font-weight:600;color:var(--primary-color);border:1.5px solid var(--primary-color);border-radius:0.5rem;text-decoration:none;transition:all 0.15s;white-space:nowrap;"
                    onmouseover="this.style.background='var(--primary-color)';this.style.color='white'"
                    onmouseout="this.style.background='transparent';this.style.color='var(--primary-color)'">✏️ 編輯</a>

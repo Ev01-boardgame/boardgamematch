@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的主題清單 - MBTI × 桌遊配對</title>
+    <title>我的各類排行榜 - MBTI × 桌遊配對</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/hourglass-simple.css">
     <style>
@@ -277,7 +277,7 @@
             <div class="empty-wrap">
                 <div class="ei">🔒</div>
                 <h2 style="margin-bottom:0.75rem;">需要登入</h2>
-                <p style="margin-bottom:2rem;">請先登入才能建立主題清單</p>
+                <p style="margin-bottom:2rem;">請先登入才能建立排行榜</p>
                 <a href="index.html" class="btn btn-primary">🔑 前往登入</a>
             </div>
         </div>
@@ -288,15 +288,15 @@
             <!-- 標題列 -->
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:0.5rem; padding-top:2rem;">
                 <div>
-                    <h1 style="font-size:1.8rem; margin-bottom:0.3rem;">📚 我的主題清單</h1>
-                    <p style="color:var(--text-light); font-size:0.9rem;">建立你的桌遊主題清單，與其他玩家分享！</p>
+                    <h1 style="font-size:1.8rem; margin-bottom:0.3rem;">🥇 我的各類排行榜</h1>
+                    <p style="color:var(--text-light); font-size:0.9rem;">建立你的桌遊排行榜，與其他玩家分享！</p>
                 </div>
-                <button class="btn btn-primary" onclick="openCreateModal()">＋ 建立新清單</button>
+                <button class="btn btn-primary" onclick="openCreateModal()">＋ 建立新排行榜</button>
             </div>
 
             <!-- 說明提示 -->
             <div style="background:rgba(102,126,234,0.08); border:1px solid rgba(102,126,234,0.2); border-radius:0.6rem; padding:0.75rem 1rem; margin-bottom:1.75rem; font-size:0.85rem; color:var(--text-light);">
-                💡 你可以建立如「Top 10 派對遊戲」、「適合兩人的遊戲」等主題清單。遊戲名稱可自由輸入，不限資料庫內容。
+                💡 你可以建立如「Top 10 派對遊戲」、「最愛策略遊戲」等排行榜。遊戲名稱可自由輸入，不限資料庫內容。
             </div>
 
             <!-- 返回我的檔案 + 封面產生器 -->
@@ -309,7 +309,7 @@
                     padding:0.4rem 0.9rem; border-radius:1.5rem;
                     transition:all 0.2s; box-shadow:0 2px 8px rgba(102,126,234,0.35);
                 " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-                    🖼️ 製作清單封面海報
+                    🖼️ 製作排行榜封面海報
                 </a>
             </div>
 
@@ -323,13 +323,13 @@
     <div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeModal()">
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                <h2 id="modal-heading" style="font-size:1.3rem; margin:0;">建立新清單</h2>
+                <h2 id="modal-heading" style="font-size:1.3rem; margin:0;">建立新排行榜</h2>
                 <button onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-light);line-height:1;">✕</button>
             </div>
 
             <!-- 標題 -->
             <div class="modal-field">
-                <label>📌 清單名稱 <span style="color:#ef4444;">*</span></label>
+                <label>📌 排行榜名稱 <span style="color:#ef4444;">*</span></label>
                 <input id="m-title" type="text" maxlength="40" placeholder="例如：Top 10 派對遊戲">
                 <div style="text-align:right; font-size:0.78rem; color:var(--text-light); margin-top:0.2rem;">
                     <span id="m-title-count">0</span> / 40
@@ -338,8 +338,8 @@
 
             <!-- 簡介 -->
             <div class="modal-field">
-                <label>📝 清單簡介（選填）</label>
-                <textarea id="m-desc" rows="2" maxlength="100" placeholder="簡單說明這份清單的主題..."></textarea>
+                <label>📝 排行榜簡介（選填）</label>
+                <textarea id="m-desc" rows="2" maxlength="100" placeholder="簡單說明這份排行榜的主題..."></textarea>
                 <div style="text-align:right; font-size:0.78rem; color:var(--text-light); margin-top:0.2rem;">
                     <span id="m-desc-count">0</span> / 100
                 </div>
@@ -347,7 +347,7 @@
 
             <!-- 加入遊戲 -->
             <div class="modal-field">
-                <label>🎲 遊戲清單 <span style="color:#ef4444;">*</span>
+                <label>🎲 排行遊戲 <span style="color:#ef4444;">*</span>
                     <span style="font-weight:400; color:var(--text-light); font-size:0.82rem;">（可輸入任意遊戲名稱，不限資料庫）</span>
                 </label>
                 <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
@@ -378,7 +378,7 @@
                     </label>
                     <div style="flex:1;">
                         <div style="font-weight:600; font-size:0.92rem;" id="m-public-label">🔒 私密</div>
-                        <div style="font-size:0.8rem; color:var(--text-light);">開啟後其他玩家可在你的公開檔案看到這份清單</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">開啟後其他玩家可在你的公開檔案看到這份排行榜</div>
                     </div>
                 </div>
             </div>
@@ -395,7 +395,7 @@
     <div class="modal-overlay" id="delete-modal" onclick="if(event.target===this)closeDeleteModal()">
         <div class="modal-box" style="max-width:380px; text-align:center;">
             <div style="font-size:2.5rem; margin-bottom:0.75rem;">🗑️</div>
-            <h3 style="margin-bottom:0.5rem;">確定要刪除這份清單？</h3>
+            <h3 style="margin-bottom:0.5rem;">確定要刪除這份排行榜？</h3>
             <p style="color:var(--text-light); font-size:0.9rem; margin-bottom:1.5rem;">「<span id="delete-title-preview"></span>」將永久刪除，無法還原。</p>
             <div style="display:flex; gap:0.75rem; justify-content:center;">
                 <button class="btn btn-primary" onclick="confirmDelete()"
@@ -503,8 +503,8 @@
             grid.innerHTML = `
                 <div class="empty-wrap" style="grid-column:1/-1;">
                     <div class="ei">📭</div>
-                    <p style="font-size:1rem; margin-bottom:1.25rem;">還沒有主題清單，建立第一份吧！</p>
-                    <button class="btn btn-primary" onclick="openCreateModal()">＋ 建立新清單</button>
+                    <p style="font-size:1rem; margin-bottom:1.25rem;">還沒有排行榜，建立第一份吧！</p>
+                    <button class="btn btn-primary" onclick="openCreateModal()">＋ 建立新排行榜</button>
                 </div>`;
             return;
         }
@@ -570,7 +570,7 @@
     function openCreateModal() {
         editingId = null;
         pendingGames = [];
-        document.getElementById('modal-heading').textContent = '建立新清單';
+        document.getElementById('modal-heading').textContent = '建立新排行榜';
         document.getElementById('m-title').value = '';
         document.getElementById('m-title-count').textContent = '0';
         document.getElementById('m-desc').value = '';
@@ -588,7 +588,7 @@
         if (!c) return;
         editingId = id;
         pendingGames = [...(c.games || [])];
-        document.getElementById('modal-heading').textContent = '編輯清單';
+        document.getElementById('modal-heading').textContent = '編輯排行榜';
         document.getElementById('m-title').value = c.title || '';
         document.getElementById('m-title-count').textContent = (c.title || '').length;
         document.getElementById('m-desc').value = c.description || '';
@@ -726,7 +726,7 @@
     // ── 儲存 ─────────────────────────────────────────────────────────
     async function saveCollection() {
         const title = document.getElementById('m-title').value.trim();
-        if (!title) { showToast('⚠️ 請填入清單名稱', true); return; }
+        if (!title) { showToast('⚠️ 請填入排行榜名稱', true); return; }
         if (pendingGames.length === 0) { showToast('⚠️ 請至少加入一款遊戲', true); return; }
 
         const btn = document.getElementById('modal-save-btn');
@@ -756,7 +756,7 @@
             }
             closeModal();
             await loadMyCollections();
-            showToast(editingId ? '✅ 清單已更新！' : '✅ 清單已建立！');
+            showToast(editingId ? '✅ 排行榜已更新！' : '✅ 排行榜已建立！');
         } catch(e) {
             showToast('❌ 儲存失敗，請稍後再試', true);
         } finally {
@@ -784,7 +784,7 @@
             if (!res.ok) throw new Error();
             closeDeleteModal();
             await loadMyCollections();
-            showToast('🗑️ 清單已刪除');
+            showToast('🗑️ 排行榜已刪除');
         } catch(e) {
             showToast('❌ 刪除失敗，請稍後再試', true);
         }
