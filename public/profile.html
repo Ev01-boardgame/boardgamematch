@@ -92,6 +92,29 @@
         .pref-tab.owned.active { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
         .pref-tab.buy.active   { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
         .pref-tab-divider { height: 2px; background: var(--border-color); margin: 1rem 0 0; }
+        .collection-input-row { display:flex; gap:0.45rem; margin-top:0.25rem; }
+        .collection-input {
+            flex: 1;
+            padding: 0.45rem 0.65rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 0.55rem;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.85rem;
+        }
+        .collection-input:focus { outline: none; border-color: var(--primary-color); }
+        .collection-tag-remove {
+            margin-left: 0.35rem;
+            border: none;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.7;
+            font-size: 0.8rem;
+            line-height: 1;
+            padding: 0;
+        }
+        .collection-tag-remove:hover { opacity: 1; }
         .pref-card-body { padding: 1.25rem 1.5rem; min-height: 80px; }
         .pref-panel { display: none; flex-wrap: wrap; gap: 0.5rem; }
         .pref-panel.active { display: flex; }
@@ -558,6 +581,11 @@
                                 🛒 想買的 <span class="pref-tab-count" id="count-to_buy">0</span>
                             </button>
                         </div>
+                        <div class="collection-input-row">
+                            <input id="collection-game-input" class="collection-input" type="text" maxlength="80" placeholder="輸入遊戲名稱後按加入（目前分類）">
+                            <button class="btn btn-secondary" style="font-size:0.82rem; padding:0.42rem 0.75rem;" onclick="addGameToCollectionFromInput()">加入</button>
+                        </div>
+                        <div id="collection-save-hint" style="font-size:0.76rem; color:var(--text-light); margin-top:0.35rem;"></div>
                     </div>
                     <div class="pref-tab-divider"></div>
                     <div class="pref-card-body">
@@ -1877,6 +1905,91 @@
 
         // 顯示遊戲列表
         // ── Tab 切換函式（全域）──
+        let _canPersistOwnedToBuy = null;
+        let _ownedToBuyHintShown = false;
+
+        async function canPersistOwnedToBuyFields() {
+            if (_canPersistOwnedToBuy !== null) return _canPersistOwnedToBuy;
+            try {
+                const r = await fetch(`tables/users/${currentUser.id}`);
+                if (!r.ok) { _canPersistOwnedToBuy = false; return false; }
+                const u = await r.json();
+                _canPersistOwnedToBuy = Object.prototype.hasOwnProperty.call(u, 'owned_games') &&
+                    Object.prototype.hasOwnProperty.call(u, 'to_buy_games');
+                return _canPersistOwnedToBuy;
+            } catch (e) {
+                _canPersistOwnedToBuy = false;
+                return false;
+            }
+        }
+
+        async function persistOwnedToBuy() {
+            const hintEl = document.getElementById('collection-save-hint');
+            const canWrite = await canPersistOwnedToBuyFields();
+            if (!canWrite) {
+                if (hintEl) {
+                    hintEl.textContent = '目前資料庫尚未啟用「擁有的/想買的」欄位，暫時僅保留在本機。';
+                }
+                if (!_ownedToBuyHintShown) {
+                    console.warn('owned_games / to_buy_games 尚未在 users schema 啟用');
+                    _ownedToBuyHintShown = true;
+                }
+                return false;
+            }
+            try {
+                await safePatch(`tables/users/${currentUser.id}`, {
+                    owned_games: currentUser.owned_games || [],
+                    to_buy_games: currentUser.to_buy_games || []
+                });
+                if (hintEl) hintEl.textContent = '已儲存到你的檔案';
+                return true;
+            } catch (e) {
+                if (hintEl) hintEl.textContent = '儲存失敗，請稍後再試';
+                console.error('儲存擁有/想買清單失敗:', e);
+                return false;
+            }
+        }
+
+        async function addGameToCollectionFromInput() {
+            const input = document.getElementById('collection-game-input');
+            if (!input || !currentUser) return;
+            const gameName = (input.value || '').trim();
+            if (!gameName) return;
+
+            const tab = window._profileCurrentCollectionTab || 'owned';
+            const targetField = tab === 'owned' ? 'owned_games' : 'to_buy_games';
+            const oppositeField = tab === 'owned' ? 'to_buy_games' : 'owned_games';
+
+            currentUser[targetField] = Array.isArray(currentUser[targetField]) ? currentUser[targetField] : [];
+            currentUser[oppositeField] = Array.isArray(currentUser[oppositeField]) ? currentUser[oppositeField] : [];
+
+            if (currentUser[targetField].includes(gameName)) {
+                const hintEl = document.getElementById('collection-save-hint');
+                if (hintEl) hintEl.textContent = '這款遊戲已在目前分類中';
+                return;
+            }
+
+            currentUser[oppositeField] = currentUser[oppositeField].filter(g => g !== gameName);
+            currentUser[targetField].push(gameName);
+            GameMBTI.setCurrentUser(currentUser);
+            window.currentUser = currentUser;
+            input.value = '';
+
+            await displayGames();
+            await persistOwnedToBuy();
+        }
+
+        async function removeGameFromCollection(field, gameName) {
+            if (!currentUser) return;
+            if (!['owned_games', 'to_buy_games'].includes(field)) return;
+            const arr = Array.isArray(currentUser[field]) ? currentUser[field] : [];
+            currentUser[field] = arr.filter(g => g !== gameName);
+            GameMBTI.setCurrentUser(currentUser);
+            window.currentUser = currentUser;
+            await displayGames();
+            await persistOwnedToBuy();
+        }
+
         function switchPrefTab(tab, btn) {
             // 按鈕 active
             document.querySelectorAll('#pref-tab-row .pref-tab').forEach(b => b.classList.remove('active'));
@@ -2008,8 +2121,10 @@
                     }
 
                     panel.innerHTML = display.map(game => {
-                        // 「誰也喜歡」泡泡只加在喜歡類
-                        // 置頂的遊戲不顯示圖釘標記
+                        const safeGame = String(game).replace(/'/g, "\\'");
+                        if (cat.field === 'owned_games' || cat.field === 'to_buy_games') {
+                            return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game)}<button class="collection-tag-remove" title="移除" onclick="removeGameFromCollection('${cat.field}','${safeGame}')">✕</button></div>`;
+                        }
                         return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game)}</div>`;
                     }).join('');
                 }
@@ -2066,6 +2181,16 @@
                     const el = document.getElementById(id);
                     if (el) el.textContent = val;
                 });
+                const collectionInput = document.getElementById('collection-game-input');
+                if (collectionInput && !collectionInput.dataset.boundEnter) {
+                    collectionInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addGameToCollectionFromInput();
+                        }
+                    });
+                    collectionInput.dataset.boundEnter = '1';
+                }
                 updateMoreBtn();
 
                 console.log('✅ displayGames() 完成');
