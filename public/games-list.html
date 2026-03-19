@@ -61,6 +61,8 @@
         .type-tab[data-type="disliked"].active    { border-color: #991b1b; background: #991b1b; }
         .type-tab[data-type="no_interest"].active { border-color: #64748b; background: #64748b; }
         .type-tab[data-type="wishlist"].active    { border-color: #6d28d9; background: #6d28d9; }
+        .type-tab[data-type="owned"].active       { border-color: #1d4ed8; background: #1d4ed8; }
+        .type-tab[data-type="to_buy"].active      { border-color: #b45309; background: #b45309; }
         .type-tab .tab-emoji { font-size: 1.3rem; margin-bottom: 0.1rem; }
         .type-tab .tab-count { font-weight: 700; font-size: 1rem; }
         .type-tab .tab-label { font-size: 0.72rem; opacity: 0.85; }
@@ -171,6 +173,8 @@
             { type: 'disliked',    emoji: '😕', label: '不喜歡',   field: 'disliked_games',     tagStyle: 'background:#fee2e2;color:#991b1b;' },
             { type: 'no_interest', emoji: '🚫', label: '沒興趣',   field: 'no_interest_games',  tagStyle: 'background:#f1f5f9;color:#64748b;' },
             { type: 'wishlist',    emoji: '📋', label: '待玩清單', field: 'wishlist',            tagStyle: 'background:#ede9fe;color:#6d28d9;' },
+            { type: 'owned',       emoji: '🧩', label: '擁有的',   field: 'owned_games',         tagStyle: 'background:#dbeafe;color:#1d4ed8;' },
+            { type: 'to_buy',      emoji: '🛒', label: '想買的',   field: 'to_buy_games',        tagStyle: 'background:#fef3c7;color:#b45309;' },
         ];
 
         window.addEventListener('DOMContentLoaded', async () => { await loadPage(); });
@@ -196,6 +200,15 @@
                     const freshData = await GameMBTI.getUserById(currentUser.id);
                     if (freshData) { currentUser = freshData; GameMBTI.setCurrentUser(freshData); }
                 }
+
+                // API 偶爾回傳 JSON 字串，統一轉陣列
+                const toArr = (v) => {
+                    if (Array.isArray(v)) return v;
+                    if (typeof v === 'string' && v) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch(e) {} }
+                    return [];
+                };
+                ['super_liked_games','liked_games','neutral_games','disliked_games','no_interest_games','wishlist','owned_games','to_buy_games']
+                    .forEach(k => { currentUser[k] = toArr(currentUser[k]); });
 
                 // 返回按鈕
                 const backBtn = document.getElementById('back-btn');

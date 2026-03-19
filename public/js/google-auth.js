@@ -308,6 +308,8 @@ const GoogleAuth = {
                     disliked_games: [],
                     no_interest_games: [],
                     wishlist: [],
+                    owned_games: [],
+                    to_buy_games: [],
                     daily_question_count: 0,
                     last_question_date: null,
                     last_login: Date.now()

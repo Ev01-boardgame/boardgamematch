@@ -250,6 +250,8 @@ async function getAllUsers(forceRefresh = false) {
             u.neutral_games      = toArr(u.neutral_games);
             u.no_interest_games  = toArr(u.no_interest_games);
             u.wishlist           = toArr(u.wishlist);
+            u.owned_games        = toArr(u.owned_games);
+            u.to_buy_games       = toArr(u.to_buy_games);
         });
         _allUsersCache = allData;
         _allUsersCacheTime = Date.now();
@@ -295,7 +297,21 @@ async function getUserById(userId) {
     try {
         const response = await fetch(`${API_BASE}/${userId}`);
         if (!response.ok) throw new Error('無法載入使用者資料');
-        return await response.json();
+        const user = await response.json();
+        const toArr = v => {
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string' && v) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch(e) {} }
+            return [];
+        };
+        user.liked_games        = toArr(user.liked_games);
+        user.disliked_games     = toArr(user.disliked_games);
+        user.super_liked_games  = toArr(user.super_liked_games);
+        user.neutral_games      = toArr(user.neutral_games);
+        user.no_interest_games  = toArr(user.no_interest_games);
+        user.wishlist           = toArr(user.wishlist);
+        user.owned_games        = toArr(user.owned_games);
+        user.to_buy_games       = toArr(user.to_buy_games);
+        return user;
     } catch (error) {
         console.error('Error fetching user:', error);
         return null;
