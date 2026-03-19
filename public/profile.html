@@ -55,6 +55,7 @@
             border: 1.5px solid var(--border-color);
             overflow: hidden;
         }
+        .pref-card.collection-card { overflow: visible; }
         .pref-card-header {
             padding: 1.25rem 1.5rem 0;
         }
@@ -477,6 +478,7 @@
                                 <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
                                 <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
                                 <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
+                                <a href="edit-game-collection.html" class="btn btn-secondary">🏠 編輯遊戲收藏</a>
                                 <a href="rankings.html" class="btn btn-secondary">🥇 編輯排行榜</a>
                                 <button class="btn btn-secondary" onclick="profileLogout()"
                                         style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
@@ -600,7 +602,7 @@
                 </div>
 
                 <!-- ── 卡片三：我的遊戲收藏 ── -->
-                <div class="pref-card" style="margin-top:1.5rem;">
+                <div class="pref-card collection-card" style="margin-top:1.5rem;">
                     <div class="pref-card-header">
                         <h2 class="pref-card-title">🏠 我的遊戲收藏</h2>
                         <div class="pref-tab-row">
