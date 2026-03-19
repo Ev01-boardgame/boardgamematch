@@ -693,6 +693,17 @@
         // localStorage 備份鍵名
         const BACKUP_KEY = 'mbti_game_ratings_backup';
 
+        // ── 名稱正規化比對：處理同一遊戲的中/英/日名不同的情況（issue #24）──
+        // 例如 collection 裡是 "Luthier"，但使用者的 liked_games 裡是 "製琴師"
+        function _isGameInList(gameName, gameList) {
+            if (gameList.includes(gameName)) return true;
+            if (typeof GameNames === 'undefined' || !GameNames.lookup) return false;
+            const info = GameNames.lookup(gameName);
+            if (!info) return false;
+            const knownNames = [info.name_zh, info.name_en, info.name_ja].filter(Boolean);
+            return knownNames.some(name => gameList.includes(name));
+        }
+
         // 隨機推薦用（與 random-recommend 同邏輯，用語改為「桌遊偏好」）
         const RANDOM_PAGE_SIZE = 100;   // 每頁筆數（與 API 一致）
         const RANDOM_POOL_SIZE = 1000;  // MBTI/軸線模式用的 pool 大小（只抓前 N 筆）
@@ -1326,7 +1337,7 @@
                     ...(u.no_interest_games || []),
                     ...(u.wishlist || [])
                 ];
-                const unratedGames = collection.games.filter(game => !allRatedGames.includes(game));
+                const unratedGames = collection.games.filter(game => !_isGameInList(game, allRatedGames));
                 const ratedCount = totalCount - unratedGames.length;
                 
                 // 決定顯示的標題
@@ -1431,7 +1442,7 @@
             } else {
                 // 一般模式：只出現未評過的
                 isReRateMode = false;
-                let unratedGames = collection.games.filter(game => !allRatedGames.includes(game));
+                let unratedGames = collection.games.filter(game => !_isGameInList(game, allRatedGames));
 
                 if (unratedGames.length === 0) {
                     showNotification('🎉 全部完成！', '這個清單的所有遊戲你都已經評價過了！<br><br>試試其他主題吧 😊', '✨');
@@ -1531,12 +1542,12 @@
         // 取得玩家對某遊戲的舊評分（未登入無評分）
         function getOldRating(gameName) {
             if (!currentUser) return null;
-            if ((currentUser.super_liked_games || []).includes(gameName)) return 'super_like';
-            if ((currentUser.liked_games || []).includes(gameName)) return 'like';
-            if ((currentUser.neutral_games || []).includes(gameName)) return 'neutral';
-            if ((currentUser.disliked_games || []).includes(gameName)) return 'dislike';
-            if ((currentUser.wishlist || []).includes(gameName)) return 'wishlist';
-            if ((currentUser.no_interest_games || []).includes(gameName)) return 'no_interest';
+            if (_isGameInList(gameName, currentUser.super_liked_games || [])) return 'super_like';
+            if (_isGameInList(gameName, currentUser.liked_games || [])) return 'like';
+            if (_isGameInList(gameName, currentUser.neutral_games || [])) return 'neutral';
+            if (_isGameInList(gameName, currentUser.disliked_games || [])) return 'dislike';
+            if (_isGameInList(gameName, currentUser.wishlist || [])) return 'wishlist';
+            if (_isGameInList(gameName, currentUser.no_interest_games || [])) return 'no_interest';
             return null;
         }
 
@@ -1552,24 +1563,25 @@
             const card = btn.closest('.random-game-card');
             if (card) card.querySelectorAll('.rating-buttons button').forEach(b => b.disabled = true);
 
+            // ⚠️ 必須先檢查 includes() 防止重複（issue #24）
             if (rating === 'super_like') {
                 if (!currentUser.super_liked_games) currentUser.super_liked_games = [];
-                currentUser.super_liked_games.push(gameName);
+                if (!currentUser.super_liked_games.includes(gameName)) currentUser.super_liked_games.push(gameName);
             } else if (rating === 'like') {
                 if (!currentUser.liked_games) currentUser.liked_games = [];
-                currentUser.liked_games.push(gameName);
+                if (!currentUser.liked_games.includes(gameName)) currentUser.liked_games.push(gameName);
             } else if (rating === 'neutral') {
                 if (!currentUser.neutral_games) currentUser.neutral_games = [];
-                currentUser.neutral_games.push(gameName);
+                if (!currentUser.neutral_games.includes(gameName)) currentUser.neutral_games.push(gameName);
             } else if (rating === 'dislike') {
                 if (!currentUser.disliked_games) currentUser.disliked_games = [];
-                currentUser.disliked_games.push(gameName);
+                if (!currentUser.disliked_games.includes(gameName)) currentUser.disliked_games.push(gameName);
             } else if (rating === 'wishlist') {
                 if (!currentUser.wishlist) currentUser.wishlist = [];
-                currentUser.wishlist.push(gameName);
+                if (!currentUser.wishlist.includes(gameName)) currentUser.wishlist.push(gameName);
             } else if (rating === 'no_interest') {
                 if (!currentUser.no_interest_games) currentUser.no_interest_games = [];
-                currentUser.no_interest_games.push(gameName);
+                if (!currentUser.no_interest_games.includes(gameName)) currentUser.no_interest_games.push(gameName);
             }
 
             const label = { super_like: '🤩 超喜歡', like: '👍 喜歡', neutral: '😐 普普', dislike: '👎 不喜歡', wishlist: '⭐ 想玩', no_interest: '🚫 沒興趣' }[rating] || rating;
@@ -1655,7 +1667,7 @@
                 ...(currentUser.wishlist || [])
             ];
             const totalGamesInCollection = collection.games.length;
-            const ratedInThisCollection = collection.games.filter(game => allRatedGames.includes(game)).length;
+            const ratedInThisCollection = collection.games.filter(game => _isGameInList(game, allRatedGames)).length;
             
             if (currentGameIndex >= currentCollectionGames.length) {
                 // 全部完成：重置重評模式，重新渲染該清單
@@ -1716,16 +1728,17 @@
             }
             const card = document.getElementById(`game-card-${collectionId}`);
 
-            // 一般模式：已評價過直接跳過
+            // 一般模式：已評價過直接跳過（含名稱正規化比對，issue #24）
             if (!isReRateMode) {
-                const alreadySuperLiked = (currentUser.super_liked_games || []).includes(gameName);
-                const alreadyLiked = currentUser.liked_games.includes(gameName);
-                const alreadyNeutral = (currentUser.neutral_games || []).includes(gameName);
-                const alreadyDisliked = currentUser.disliked_games.includes(gameName);
-                const alreadyWishlist = currentUser.wishlist.includes(gameName);
-                const alreadyNoInterest = (currentUser.no_interest_games || []).includes(gameName);
-
-                if (alreadySuperLiked || alreadyLiked || alreadyNeutral || alreadyDisliked || alreadyWishlist || alreadyNoInterest) {
+                const allMyRated = [
+                    ...(currentUser.super_liked_games || []),
+                    ...(currentUser.liked_games || []),
+                    ...(currentUser.neutral_games || []),
+                    ...(currentUser.disliked_games || []),
+                    ...(currentUser.wishlist || []),
+                    ...(currentUser.no_interest_games || [])
+                ];
+                if (_isGameInList(gameName, allMyRated)) {
                     console.log(`⚠️ 「${gameName}」已經評價過，跳過`);
                     currentGameIndex++;
                     showNextGame(collectionId);
@@ -1768,22 +1781,23 @@
             }
 
             // ── 樂觀更新：立即更新本地資料 + localStorage，不等 API ──
+            // ⚠️ 必須先檢查 includes() 防止重複（issue #24）
             saveToLocalStorage({ game: gameName, rating, timestamp: Date.now() });
             if (rating === 'super_like') {
                 if (!currentUser.super_liked_games) currentUser.super_liked_games = [];
-                currentUser.super_liked_games.push(gameName);
+                if (!currentUser.super_liked_games.includes(gameName)) currentUser.super_liked_games.push(gameName);
             } else if (rating === 'like') {
-                currentUser.liked_games.push(gameName);
+                if (!currentUser.liked_games.includes(gameName)) currentUser.liked_games.push(gameName);
             } else if (rating === 'neutral') {
                 if (!currentUser.neutral_games) currentUser.neutral_games = [];
-                currentUser.neutral_games.push(gameName);
+                if (!currentUser.neutral_games.includes(gameName)) currentUser.neutral_games.push(gameName);
             } else if (rating === 'dislike') {
-                currentUser.disliked_games.push(gameName);
+                if (!currentUser.disliked_games.includes(gameName)) currentUser.disliked_games.push(gameName);
             } else if (rating === 'wishlist') {
-                currentUser.wishlist.push(gameName);
+                if (!currentUser.wishlist.includes(gameName)) currentUser.wishlist.push(gameName);
             } else if (rating === 'no_interest') {
                 if (!currentUser.no_interest_games) currentUser.no_interest_games = [];
-                currentUser.no_interest_games.push(gameName);
+                if (!currentUser.no_interest_games.includes(gameName)) currentUser.no_interest_games.push(gameName);
             }
 
             // ── 立即觸發飛出動畫 + 預載卡片升上來（不等 API）──

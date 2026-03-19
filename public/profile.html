@@ -296,6 +296,26 @@
         }
         .pref-div-meta { display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.78rem; color: var(--text-light); gap: 0.5rem; }
         .pref-div-meta strong { color: var(--text-color); font-weight: 800; }
+
+        /* 主題清單卡片 */
+        .pc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; }
+        .pc-card { background:var(--bg-color); border:1.5px solid var(--border-color); border-radius:0.75rem; padding:1rem; transition:all 0.2s ease; }
+        .pc-card:hover { border-color:var(--primary-color); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+        .pc-card-title { font-weight:700; font-size:0.95rem; margin-bottom:0.35rem; color:var(--text-color); }
+        .pc-card-desc { font-size:0.8rem; color:var(--text-light); margin-bottom:0.5rem; line-height:1.5; }
+        .pc-tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.5rem; }
+        .pc-tag { background:var(--card-bg); border:1px solid var(--border-color); border-radius:1rem; padding:0.15rem 0.5rem; font-size:0.76rem; color:var(--text-color); }
+        .pc-tag.extra { opacity:0.6; font-style:italic; }
+        .pc-count { font-size:0.78rem; color:var(--text-light); }
+        .pc-ranking { margin-top:0.6rem; padding-top:0.5rem; border-top:1px solid var(--border-color); }
+        .pc-ranking-title { font-size:0.78rem; font-weight:600; color:var(--text-color); margin-bottom:0.35rem; }
+        .pc-rank-row { display:flex; align-items:center; gap:0.4rem; font-size:0.76rem; padding:0.15rem 0; }
+        .pc-rank-pos { font-weight:700; color:var(--primary-color); min-width:1.2rem; }
+        .pc-rank-name { flex:1; color:var(--text-color); }
+        .pc-rank-score { color:var(--text-light); font-size:0.72rem; }
+        .pc-raters { margin-top:0.5rem; font-size:0.75rem; color:var(--text-light); line-height:1.6; }
+        .pc-rater-chip { display:inline-block; background:rgba(102,126,234,0.1); border:1px solid rgba(102,126,234,0.25); border-radius:1rem; padding:0.1rem 0.5rem; font-size:0.72rem; margin:0.1rem 0.15rem; color:var(--text-color); cursor:pointer; text-decoration:none; }
+        .pc-rater-chip:hover { background:rgba(102,126,234,0.2); }
     </style>
 </head>
 <body>
@@ -402,7 +422,7 @@
                                 <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
                                 <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
                                 <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
-                                <a href="my-collections.html" class="btn btn-secondary">📚 我的清單</a>
+                                <a href="my-collections.html" class="btn btn-secondary">📚 編輯清單</a>
                                 <button class="btn btn-secondary" onclick="profileLogout()"
                                         style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
                                     🚪 登出
@@ -526,11 +546,12 @@
 
             </section>
 
-            <!-- 我的主題清單快速入口 -->
+            <!-- 我的主題清單 -->
             <section style="margin-bottom: 3rem;" id="explore-list-section">
                 <div style="background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 1rem; box-shadow: var(--shadow-md);">
-                    <h2 style="font-size: 1.3rem; margin-bottom: 0.3rem;">📚 我的主題清單</h2>
-                    <p style="color:var(--text-light); font-size:0.9rem; margin:0;" id="explore-list-summary">載入中...</p>
+                    <h2 style="font-size: 1.3rem; margin-bottom:0.4rem;">📚 我的主題清單</h2>
+                    <p style="color:var(--text-light); font-size:0.85rem; margin:0 0 1rem;" id="explore-list-summary">載入中...</p>
+                    <div id="explore-list-grid" class="pc-grid"></div>
                 </div>
             </section>
 
@@ -618,8 +639,8 @@
         <p>© 2025 MBTI × 桌遊配對</p>
     </footer>
 
-    <script src="js/api-base.js?v=20260302-clear"></script>
-    <script src="js/app.js?v=20260311"></script>
+    <script src="js/api-base.js?v=20260318"></script>
+    <script src="js/app.js?v=20260318"></script>
     <script src="js/game-names.js"></script>
 
     <script>
@@ -1424,7 +1445,7 @@
                     GameMBTI.getUserStats(currentUser.id),
                     GameMBTI.getAllAchievements().catch(() => []),
                     fetchAllPages('tables/game_votes').then(d => ({ data: d.filter(v => v.user_id === currentUser.id) })).catch(() => ({ data: [] })),
-                    fetchAllPages('tables/user_collections').then(d => ({ data: d.filter(c => c.user_id === currentUser.id) })).catch(() => ({ data: [] })),
+                    fetchAllPages('tables/user_collections').then(d => ({ data: d.filter(c => c.created_by === currentUser.id) })).catch(() => ({ data: [] })),
                 ]);
 
                 // ③ 從已抓到的資料計算各項統計
@@ -3214,36 +3235,130 @@
             container.innerHTML = html || '';
         }
 
-        // 探索清單摘要
         async function displayExploreListSummary() {
-            const el = document.getElementById('explore-list-summary');
-            if (!el || !currentUser) return;
+            const summaryEl = document.getElementById('explore-list-summary');
+            const gridEl    = document.getElementById('explore-list-grid');
+            if (!summaryEl || !gridEl || !currentUser) return;
+
             try {
-                const r = await fetch(`tables/user_collections?limit=100`);
-                if (!r.ok) throw new Error();
-                const d = await r.json();
-                const mine = (d.data || []).filter(c => c.created_by === currentUser.id);
+                const allCollections = await fetchAllPages('tables/user_collections');
+                const mine = allCollections.filter(c => c.created_by === currentUser.id);
+
                 if (mine.length === 0) {
-                    el.textContent = '還沒有建立任何主題清單，點「管理清單」開始吧！';
-                } else {
-                    const pubCount = mine.filter(c => c.is_public).length;
-                    el.textContent = `共 ${mine.length} 份清單　${pubCount > 0 ? `🔓 ${pubCount} 份公開` : '🔒 全部私密'}`;
+                    summaryEl.textContent = '還沒有建立任何主題清單，點右上「管理清單」開始吧！';
+                    gridEl.innerHTML = '';
+                    return;
                 }
+
+                const pubCols = mine.filter(c => c.is_public).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+                const privCount = mine.length - pubCols.length;
+                summaryEl.textContent = `共 ${mine.length} 份清單（${pubCols.length} 份公開${privCount > 0 ? `、${privCount} 份私密` : ''}）`;
+
+                if (pubCols.length === 0) {
+                    gridEl.innerHTML = '<p style="font-size:0.85rem; color:var(--text-light);">目前沒有公開的清單</p>';
+                    return;
+                }
+
+                const raterIds = new Set();
+                pubCols.forEach(c => {
+                    let rb = [];
+                    try { rb = typeof c.rated_by === 'string' ? JSON.parse(c.rated_by) : (c.rated_by || []); } catch(e) {}
+                    if (Array.isArray(rb)) rb.forEach(id => raterIds.add(id));
+                });
+
+                const raterMap = {};
+                if (raterIds.size > 0) {
+                    try {
+                        const allUsers = await fetchAllPages('tables/users');
+                        allUsers.forEach(u => {
+                            if (raterIds.has(u.id)) raterMap[u.id] = u.username || u.nickname || u.email?.split('@')[0] || '匿名';
+                        });
+                    } catch(e) {}
+                }
+
+                gridEl.innerHTML = pubCols.map(c => renderOwnerCollectionCard(c, raterMap)).join('');
             } catch(e) {
-                el.textContent = '點「管理清單」查看或建立主題清單';
+                summaryEl.textContent = '載入清單失敗，請稍後再試';
+                gridEl.innerHTML = '';
             }
+        }
+
+        function _escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        var escHtml = typeof escHtml === 'function' ? escHtml : _escHtml;
+
+        function renderOwnerCollectionCard(c, raterMap) {
+            const games = Array.isArray(c.games) ? c.games
+                : (typeof c.games === 'string' ? (() => { try { return JSON.parse(c.games); } catch(e) { return []; } })() : []);
+            const MAX = 6;
+            const visTags = games.slice(0, MAX);
+            const extraCount = games.length - visTags.length;
+            const tagsHtml = visTags.map(g =>
+                `<span class="pc-tag">${escHtml(g)}</span>`
+            ).join('') + (extraCount > 0 ? `<span class="pc-tag extra">+${extraCount} 款</span>` : '');
+
+            let statsHtml = '';
+            if (c.play_count > 0) {
+                statsHtml = `<span class="pc-count">👥 ${c.play_count} 人評過</span>`;
+            }
+
+            let ratedByIds = [];
+            try { ratedByIds = typeof c.rated_by === 'string' ? JSON.parse(c.rated_by) : (c.rated_by || []); } catch(e) {}
+            if (!Array.isArray(ratedByIds)) ratedByIds = [];
+
+            let ratersHtml = '';
+            if (ratedByIds.length > 0) {
+                const chips = ratedByIds.map(id => {
+                    const name = raterMap[id] || '匿名';
+                    return `<a href="player.html?id=${encodeURIComponent(id)}" class="pc-rater-chip">${escHtml(name)}</a>`;
+                }).join('');
+                ratersHtml = `<div class="pc-raters">評過的玩家：${chips}</div>`;
+            }
+
+            let rankingHtml = '';
+            let voteStats = {};
+            try { voteStats = typeof c.vote_stats === 'string' ? JSON.parse(c.vote_stats) : (c.vote_stats || {}); } catch(e) {}
+            const ranked = Object.entries(voteStats).map(([name, s]) => {
+                const like = (s.super_like || 0) + (s.like || 0);
+                const dislike = (s.dislike || 0) + (s.no_interest || 0);
+                return { name, score: like - dislike, like, dislike };
+            }).filter(r => r.like > 0 || r.dislike > 0).sort((a, b) => b.score - a.score);
+
+            if (ranked.length > 0) {
+                const medals = ['🥇','🥈','🥉'];
+                const rows = ranked.slice(0, 5).map((r, i) =>
+                    `<div class="pc-rank-row">
+                        <span class="pc-rank-pos">${medals[i] || (i + 1)}</span>
+                        <span class="pc-rank-name">${escHtml(r.name)}</span>
+                        <span class="pc-rank-score">👍${r.like} 👎${r.dislike}</span>
+                    </div>`
+                ).join('');
+                rankingHtml = `<div class="pc-ranking">
+                    <div class="pc-ranking-title">🏆 遊戲人氣排名</div>
+                    ${rows}
+                    ${ranked.length > 5 ? `<div style="font-size:0.72rem; color:var(--text-light); margin-top:0.2rem;">…還有 ${ranked.length - 5} 款</div>` : ''}
+                </div>`;
+            }
+
+            return `
+            <div class="pc-card">
+                <div class="pc-card-title">${escHtml(c.title)}</div>
+                ${c.description ? `<div class="pc-card-desc">${escHtml(c.description)}</div>` : ''}
+                <div class="pc-tags">${tagsHtml || '<span style="color:var(--border-color);font-size:0.8rem;">（清單為空）</span>'}</div>
+                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.3rem;">
+                    <span class="pc-count">🎲 ${games.length} 款</span>
+                    ${statsHtml}
+                </div>
+                ${ratersHtml}
+                ${rankingHtml}
+            </div>`;
         }
 
         // 玩家收藏預覽（profile 首頁卡片）
         async function displayPlayerCollectionsPreview() {
             const container = document.getElementById('player-favorites-preview');
             if (!container || !currentUser) return;
-            const esc = (v) => String(v || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
             try {
                 const r = await fetch('tables/user_collections?limit=200');
                 if (!r.ok) throw new Error('載入收藏失敗');
@@ -3265,18 +3380,20 @@
                 }
 
                 const cards = mine.slice(0, 3).map(c => {
-                    const games = Array.isArray(c.games) ? c.games : [];
+                    const games = Array.isArray(c.games)
+                        ? c.games
+                        : (typeof c.games === 'string' ? (() => { try { return JSON.parse(c.games); } catch(e) { return []; } })() : []);
                     const badge = c.is_public
                         ? '<span style="font-size:0.72rem; padding:0.15rem 0.5rem; border-radius:999px; background:#dcfce7; color:#166534;">🔓 公開</span>'
                         : '<span style="font-size:0.72rem; padding:0.15rem 0.5rem; border-radius:999px; background:#f1f5f9; color:#475569;">🔒 私密</span>';
                     const tags = games.slice(0, 4)
-                        .map(g => `<span class="game-tag" style="font-size:0.78rem; padding:0.15rem 0.45rem;">${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(g) : esc(g)}</span>`)
+                        .map(g => `<span class="game-tag" style="font-size:0.78rem; padding:0.15rem 0.45rem;">${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(g) : escHtml(g)}</span>`)
                         .join('');
                     const extra = games.length > 4 ? `<span class="game-tag" style="font-size:0.78rem; padding:0.15rem 0.45rem;">+${games.length - 4}</span>` : '';
                     return `
                         <div style="background:var(--bg-color); border:1px solid var(--border-color); border-radius:0.8rem; padding:0.8rem;">
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:0.6rem; margin-bottom:0.45rem;">
-                                <strong style="font-size:0.95rem; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(c.title || '未命名清單')}</strong>
+                                <strong style="font-size:0.95rem; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(c.title || '未命名清單')}</strong>
                                 ${badge}
                             </div>
                             <div style="color:var(--text-light); font-size:0.8rem; margin-bottom:0.5rem;">🎲 ${games.length} 款遊戲</div>
