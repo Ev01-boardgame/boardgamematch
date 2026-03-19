@@ -1005,8 +1005,6 @@
                             liked_games: [],
                             disliked_games: [],
                             wishlist: [],
-                            owned_games: [],
-                            to_buy_games: [],
                             mbti: null,  // 未設定 MBTI
                             is_temporary: true  // 標記為臨時使用者
                         };
@@ -1035,7 +1033,7 @@
                                 const ratingFields = [
                                     'liked_games','disliked_games','wishlist',
                                     'super_liked_games','neutral_games',
-                                    'no_interest_games','owned_games','to_buy_games'
+                                    'no_interest_games'
                                 ];
                                 ratingFields.forEach(f => {
                                     if (Array.isArray(serverUser[f])) {
@@ -2089,9 +2087,7 @@
                     neutral_games:     currentUser.neutral_games     || [],
                     disliked_games:    currentUser.disliked_games    || [],
                     no_interest_games: currentUser.no_interest_games || [],
-                    wishlist:          currentUser.wishlist          || [],
-                    owned_games:       currentUser.owned_games       || [],
-                    to_buy_games:      currentUser.to_buy_games      || []
+                    wishlist:          currentUser.wishlist          || []
                 };
                 console.log('📤 safePatch payload:', JSON.stringify(patchPayload).slice(0, 200));
                 const response = await safePatch(`tables/users/${currentUser.id}`, patchPayload);
@@ -2106,8 +2102,6 @@
                         stored.disliked_games    = patchPayload.disliked_games;
                         stored.no_interest_games = patchPayload.no_interest_games;
                         stored.wishlist          = patchPayload.wishlist;
-                        stored.owned_games       = patchPayload.owned_games;
-                        stored.to_buy_games      = patchPayload.to_buy_games;
                         localStorage.setItem('currentUser', JSON.stringify(stored));
                     } catch(e) {}
                     removeFromLocalStorage(gameName);
