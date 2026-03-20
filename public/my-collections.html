@@ -294,6 +294,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
             transition: background 0.15s, transform 0.15s;
         }
         .game-pill-del:hover { background: rgba(220,38,38,0.9); transform: scale(1.15); }
@@ -836,7 +837,7 @@
         wrap.innerHTML = pendingGames.map((g, i) =>
             `<span class="game-pill">
                 ${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(g) : escHtml(g)}
-                <button class="game-pill-del" onclick="removeGame(${i})" title="移除">✕</button>
+                <button class="game-pill-del" onclick="removeGame(${i})" title="移除">×</button>
             </span>`
         ).join('');
     }
