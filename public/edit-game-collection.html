@@ -309,6 +309,7 @@
         }
 
         async function loadPage() {
+            try { await GameNames.load(); } catch (e) {}
             const localUser = GameMBTI.getCurrentUser();
             if (!localUser || !localUser.id) { location.href = 'index.html'; return; }
             currentUser = await GameMBTI.getUserById(localUser.id);
