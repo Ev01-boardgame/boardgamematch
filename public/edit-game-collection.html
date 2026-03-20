@@ -36,13 +36,16 @@
         .add-game-section {
             background: var(--bg-color);
             border-radius: 0.5rem;
-            padding: 0.7rem;
-            margin-top: 0.6rem;
+            padding: 1rem;
+            margin-top: 1rem;
             margin-bottom: 0.8rem;
         }
         .add-game-input {
             display: flex;
             gap: 0.5rem;
+            margin-top: 0.5rem;
+            position: relative;
+            flex-wrap: wrap;
         }
         .add-game-input .ac-wrap {
             position: relative;
@@ -65,42 +68,44 @@
             top: calc(100% + 4px);
             left: 0;
             right: 0;
-            background: var(--card-bg);
-            border: 1.5px solid var(--primary-color);
-            border-radius: 0.55rem;
-            box-shadow: var(--shadow-md);
-            max-height: 260px;
+            background: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 999;
+            max-height: 220px;
             overflow-y: auto;
             display: none;
-            z-index: 30;
         }
         .add-game-dropdown.open { display:block; }
         .add-game-ac-item {
             display:flex;
             align-items:center;
-            gap:0.45rem;
-            padding:0.45rem 0.55rem;
+            gap:0.5rem;
+            padding:0.45rem 0.75rem;
             border-bottom:1px solid var(--border-color);
             cursor: pointer;
+            font-size: 0.88rem;
         }
         .add-game-ac-item:last-child { border-bottom:none; }
-        .add-game-ac-item:hover, .add-game-ac-item.highlighted { background: var(--bg-color); }
-        .add-game-ac-item img { width:24px;height:24px;border-radius:0.3rem;object-fit:cover;flex-shrink:0; }
+        .add-game-ac-item:hover, .add-game-ac-item.highlighted { background: var(--bg-light); }
+        .add-game-ac-item img { width:28px;height:28px;border-radius:0.3rem;object-fit:cover;flex-shrink:0; }
         .add-game-ac-item .ac-name { flex:1; min-width:0; }
-        .add-game-ac-item .ac-name-zh { font-size:0.83rem; font-weight:600; color:var(--text-color); }
-        .add-game-ac-item .ac-name-en { font-size:0.74rem; color:var(--text-light); }
+        .add-game-ac-item .ac-name-zh { font-weight:600; }
+        .add-game-ac-item .ac-name-en { font-size:0.78rem; color:var(--text-light); }
+        .add-game-ac-badge { font-size:0.72rem; padding:0.1rem 0.4rem; border-radius:999px; background:#dcfce7; color:#166534; flex-shrink:0; }
         .list-toolbar {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-            margin: 0.6rem 0;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
         }
         .list-toolbar input { margin: 0; }
         .list-pagination {
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             color: var(--text-light);
-            white-space: nowrap;
         }
         .list-pagination .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; margin-left: 0.25rem; }
         .tag-list {
@@ -403,9 +408,10 @@
 
         function renderZone(type) {
             const listEl = document.getElementById(`${type}-list`);
+            const toolbarEl = document.getElementById(`${type}-toolbar`);
             const pagerEl = document.getElementById(`${type}-pagination`);
             const filterEl = document.getElementById(`${type}-filter`);
-            if (!listEl || !pagerEl) return;
+            if (!listEl || !pagerEl || !toolbarEl) return;
 
             const list = getList(type);
             const q = (zoneFilter[type] || '').trim().toLowerCase();
@@ -416,8 +422,9 @@
             const start = zonePage[type] * LIST_PAGE_SIZE;
             const slice = filtered.slice(start, start + LIST_PAGE_SIZE);
 
+            toolbarEl.style.display = list.length > 0 ? 'flex' : 'none';
             if (filterEl && filterEl.value !== (zoneFilter[type] || '')) filterEl.value = zoneFilter[type] || '';
-            if (total <= LIST_PAGE_SIZE) {
+            if (total === 0) {
                 pagerEl.innerHTML = '';
             } else {
                 const end = Math.min(start + LIST_PAGE_SIZE, total);
@@ -542,13 +549,14 @@
                             const safe = displayName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                             const img = g.image_url
                                 ? `<img src="${g.image_url}" onerror="this.style.display='none'">`
-                                : `<div style="width:24px;height:24px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
+                                : `<div style="width:28px;height:28px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
                             return `<div class="add-game-ac-item" onmousedown="selectAc('${inputEl.id}','${dropId}','${safe}')">
                                 ${img}
                                 <div class="ac-name">
                                     <div class="ac-name-zh">${displayName}</div>
                                     ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
                                 </div>
+                                <span class="add-game-ac-badge">資料庫</span>
                             </div>`;
                         }).join('');
                         drop.classList.add('open');
