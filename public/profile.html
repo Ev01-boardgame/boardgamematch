@@ -64,6 +64,19 @@
             color: var(--text-color);
             margin: 0 0 1rem;
         }
+        .profile-action-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .profile-action-btn {
+            flex: 1 1 170px;
+            min-width: 170px;
+            text-align: center;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
         .pref-tab-row {
             display: flex; gap: 0.5rem; flex-wrap: wrap;
         }
@@ -432,13 +445,13 @@
                         </div>
                         
                         <div style="display:flex; flex-direction:column; gap: 0.75rem; align-items:flex-start; flex: 0 1 360px; min-width: 320px; max-width: 420px; width: 100%;">
-                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <a href="personality-test.html" class="btn btn-secondary">🧪 桌友適性測驗</a>
-                                <button class="btn btn-secondary" onclick="showBioEditor()">📝 編輯簡介</button>
-                                <a href="edit-games-drag.html" class="btn btn-secondary">✏️ 編輯桌遊</a>
-                                <a href="edit-game-collection.html" class="btn btn-secondary">🏠 編輯遊戲收藏</a>
-                                <a href="rankings.html" class="btn btn-secondary">🥇 編輯排行榜</a>
-                                <button class="btn btn-secondary" onclick="profileLogout()"
+                            <div class="profile-action-group">
+                                <a href="personality-test.html" class="btn btn-secondary profile-action-btn">🧪 桌友適性測驗</a>
+                                <button class="btn btn-secondary profile-action-btn" onclick="showBioEditor()">📝 編輯我的簡介</button>
+                                <a href="edit-games-drag.html" class="btn btn-secondary profile-action-btn">🥳 編輯桌遊喜好</a>
+                                <a href="edit-game-collection.html" class="btn btn-secondary profile-action-btn">🏠 編輯桌遊收藏</a>
+                                <a href="rankings.html" class="btn btn-secondary profile-action-btn">🥇 編輯各類排名</a>
+                                <button class="btn btn-secondary profile-action-btn" onclick="profileLogout()"
                                         style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
                                     🚪 登出
                                 </button>
@@ -559,10 +572,10 @@
                     <div class="pref-card-more" id="more-unplayed"></div>
                 </div>
 
-                <!-- ── 卡片三：我的遊戲收藏 ── -->
+                <!-- ── 卡片三：我的桌遊收藏 ── -->
                 <div class="pref-card collection-card" style="margin-top:1.5rem;">
                     <div class="pref-card-header">
-                        <h2 class="pref-card-title">🏠 我的遊戲收藏</h2>
+                        <h2 class="pref-card-title">🏠 我的桌遊收藏</h2>
                         <div class="pref-tab-row">
                             <button class="pref-tab owned active" onclick="switchCollectionTab('owned', this)" id="tab-owned">
                                 📚 擁有的 <span class="pref-tab-count" id="count-owned">0</span>
@@ -586,10 +599,10 @@
 
             </section>
 
-            <!-- 我的各類排行榜 -->
+            <!-- 我的各類排名 -->
             <section style="margin-bottom: 3rem;" id="explore-list-section">
                 <div style="background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 1rem; box-shadow: var(--shadow-md);">
-                    <h2 style="font-size: 1.3rem; margin-bottom:0.4rem;">🥇 我的各類排行榜</h2>
+                    <h2 style="font-size: 1.3rem; margin-bottom:0.4rem;">🥇 我的各類排名</h2>
                     <p style="color:var(--text-light); font-size:0.85rem; margin:0 0 1rem;" id="explore-list-summary">載入中...</p>
                     <div id="explore-list-grid" class="pc-grid"></div>
                 </div>
@@ -3307,17 +3320,17 @@
                 const mine = allCollections.filter(c => c.created_by === currentUser.id);
 
                 if (mine.length === 0) {
-                    summaryEl.textContent = '還沒有建立任何排行榜，點「編輯排行榜」開始吧！';
+                    summaryEl.textContent = '還沒有建立任何排名，點「編輯各類排名」開始吧！';
                     gridEl.innerHTML = '';
                     return;
                 }
 
                 const pubCols = mine.filter(c => c.is_public).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
                 const privCount = mine.length - pubCols.length;
-                summaryEl.textContent = `共 ${mine.length} 份排行榜（${pubCols.length} 份公開${privCount > 0 ? `、${privCount} 份私密` : ''}）`;
+                summaryEl.textContent = `共 ${mine.length} 份排名（${pubCols.length} 份公開${privCount > 0 ? `、${privCount} 份私密` : ''}）`;
 
                 if (pubCols.length === 0) {
-                    gridEl.innerHTML = '<p style="font-size:0.85rem; color:var(--text-light);">目前沒有公開的排行榜</p>';
+                    gridEl.innerHTML = '<p style="font-size:0.85rem; color:var(--text-light);">目前沒有公開的排名</p>';
                     return;
                 }
 
@@ -4075,7 +4088,7 @@
     <div style="background:var(--card-bg); border-radius:1.25rem; padding:2rem; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.35); position:relative;">
         <!-- 標題列 -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h2 style="margin:0; font-size:1.4rem; color:var(--text-color);">📝 編輯簡介</h2>
+            <h2 style="margin:0; font-size:1.4rem; color:var(--text-color);">📝 編輯我的簡介</h2>
             <button onclick="closeBioEditor()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-light); line-height:1;">✕</button>
         </div>
 
