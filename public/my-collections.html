@@ -551,6 +551,7 @@
 
     // ── 初始化 ───────────────────────────────────────────────────────
     async function init() {
+        try { await GameNames.load(); } catch(e) {}
         currentUser = await resolveCurrentUser();
         if (!currentUser) {
             document.getElementById('loading-state').style.display = 'none';
