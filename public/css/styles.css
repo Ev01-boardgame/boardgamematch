@@ -770,6 +770,28 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 2rem;
     font-size: 0.9rem;
     font-weight: 500;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    text-align: center;
+}
+
+.player-game-tag .gn-tag-zh {
+    display: block;
+    font-size: 0.88em;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.player-game-tag .gn-tag-en {
+    display: block;
+    font-size: 0.72em;
+    font-weight: 400;
+    opacity: 0.82;
+    line-height: 1.2;
+    text-align: center;
 }
 
 .player-common-games {

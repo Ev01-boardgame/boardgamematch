@@ -7,6 +7,57 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/gamification.css">
     <style>
+        .game-tags-container {
+            gap: 0.9rem !important;
+        }
+        .game-tag {
+            position: relative !important;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+            color: #fff !important;
+            padding: 0.32rem 1.05rem 0.32rem 0.68rem !important;
+            border-radius: 0.75rem !important;
+            display: inline-flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 0 !important;
+            text-align: center !important;
+            line-height: 1.2 !important;
+        }
+        .game-tag.disliked {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        }
+        .game-tag .gn-tag-zh {
+            display: block !important;
+            font-size: 0.88em !important;
+            font-weight: 600 !important;
+            line-height: 1.3 !important;
+            text-align: center !important;
+        }
+        .game-tag .gn-tag-en {
+            display: block !important;
+            font-size: 0.72em !important;
+            font-weight: 400 !important;
+            opacity: 0.82 !important;
+            line-height: 1.2 !important;
+            text-align: center !important;
+        }
+        .game-tag button {
+            position: absolute;
+            right: -0.45rem;
+            top: -0.38rem;
+            width: 1.2rem;
+            height: 1.2rem;
+            border-radius: 999px;
+            border: none;
+            background: rgba(220, 38, 38, 0.92);
+            color: #fff;
+            font-size: 0.85rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
         .autocomplete-suggestions {
             position: absolute;
             top: 100%;
@@ -229,6 +280,7 @@
 
     <script src="js/api-base.js?v=20260302-clear"></script>
     <script src="js/app.js?v=20260319"></script>
+    <script src="js/game-names.js"></script>
 
     <script>
         // 檢查登入狀態
@@ -469,7 +521,7 @@
             
             container.innerHTML = likedGames.map(game => `
                 <div class="game-tag">
-                    <span>${game}</span>
+                    ${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(game) : game}
                     <button type="button" onclick="removeLikedGame('${game.replace(/'/g, "\\'")}')">×</button>
                 </div>
             `).join('');
@@ -486,7 +538,7 @@
             
             container.innerHTML = dislikedGames.map(game => `
                 <div class="game-tag disliked">
-                    <span>${game}</span>
+                    ${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(game) : game}
                     <button type="button" onclick="removeDislikedGame('${game.replace(/'/g, "\\'")}')">×</button>
                 </div>
             `).join('');

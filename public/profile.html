@@ -3068,7 +3068,7 @@
             if (superLikedGames.length > 0) {
                 const gamesToShow = superLikedGames.slice(0, 10);
                 likedGamesElement.innerHTML = gamesToShow.map(game => 
-                    `<div class="player-game-tag">${game}</div>`
+                    `<div class="player-game-tag">${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(game) : game}</div>`
                 ).join('');
                 if (superLikedGames.length > 10) {
                     likedGamesElement.innerHTML += `<div class="player-game-tag" style="background: var(--text-light);">+${superLikedGames.length - 10} 款</div>`;
