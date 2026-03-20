@@ -96,16 +96,29 @@
         .add-game-ac-badge { font-size:0.72rem; padding:0.1rem 0.4rem; border-radius:999px; background:#dcfce7; color:#166534; flex-shrink:0; }
         .list-toolbar {
             display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
             margin-bottom: 0.75rem;
-            padding: 0.5rem 0;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
         }
-        .list-toolbar input { margin: 0; }
+        .list-toolbar input {
+            margin: 0;
+            max-width: none !important;
+            flex: 1 1 auto;
+            background: #fff;
+        }
         .list-pagination {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            white-space: normal;
         }
         .list-pagination .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; margin-left: 0.25rem; }
         .tag-list {
