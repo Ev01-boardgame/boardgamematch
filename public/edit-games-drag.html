@@ -507,10 +507,10 @@
                 </div>
             </div>
 
-            <!-- 普通的桌遊 -->
+            <!-- 普普的桌遊 -->
             <div class="drop-zone" id="neutral-zone" data-type="neutral">
                 <div class="drop-zone-header">
-                    <span>😐 普通的桌遊</span>
+                    <span>😐 普普的桌遊</span>
                     <span class="drop-zone-count" id="neutral-count">0 款</span>
                 </div>
                 <div class="list-toolbar" id="neutral-toolbar" style="display: none;">
@@ -877,7 +877,7 @@
 
             // 手機版移動按鈕（列表行）
             const otherTypes = ['super_liked','liked','neutral','disliked','wishlist','no_interest'].filter(t => t !== type);
-            const labels = { super_liked:'🤩超喜歡', liked:'😍喜歡', neutral:'😐普通', disliked:'😕不喜歡', wishlist:'⭐想玩', no_interest:'🚫沒興趣' };
+            const labels = { super_liked:'🤩超喜歡', liked:'😍喜歡', neutral:'😐普普', disliked:'😕不喜歡', wishlist:'⭐想玩', no_interest:'🚫沒興趣' };
             const mobileMoveBtns = otherTypes.map(t =>
                 `<button class="move-btn" onclick="moveGame('${type}','${t}','${safeGame}');event.stopPropagation();">${labels[t]}</button>`
             ).join('');
