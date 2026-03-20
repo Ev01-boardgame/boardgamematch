@@ -1058,12 +1058,18 @@
                 if (_acDebounceTimer) { clearTimeout(_acDebounceTimer); _acDebounceTimer = null; }
                 return;
             }
+            if (raw.length < 2) {
+                drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">至少輸入 2 個字再搜尋</div>';
+                drop.classList.add('open');
+                if (_acDebounceTimer) { clearTimeout(_acDebounceTimer); _acDebounceTimer = null; }
+                return;
+            }
 
             if (_acDebounceTimer) clearTimeout(_acDebounceTimer);
             _acDebounceTimer = setTimeout(() => {
                 _acDebounceTimer = null;
                 const query = inputEl.value.trim();
-                if (!query) { drop.classList.remove('open'); return; }
+                if (!query || query.length < 2) { drop.classList.remove('open'); return; }
 
                 const url = `tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`;
                 fetch(url)
