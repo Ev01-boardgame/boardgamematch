@@ -237,16 +237,16 @@
         
         .add-game-section {
             background: var(--bg-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-top: 1rem;
-            margin-bottom: 0.8rem;
+            border-radius: 8px;
+            padding: 5px 6px;
+            margin-top: 0.5rem;
+            margin-bottom: 0.6rem;
         }
         
         .add-game-input {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
+            gap: 6px;
+            margin-top: 0;
             position: relative;
             flex-wrap: wrap;
         }
@@ -260,14 +260,21 @@
         .add-game-input input {
             width: 100%;
             box-sizing: border-box;
-            padding: 0.5rem 0.7rem;
+            padding: 6px 9px;
             border: 1.5px solid var(--border-color);
-            border-radius: 0.55rem;
-            font-size: 0.9rem;
+            border-radius: 8px;
+            font-size: 0.83rem;
             background: var(--bg-color);
             color: var(--text-color);
         }
         .add-game-input input:focus { outline: none; border-color: var(--primary-color); }
+        .add-game-input .btn {
+            min-width: 62px;
+            padding: 5px 10px !important;
+            border-radius: 8px !important;
+            font-size: 0.83rem !important;
+            line-height: 1.2;
+        }
 
         .add-game-dropdown {
             display: none;
@@ -314,11 +321,11 @@
             display: flex;
             flex-direction: column;
             align-items: stretch;
-            gap: 6px;
-            margin-bottom: 0.75rem;
-            padding: 8px;
+            gap: 4px;
+            margin-bottom: 0.5rem;
+            padding: 5px 6px;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 8px;
             background: #f8fafc;
         }
         .list-toolbar input {
@@ -326,9 +333,13 @@
             max-width: none !important;
             flex: 1 1 auto;
             background: #fff;
+            padding: 6px 9px !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            font-size: 0.83rem !important;
         }
         .list-pagination {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             color: var(--text-light);
             display: flex;
             align-items: center;
@@ -336,7 +347,12 @@
             flex-wrap: wrap;
             white-space: normal;
         }
-        .list-pagination .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; margin-left: 0.25rem; }
+        .list-pagination .btn {
+            padding: 0.18rem 0.5rem;
+            font-size: 0.76rem;
+            margin-left: 0.2rem;
+            border-radius: 8px;
+        }
         
         .drag-hint {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
