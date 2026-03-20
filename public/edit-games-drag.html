@@ -259,7 +259,14 @@
         .add-game-input input {
             width: 100%;
             box-sizing: border-box;
+            padding: 0.5rem 0.7rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 0.55rem;
+            font-size: 0.9rem;
+            background: var(--bg-color);
+            color: var(--text-color);
         }
+        .add-game-input input:focus { outline: none; border-color: var(--primary-color); }
 
         .add-game-dropdown {
             display: none;
@@ -476,14 +483,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-super_liked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-super_liked')"
                                 onfocus="onGameAcInput(this, 'drop-super_liked')"
                                 onblur="closeGameAc('drop-super_liked')"
                                 onkeydown="onGameAcKey(event, 'drop-super_liked', 'super_liked')">
                             <div class="add-game-dropdown" id="drop-super_liked"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('super_liked')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('super_liked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
@@ -509,14 +515,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-liked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-liked')"
                                 onfocus="onGameAcInput(this, 'drop-liked')"
                                 onblur="closeGameAc('drop-liked')"
                                 onkeydown="onGameAcKey(event, 'drop-liked', 'liked')">
                             <div class="add-game-dropdown" id="drop-liked"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('liked')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('liked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
@@ -541,14 +546,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-neutral-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-neutral')"
                                 onfocus="onGameAcInput(this, 'drop-neutral')"
                                 onblur="closeGameAc('drop-neutral')"
                                 onkeydown="onGameAcKey(event, 'drop-neutral', 'neutral')">
                             <div class="add-game-dropdown" id="drop-neutral"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('neutral')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('neutral')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
@@ -573,14 +577,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-disliked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-disliked')"
                                 onfocus="onGameAcInput(this, 'drop-disliked')"
                                 onblur="closeGameAc('drop-disliked')"
                                 onkeydown="onGameAcKey(event, 'drop-disliked', 'disliked')">
                             <div class="add-game-dropdown" id="drop-disliked"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('disliked')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('disliked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
@@ -605,14 +608,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-wishlist-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-wishlist')"
                                 onfocus="onGameAcInput(this, 'drop-wishlist')"
                                 onblur="closeGameAc('drop-wishlist')"
                                 onkeydown="onGameAcKey(event, 'drop-wishlist', 'wishlist')">
                             <div class="add-game-dropdown" id="drop-wishlist"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('wishlist')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('wishlist')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
@@ -637,14 +639,13 @@
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-no_interest-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
-                                style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem;"
                                 oninput="onGameAcInput(this, 'drop-no_interest')"
                                 onfocus="onGameAcInput(this, 'drop-no_interest')"
                                 onblur="closeGameAc('drop-no_interest')"
                                 onkeydown="onGameAcKey(event, 'drop-no_interest', 'no_interest')">
                             <div class="add-game-dropdown" id="drop-no_interest"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="addGame('no_interest')" style="padding: 0.5rem 1rem;">新增</button>
+                        <button type="button" class="btn btn-secondary" onclick="addGame('no_interest')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
             </div>
