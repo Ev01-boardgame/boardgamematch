@@ -33,16 +33,23 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
-        .add-row {
-            display:flex;
-            gap:0.5rem;
-            margin-bottom:0.8rem;
+        .add-game-section {
+            background: var(--bg-color);
+            border-radius: 0.5rem;
+            padding: 0.7rem;
+            margin-top: 0.6rem;
+            margin-bottom: 0.8rem;
         }
-        .ac-wrap {
+        .add-game-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .add-game-input .ac-wrap {
             position: relative;
             flex: 1;
+            min-width: 0;
         }
-        .add-input {
+        .add-game-input input {
             width: 100%;
             box-sizing: border-box;
             padding: 0.5rem 0.7rem;
@@ -52,8 +59,8 @@
             background: var(--bg-color);
             color: var(--text-color);
         }
-        .add-input:focus { outline: none; border-color: var(--primary-color); }
-        .ac-drop {
+        .add-game-input input:focus { outline: none; border-color: var(--primary-color); }
+        .add-game-dropdown {
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
@@ -67,8 +74,8 @@
             display: none;
             z-index: 30;
         }
-        .ac-drop.open { display:block; }
-        .ac-item {
+        .add-game-dropdown.open { display:block; }
+        .add-game-ac-item {
             display:flex;
             align-items:center;
             gap:0.45rem;
@@ -76,10 +83,26 @@
             border-bottom:1px solid var(--border-color);
             cursor: pointer;
         }
-        .ac-item:last-child { border-bottom:none; }
-        .ac-item:hover, .ac-item.highlighted { background: var(--bg-color); }
-        .ac-name-zh { font-size:0.83rem; font-weight:600; color:var(--text-color); }
-        .ac-name-en { font-size:0.74rem; color:var(--text-light); }
+        .add-game-ac-item:last-child { border-bottom:none; }
+        .add-game-ac-item:hover, .add-game-ac-item.highlighted { background: var(--bg-color); }
+        .add-game-ac-item img { width:24px;height:24px;border-radius:0.3rem;object-fit:cover;flex-shrink:0; }
+        .add-game-ac-item .ac-name { flex:1; min-width:0; }
+        .add-game-ac-item .ac-name-zh { font-size:0.83rem; font-weight:600; color:var(--text-color); }
+        .add-game-ac-item .ac-name-en { font-size:0.74rem; color:var(--text-light); }
+        .list-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin: 0.6rem 0;
+        }
+        .list-toolbar input { margin: 0; }
+        .list-pagination {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        .list-pagination .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; margin-left: 0.25rem; }
         .tag-list {
             display:flex;
             flex-wrap:wrap;
@@ -236,17 +259,24 @@
                         <span>📚 擁有的</span>
                         <span class="collection-count" id="owned-count">0 款</span>
                     </div>
-                    <div class="add-row">
-                        <div class="ac-wrap">
-                            <input id="owned-input" class="add-input" type="text" autocomplete="off" maxlength="80"
-                                placeholder="輸入遊戲名稱搜尋..."
-                                oninput="onAcInput(this, 'owned-drop')"
-                                onfocus="onAcInput(this, 'owned-drop')"
-                                onblur="closeAc('owned-drop')"
-                                onkeydown="onAcKey(event, 'owned-drop', 'owned')">
-                            <div id="owned-drop" class="ac-drop"></div>
+                    <div class="list-toolbar" id="owned-toolbar">
+                        <input type="text" id="owned-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off"
+                            oninput="onZoneFilterInput('owned', this)" style="max-width:220px;">
+                        <span id="owned-pagination" class="list-pagination"></span>
+                    </div>
+                    <div class="add-game-section">
+                        <div class="add-game-input">
+                            <div class="ac-wrap">
+                                <input id="add-owned-input" type="text" autocomplete="off" maxlength="80"
+                                    placeholder="輸入遊戲名稱搜尋..."
+                                    oninput="onAcInput(this, 'drop-owned')"
+                                    onfocus="onAcInput(this, 'drop-owned')"
+                                    onblur="closeAc('drop-owned')"
+                                    onkeydown="onAcKey(event, 'drop-owned', 'owned')">
+                                <div id="drop-owned" class="add-game-dropdown"></div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="addGame('owned')" style="font-size:0.85rem;">新增</button>
                         </div>
-                        <button class="btn btn-secondary" onclick="addGame('owned')" style="font-size:0.85rem;">新增</button>
                     </div>
                     <div id="owned-list" class="tag-list"></div>
                     <div class="pin-count-label" id="pin-info-owned"></div>
@@ -257,17 +287,24 @@
                         <span>🛒 想買的</span>
                         <span class="collection-count" id="buy-count">0 款</span>
                     </div>
-                    <div class="add-row">
-                        <div class="ac-wrap">
-                            <input id="buy-input" class="add-input" type="text" autocomplete="off" maxlength="80"
-                                placeholder="輸入遊戲名稱搜尋..."
-                                oninput="onAcInput(this, 'buy-drop')"
-                                onfocus="onAcInput(this, 'buy-drop')"
-                                onblur="closeAc('buy-drop')"
-                                onkeydown="onAcKey(event, 'buy-drop', 'buy')">
-                            <div id="buy-drop" class="ac-drop"></div>
+                    <div class="list-toolbar" id="buy-toolbar">
+                        <input type="text" id="buy-filter" placeholder="🔍 篩選此區遊戲..." autocomplete="off"
+                            oninput="onZoneFilterInput('buy', this)" style="max-width:220px;">
+                        <span id="buy-pagination" class="list-pagination"></span>
+                    </div>
+                    <div class="add-game-section">
+                        <div class="add-game-input">
+                            <div class="ac-wrap">
+                                <input id="add-buy-input" type="text" autocomplete="off" maxlength="80"
+                                    placeholder="輸入遊戲名稱搜尋..."
+                                    oninput="onAcInput(this, 'drop-buy')"
+                                    onfocus="onAcInput(this, 'drop-buy')"
+                                    onblur="closeAc('drop-buy')"
+                                    onkeydown="onAcKey(event, 'drop-buy', 'buy')">
+                                <div id="drop-buy" class="add-game-dropdown"></div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="addGame('buy')" style="font-size:0.85rem;">新增</button>
                         </div>
-                        <button class="btn btn-secondary" onclick="addGame('buy')" style="font-size:0.85rem;">新增</button>
                     </div>
                     <div id="buy-list" class="tag-list"></div>
                     <div class="pin-count-label" id="pin-info-buy"></div>
@@ -288,6 +325,9 @@
         let currentUser = null;
         let ownedGames = [];
         let toBuyGames = [];
+        const LIST_PAGE_SIZE = 24;
+        const zoneFilter = { owned: '', buy: '' };
+        const zonePage = { owned: 0, buy: 0 };
         const pinnedGames = { owned: [], buy: [] };
         const MAX_PIN = 10;
         let acDebounce = null;
@@ -336,19 +376,63 @@
         function renderAll() {
             document.getElementById('owned-count').textContent = `${ownedGames.length} 款`;
             document.getElementById('buy-count').textContent = `${toBuyGames.length} 款`;
-
-            const ownedEl = document.getElementById('owned-list');
-            ownedEl.innerHTML = ownedGames.length
-                ? ownedGames.map(g => createGameTag(g, 'owned')).join('')
-                : '<span class="hint">尚未新增</span>';
-
-            const buyEl = document.getElementById('buy-list');
-            buyEl.innerHTML = toBuyGames.length
-                ? toBuyGames.map(g => createGameTag(g, 'buy')).join('')
-                : '<span class="hint">尚未新增</span>';
-
+            renderZone('owned');
+            renderZone('buy');
             renderPinInfo('owned');
             renderPinInfo('buy');
+        }
+
+        function getList(type) {
+            return type === 'owned' ? ownedGames : toBuyGames;
+        }
+
+        function setZonePage(type, p) {
+            const list = getList(type);
+            const q = (zoneFilter[type] || '').trim().toLowerCase();
+            const filtered = q ? list.filter(g => String(g).toLowerCase().includes(q)) : list;
+            const totalPages = Math.max(1, Math.ceil(filtered.length / LIST_PAGE_SIZE));
+            zonePage[type] = Math.max(0, Math.min(p, totalPages - 1));
+            renderZone(type);
+        }
+
+        function onZoneFilterInput(type, el) {
+            zoneFilter[type] = el ? el.value : '';
+            zonePage[type] = 0;
+            renderZone(type);
+        }
+
+        function renderZone(type) {
+            const listEl = document.getElementById(`${type}-list`);
+            const pagerEl = document.getElementById(`${type}-pagination`);
+            const filterEl = document.getElementById(`${type}-filter`);
+            if (!listEl || !pagerEl) return;
+
+            const list = getList(type);
+            const q = (zoneFilter[type] || '').trim().toLowerCase();
+            const filtered = q ? list.filter(g => String(g).toLowerCase().includes(q)) : list;
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
+            if (zonePage[type] >= totalPages) zonePage[type] = Math.max(0, totalPages - 1);
+            const start = zonePage[type] * LIST_PAGE_SIZE;
+            const slice = filtered.slice(start, start + LIST_PAGE_SIZE);
+
+            if (filterEl && filterEl.value !== (zoneFilter[type] || '')) filterEl.value = zoneFilter[type] || '';
+            if (total <= LIST_PAGE_SIZE) {
+                pagerEl.innerHTML = '';
+            } else {
+                const end = Math.min(start + LIST_PAGE_SIZE, total);
+                const prev = zonePage[type] <= 0;
+                const next = zonePage[type] >= totalPages - 1;
+                pagerEl.innerHTML = `顯示 ${start + 1}-${end} / 共 ${total} 款
+                    <button type="button" class="btn btn-sm btn-secondary" ${prev ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] - 1})">上一頁</button>
+                    <button type="button" class="btn btn-sm btn-secondary" ${next ? 'disabled' : ''} onclick="setZonePage('${type}', ${zonePage[type] + 1})">下一頁</button>`;
+            }
+
+            if (slice.length === 0) {
+                listEl.innerHTML = `<span class="hint">${q ? `沒有符合「${zoneFilter[type].trim()}」的遊戲` : '尚未新增'}</span>`;
+                return;
+            }
+            listEl.innerHTML = slice.map(g => createGameTag(g, type)).join('');
         }
 
         function createGameTag(gameName, type) {
@@ -400,7 +484,7 @@
         }
 
         function addGame(type) {
-            const input = document.getElementById(type === 'owned' ? 'owned-input' : 'buy-input');
+            const input = document.getElementById(type === 'owned' ? 'add-owned-input' : 'add-buy-input');
             const val = normalizeGameName(input.value);
             if (!val) return;
 
@@ -423,7 +507,7 @@
             target.push(val);
 
             input.value = '';
-            closeAc(type === 'owned' ? 'owned-drop' : 'buy-drop');
+            closeAc(type === 'owned' ? 'drop-owned' : 'drop-buy');
             renderAll();
         }
 
@@ -433,7 +517,7 @@
             const raw = inputEl.value.trim();
             if (!raw) { drop.classList.remove('open'); drop.innerHTML = ''; if (acDebounce) clearTimeout(acDebounce); return; }
             if (raw.length < 2) {
-                drop.innerHTML = '<div class="ac-item" style="color:var(--text-light);">至少輸入 2 個字再搜尋</div>';
+                drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">至少輸入 2 個字再搜尋</div>';
                 drop.classList.add('open');
                 if (acDebounce) clearTimeout(acDebounce);
                 return;
@@ -448,7 +532,7 @@
                         if (inputEl.value.trim() !== query) return;
                         const list = (d.data || []).slice(0, 20);
                         if (!list.length) {
-                            drop.innerHTML = '<div class="ac-item" style="color:var(--text-light);">找不到符合的遊戲，可直接新增文字</div>';
+                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">找不到符合的遊戲，可直接新增文字</div>';
                             drop.classList.add('open');
                             return;
                         }
@@ -457,11 +541,11 @@
                             const subName = (g.name_zh && g.name_en ? g.name_en : '') || '';
                             const safe = displayName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                             const img = g.image_url
-                                ? `<img src="${g.image_url}" style="width:24px;height:24px;border-radius:0.3rem;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
+                                ? `<img src="${g.image_url}" onerror="this.style.display='none'">`
                                 : `<div style="width:24px;height:24px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
-                            return `<div class="ac-item" onmousedown="selectAc('${inputEl.id}','${dropId}','${safe}')">
+                            return `<div class="add-game-ac-item" onmousedown="selectAc('${inputEl.id}','${dropId}','${safe}')">
                                 ${img}
-                                <div>
+                                <div class="ac-name">
                                     <div class="ac-name-zh">${displayName}</div>
                                     ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
                                 </div>
@@ -471,7 +555,7 @@
                     })
                     .catch(() => {
                         if (inputEl.value.trim() !== query) return;
-                        drop.innerHTML = '<div class="ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
+                        drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
                         drop.classList.add('open');
                     });
             }, 240);
@@ -494,13 +578,14 @@
         function onAcKey(e, dropId, type) {
             const drop = document.getElementById(dropId);
             if (!drop) return;
-            const items = drop.querySelectorAll('.ac-item');
+            const items = drop.querySelectorAll('.add-game-ac-item');
             let idx = [...items].findIndex(el => el.classList.contains('highlighted'));
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 if (idx < items.length - 1) {
                     if (idx >= 0) items[idx].classList.remove('highlighted');
                     items[idx + 1].classList.add('highlighted');
+                    items[idx + 1].scrollIntoView({ block: 'nearest' });
                 }
                 return;
             }
@@ -516,7 +601,7 @@
                 e.preventDefault();
                 if (idx >= 0) {
                     const value = items[idx].querySelector('.ac-name-zh')?.textContent || '';
-                    if (value) selectAc(type === 'owned' ? 'owned-input' : 'buy-input', dropId, value.trim());
+                    if (value) selectAc(type === 'owned' ? 'add-owned-input' : 'add-buy-input', dropId, value.trim());
                 } else {
                     addGame(type);
                 }
@@ -582,7 +667,7 @@
 
         document.addEventListener('mousedown', (e) => {
             if (!e.target.closest('.ac-wrap')) {
-                document.querySelectorAll('.ac-drop.open').forEach(el => el.classList.remove('open'));
+                document.querySelectorAll('.add-game-dropdown.open').forEach(el => el.classList.remove('open'));
             }
         });
 
