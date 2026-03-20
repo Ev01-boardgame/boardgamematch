@@ -105,6 +105,8 @@
         .pref-panel .game-tag.tag-dislike { background: #fee2e2 !important; color: #991b1b !important; }
         .pref-panel .game-tag.tag-want    { background: #ede9fe !important; color: #6d28d9 !important; }
         .pref-panel .game-tag.tag-nope    { background: #f1f5f9 !important; color: #64748b !important; }
+        .pref-panel .game-tag.tag-owned   { background: #dbeafe !important; color: #1d4ed8 !important; }
+        .pref-panel .game-tag.tag-buy     { background: #fef3c7 !important; color: #b45309 !important; }
         .pref-panel .game-tag:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -311,8 +313,11 @@
         .pc-card-title { font-weight:700; font-size:0.95rem; margin-bottom:0.35rem; color:var(--text-color); }
         .pc-card-desc { font-size:0.8rem; color:var(--text-light); margin-bottom:0.5rem; line-height:1.5; }
         .pc-tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.5rem; }
-        .pc-tag { background:var(--card-bg); border:1px solid var(--border-color); border-radius:1rem; padding:0.15rem 0.5rem; font-size:0.76rem; color:var(--text-color); }
-        .pc-tag.extra { opacity:0.6; font-style:italic; }
+        .pc-tag { background:var(--card-bg); border:1px solid var(--border-color); border-radius:0.75rem; padding:0.18rem 0.58rem; color:var(--text-color); display:inline-flex; flex-direction:column; align-items:center; gap:0; text-align:center; line-height:1.2; transition:transform 0.18s ease, box-shadow 0.18s ease; }
+        .pc-tag:hover { transform:translateY(-2px); box-shadow:0 4px 8px rgba(0,0,0,0.16); }
+        .pc-tag .gn-tag-zh { display:block; font-size:0.88em; font-weight:600; line-height:1.3; text-align:center; }
+        .pc-tag .gn-tag-en { display:block; font-size:0.72em; font-weight:400; opacity:0.82; line-height:1.2; text-align:center; }
+        .pc-tag.extra { opacity:0.6; font-style:italic; display:inline-flex; flex-direction:row; align-items:center; padding:0.2rem 0.55rem; font-size:0.76rem; }
         .pc-count { font-size:0.78rem; color:var(--text-light); }
         .pc-ranking { margin-top:0.6rem; padding-top:0.5rem; border-top:1px solid var(--border-color); }
         .pc-ranking-title { font-size:0.78rem; font-weight:600; color:var(--text-color); margin-bottom:0.35rem; }
@@ -502,7 +507,7 @@
                                 😍 喜歡 <span class="pref-tab-count" id="count-liked">0</span>
                             </button>
                             <button class="pref-tab neutral" onclick="switchPrefTab('neutral', this)" id="tab-neutral">
-                                😐 普通 <span class="pref-tab-count" id="count-neutral">0</span>
+                                😐 普普 <span class="pref-tab-count" id="count-neutral">0</span>
                             </button>
                             <button class="pref-tab dislike" onclick="switchPrefTab('dislike', this)" id="tab-dislike">
                                 😕 不喜歡 <span class="pref-tab-count" id="count-disliked">0</span>
@@ -1976,8 +1981,8 @@
                     { key: 'disliked',    field: 'disliked_games',    panelId: 'panel-dislike', tagClass: 'tag-dislike', listType: 'disliked',    emptyText: '尚未新增' },
                     { key: 'wishlist',    field: 'wishlist',          panelId: 'panel-want',    tagClass: 'tag-want',    listType: 'wishlist',    emptyText: '尚未新增<br><small>前往<a href="recommend.html" style="color:var(--primary-color);">桌遊探索</a>標記「想玩」</small>' },
                     { key: 'no_interest', field: 'no_interest_games', panelId: 'panel-nope',    tagClass: 'tag-nope',    listType: 'no_interest', emptyText: '尚未新增' },
-                    { key: 'owned',       field: 'owned_games',       panelId: 'panel-owned',   tagClass: 'tag-like',    listType: 'owned',       emptyText: '尚未新增<br><small>後續可將遊戲加到「擁有的」</small>' },
-                    { key: 'to_buy',      field: 'to_buy_games',      panelId: 'panel-buy',     tagClass: 'tag-want',    listType: 'to_buy',      emptyText: '尚未新增<br><small>後續可將遊戲加到「想買的」</small>' },
+                    { key: 'owned',       field: 'owned_games',       panelId: 'panel-owned',   tagClass: 'tag-owned',   listType: 'owned',       emptyText: '尚未新增<br><small>後續可將遊戲加到「擁有的」</small>' },
+                    { key: 'to_buy',      field: 'to_buy_games',      panelId: 'panel-buy',     tagClass: 'tag-buy',     listType: 'to_buy',      emptyText: '尚未新增<br><small>後續可將遊戲加到「想買的」</small>' },
                 ];
 
                 // 目前 pref 卡片 active tab（也暴露到 window 供 switchPrefTab 同步）
@@ -3350,7 +3355,7 @@
             const visTags = games.slice(0, MAX);
             const extraCount = games.length - visTags.length;
             const tagsHtml = visTags.map(g =>
-                `<span class="pc-tag">${escHtml(g)}</span>`
+                `<span class="pc-tag">${(typeof GameNames !== 'undefined' && GameNames.formatTag) ? GameNames.formatTag(g) : escHtml(g)}</span>`
             ).join('') + (extraCount > 0 ? `<span class="pc-tag extra">+${extraCount} 款</span>` : '');
 
             let statsHtml = '';
