@@ -161,16 +161,45 @@
             box-shadow: var(--shadow-md);
         }
         .suggest-opt {
-            padding: 0.5rem 0.85rem;
+            padding: 0.45rem 0.6rem;
             cursor: pointer;
-            font-size: 0.88rem;
             display: flex;
-            align-items: baseline;
-            gap: 0.4rem;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
         }
+        .suggest-opt:last-child { border-bottom: none; }
         .suggest-opt:hover, .suggest-opt.active { background: var(--bg-color); }
-        .suggest-opt .szo-zh { font-weight: 600; }
-        .suggest-opt .szo-en { font-size: 0.8em; color: var(--text-light); }
+        .suggest-opt .szo-cover {
+            width: 24px;
+            height: 24px;
+            border-radius: 0.3rem;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .suggest-opt .szo-fallback {
+            width: 24px;
+            height: 24px;
+            border-radius: 0.3rem;
+            background: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+        }
+        .suggest-opt .szo-name { min-width: 0; }
+        .suggest-opt .szo-zh {
+            font-weight: 600;
+            font-size: 0.84rem;
+            color: var(--text-color);
+            line-height: 1.25;
+        }
+        .suggest-opt .szo-en {
+            font-size: 0.74rem;
+            color: var(--text-light);
+            line-height: 1.2;
+        }
 
         /* 遊戲 pill（已加入列表）*/
         .game-pill-list {
@@ -417,6 +446,8 @@
     let pendingGames  = [];
     let suggestIdx    = -1;
     let _suggestTimer = null;
+    let _suggestAbort = null;
+    const SUGGEST_MIN_LEN = 2;
     const SUGGEST_DEBOUNCE_MS = 280;
     let deletingId    = null;
 
@@ -609,38 +640,65 @@
     // ── 遊戲搜尋建議 ─────────────────────────────────────────────────
     function onSuggestInput() {
         const raw = document.getElementById('m-game-input').value.trim();
-        if (!raw) { hideSuggest(); if (_suggestTimer) { clearTimeout(_suggestTimer); _suggestTimer = null; } return; }
+        if (!raw) { hideSuggest(); if (_suggestTimer) { clearTimeout(_suggestTimer); _suggestTimer = null; } if (_suggestAbort) { _suggestAbort.abort(); _suggestAbort = null; } return; }
+        if (raw.length < SUGGEST_MIN_LEN) {
+            const dd = document.getElementById('suggest-dropdown');
+            dd.innerHTML = `<div class="suggest-opt" style="color:var(--text-light); cursor:default;">至少輸入 ${SUGGEST_MIN_LEN} 個字再搜尋</div>`;
+            dd.style.display = 'block';
+            if (_suggestTimer) { clearTimeout(_suggestTimer); _suggestTimer = null; }
+            if (_suggestAbort) { _suggestAbort.abort(); _suggestAbort = null; }
+            return;
+        }
 
         if (_suggestTimer) clearTimeout(_suggestTimer);
         _suggestTimer = setTimeout(() => {
             _suggestTimer = null;
             const q = document.getElementById('m-game-input').value.trim();
-            if (!q) { hideSuggest(); return; }
+            if (!q || q.length < SUGGEST_MIN_LEN) { hideSuggest(); return; }
 
-            fetch(`tables/game_database?search=${encodeURIComponent(q)}&limit=20&page=1`)
-                .then(r => r.json())
+            if (_suggestAbort) _suggestAbort.abort();
+            _suggestAbort = new AbortController();
+
+            fetch(`tables/game_database?search=${encodeURIComponent(q)}&limit=12&page=1`, { signal: _suggestAbort.signal })
+                .then(r => r.ok ? r.json() : { data: [] })
                 .then(data => {
                     if (document.getElementById('m-game-input').value.trim() !== q) return;
                     const results = (data.data || []).slice(0, 8);
-                    if (results.length === 0) { hideSuggest(); return; }
+                    if (results.length === 0) {
+                        const dd = document.getElementById('suggest-dropdown');
+                        dd.innerHTML = '<div class="suggest-opt" style="color:var(--text-light); cursor:default;">找不到符合的遊戲，可直接新增文字</div>';
+                        dd.style.display = 'block';
+                        return;
+                    }
 
                     suggestIdx = -1;
                     const dd = document.getElementById('suggest-dropdown');
                     dd.innerHTML = results.map((g, i) => {
                         const zh = g.name_zh || '';
                         const en = g.name_en || '';
-                        const display = zh || en;
+                        const display = zh || en || g.name_ja || '';
+                        const cover = g.image_url
+                            ? `<img class="szo-cover" src="${escHtml(g.image_url)}" onerror="this.style.display='none'">`
+                            : `<div class="szo-fallback">🎲</div>`;
                         return `<div class="suggest-opt"
                             data-name="${escHtml(display)}"
                             onmousedown="pickSuggest('${escHtml(display)}')"
                             onmouseover="suggestIdx=${i};highlightSuggest()">
-                            <span class="szo-zh">${escHtml(zh)}</span>
-                            ${en ? `<span class="szo-en">${escHtml(en)}</span>` : ''}
+                            ${cover}
+                            <div class="szo-name">
+                                <div class="szo-zh">${escHtml(display)}</div>
+                                ${en && en !== display ? `<div class="szo-en">${escHtml(en)}</div>` : ''}
+                            </div>
                         </div>`;
                     }).join('');
                     dd.style.display = 'block';
                 })
-                .catch(() => hideSuggest());
+                .catch((err) => {
+                    if (err && err.name === 'AbortError') return;
+                    const dd = document.getElementById('suggest-dropdown');
+                    dd.innerHTML = '<div class="suggest-opt" style="color:var(--text-light); cursor:default;">搜尋失敗，請稍後再試</div>';
+                    dd.style.display = 'block';
+                });
         }, SUGGEST_DEBOUNCE_MS);
     }
 
