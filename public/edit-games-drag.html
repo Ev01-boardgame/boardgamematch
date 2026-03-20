@@ -240,6 +240,7 @@
             border-radius: 0.5rem;
             padding: 1rem;
             margin-top: 1rem;
+            margin-bottom: 0.8rem;
         }
         
         .add-game-input {
@@ -474,12 +475,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="super_liked-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="super_liked-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-super_liked"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-super_liked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -492,6 +488,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('super_liked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="super_liked-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-super_liked"></div>
             </div>
 
             <!-- 喜歡的桌遊（範例：搜尋 + 分頁，數量多時只顯示一頁） -->
@@ -506,12 +506,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="liked-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="liked-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-liked"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-liked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -524,6 +519,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('liked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="liked-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-liked"></div>
             </div>
 
             <!-- 普普的桌遊 -->
@@ -537,12 +536,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="neutral-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="neutral-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-neutral"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-neutral-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -555,6 +549,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('neutral')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="neutral-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-neutral"></div>
             </div>
 
             <!-- 不喜歡的桌遊 -->
@@ -568,12 +566,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="disliked-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="disliked-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-disliked"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-disliked-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -586,6 +579,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('disliked')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="disliked-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-disliked"></div>
             </div>
 
             <!-- 想玩清單 -->
@@ -599,12 +596,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="wishlist-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="wishlist-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-wishlist"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-wishlist-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -617,6 +609,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('wishlist')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="wishlist-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-wishlist"></div>
             </div>
 
             <!-- 沒興趣清單 -->
@@ -630,12 +626,7 @@
                         style="padding: 0.35rem 0.6rem; border: 1px solid var(--border-color); border-radius: 0.4rem; font-size: 0.85rem; width: 100%; max-width: 200px;">
                     <span id="no_interest-pagination" class="list-pagination"></span>
                 </div>
-                <div class="game-tags-container-drag" id="no_interest-games">
-                    <div class="empty-state-drag">尚無遊戲</div>
-                </div>
-                <div class="pin-count-label" id="pin-info-no_interest"></div>
                 <div class="add-game-section">
-                    <strong style="font-size: 0.9rem;">➕ 新增遊戲</strong>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-no_interest-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -648,6 +639,10 @@
                         <button type="button" class="btn btn-secondary" onclick="addGame('no_interest')" style="font-size:0.85rem;">新增</button>
                     </div>
                 </div>
+                <div class="game-tags-container-drag" id="no_interest-games">
+                    <div class="empty-state-drag">尚無遊戲</div>
+                </div>
+                <div class="pin-count-label" id="pin-info-no_interest"></div>
             </div>
         </div>
 
