@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo 3D Tilt Card (jh3y style)</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        :root {
+            --bg: #f7f4ef;
+            --card-w: 860px;
+            --pointer-x: 0;
+            --pointer-y: 0;
+            --rotate-x: 14deg;
+            --rotate-y: -14deg;
+            --parallax-x: 14px;
+            --parallax-y: 10px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            background: radial-gradient(circle at 20% 10%, #fff, var(--bg) 40%, #efe6db 100%);
+            color: #2d2d2d;
+        }
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1.2rem 3rem;
+        }
+        .hint {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        .scene {
+            perspective: 2200px;
+            display: grid;
+            place-items: center;
+        }
+        .card {
+            width: min(var(--card-w), 100%);
+            border-radius: 20px;
+            transform-style: preserve-3d;
+            background: linear-gradient(135deg, #b49673, #8b6f47);
+            border: 1px solid rgba(255,255,255,0.35);
+            box-shadow: 0 18px 36px rgba(30,20,10,0.20);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        .card * {
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: -20%;
+            pointer-events: none;
+            background: linear-gradient(
+                calc(112deg + var(--pointer-x) * 16deg),
+                rgba(255,255,255,0) 20%,
+                rgba(255,255,255,0.10) 45%,
+                rgba(255,255,255,0) 60%
+            );
+            transform: translate3d(calc(var(--pointer-x) * 10px), calc(var(--pointer-y) * 8px), 10px);
+            mix-blend-mode: normal;
+            opacity: 0.35;
+        }
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(
+                    280px 180px at calc(50% + var(--pointer-x) * 22% ) calc(50% + var(--pointer-y) * 22%),
+                    rgba(255,255,255,0.34) 0%,
+                    rgba(255,255,255,0.06) 45%,
+                    transparent 75%
+                );
+            mix-blend-mode: normal;
+        }
+        .card-inner {
+            margin: 1px;
+            border-radius: 19px;
+            padding: 1rem 1rem 0.9rem;
+            background: linear-gradient(135deg, rgba(255,250,241,0.96), rgba(246,236,221,0.95));
+            position: relative;
+            transform: translateZ(2px);
+        }
+        .top {
+            display: grid;
+            grid-template-columns: 86px 1fr;
+            gap: 0.9rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            transform: translate3d(calc(var(--pointer-x) * -3px), calc(var(--pointer-y) * -2px), 26px);
+        }
+        .avatar {
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: 2rem;
+            color: #fff;
+            background: linear-gradient(140deg, #8b6f47, #5f4529);
+            border: 3px solid #fff;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+            transform: translate3d(calc(var(--pointer-x) * -1px), calc(var(--pointer-y) * -1px), 4px);
+        }
+        .name { font-size: 1.12rem; font-weight: 800; color: #231a12; }
+        .sub { font-size: 0.92rem; color: #4b3b2c; font-weight: 600; margin-top: 0.2rem; }
+        .bio {
+            border: 1px dashed #d8c7b1;
+            background: #fffaf2;
+            border-radius: 11px;
+            padding: 0.55rem 0.7rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            margin-bottom: 0.7rem;
+            transform: translate3d(calc(var(--pointer-x) * -1px), calc(var(--pointer-y) * -1px), 3px);
+        }
+        .axes { display: grid; gap: 0.38rem; margin-bottom: 0.65rem; }
+        .axes { transform: translate3d(calc(var(--pointer-x) * -1px), calc(var(--pointer-y) * -1px), 3px); }
+        .ax {
+            display: grid;
+            grid-template-columns: 70px 1fr 70px;
+            gap: 0.45rem;
+            align-items: center;
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+        .track {
+            position: relative;
+            height: 12px;
+            border-radius: 999px;
+            border: 1px solid #d8e0e8;
+            background: #eef3f8;
+            overflow: hidden;
+        }
+        .track::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 3px;
+            transform: translateX(-1px);
+            background: rgba(80,96,120,0.75);
+        }
+        .fill-l, .fill-r { position: absolute; top: 0; bottom: 0; }
+        .fill-l {
+            right: 50%;
+            border-radius: 999px 0 0 999px;
+            background: linear-gradient(90deg, rgba(56,189,248,0.85), rgba(56,189,248,0.45));
+        }
+        .fill-r {
+            left: 50%;
+            border-radius: 0 999px 999px 0;
+            background: linear-gradient(90deg, rgba(245,158,11,0.45), rgba(236,72,153,0.9));
+        }
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            transform: translate3d(calc(var(--pointer-x) * -1px), calc(var(--pointer-y) * -1px), 4px);
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem 0.2rem 0.25rem;
+            border: 1px solid #c5b093;
+            background: linear-gradient(140deg,#fffefb,#efe5d7);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -1px 0 rgba(139,111,71,0.16), 0 3px 8px rgba(80,63,38,0.16);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .chip:hover {
+            transform: translateY(-1px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.98), inset 0 -1px 0 rgba(139,111,71,0.22), 0 7px 14px rgba(80,63,38,0.20);
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h2>3D Tilt Demo (local)</h2>
+        <p class="hint">參考 jh3y 的 pointer ratio 思路：滑鼠位置轉成 -1~1，套到 rotateX/rotateY 與內層視差。</p>
+        <div class="scene">
+            <article class="card" id="card3d">
+                <div class="card-inner">
+                    <div class="top">
+                        <div class="avatar">🎲</div>
+                        <div>
+                            <div class="name">Ev01（桌遊旅人）</div>
+                            <div class="sub">INFJ · 桌遊收藏 22 款</div>
+                        </div>
+                    </div>
+                    <div class="bio">玩家簡介：偏好中長局策略，平日晚上與週末午後可開桌。</div>
+                    <div class="axes">
+                        <div class="ax"><span>🌱 易學</span><div class="track"><div class="fill-r" style="width:26%"></div></div><span style="text-align:right">📚 複雜</span></div>
+                        <div class="ax"><span>🎲 運氣</span><div class="track"><div class="fill-r" style="width:33%"></div></div><span style="text-align:right">♟️ 策略</span></div>
+                        <div class="ax"><span>🤝 合作</span><div class="track"><div class="fill-r" style="width:18%"></div></div><span style="text-align:right">⚔️ 對抗</span></div>
+                    </div>
+                    <div class="chips">
+                        <span class="chip">🙋 開放被揪</span>
+                        <span class="chip">📷 ev01boardgame</span>
+                        <span class="chip">📘 ev01boardgame</span>
+                        <span class="chip">🃏 Ev01</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const card = document.getElementById('card3d');
+            if (!card) return;
+            const ROTATE_X = 6;
+            const ROTATE_Y = -6;
+            const PARALLAX_X = 10;
+            const PARALLAX_Y = 8;
+
+            function update(e) {
+                const r = card.getBoundingClientRect();
+                const posX = e.clientX - r.left;
+                const posY = e.clientY - r.top;
+                const ratioX = posX / r.width - 0.5;
+                const ratioY = posY / r.height - 0.5;
+                const pointerX = Math.max(-1, Math.min(1, ratioX * 2));
+                const pointerY = Math.max(-1, Math.min(1, ratioY * 2));
+
+                const px = Math.round(pointerX * 100) / 100;
+                const py = Math.round(pointerY * 100) / 100;
+                card.style.setProperty('--pointer-x', String(px));
+                card.style.setProperty('--pointer-y', String(py));
+                card.style.setProperty('--parallax-x', PARALLAX_X + "px");
+                card.style.setProperty('--parallax-y', PARALLAX_Y + "px");
+
+                card.style.transform =
+                    "perspective(2200px) " +
+                    "rotateX(" + (py * ROTATE_X).toFixed(2) + "deg) " +
+                    "rotateY(" + (px * ROTATE_Y).toFixed(2) + "deg) " +
+                    "translateY(-1px)";
+                const sx = (-px * 5).toFixed(2);
+                const sy = (9 - py * 4).toFixed(2);
+                card.style.boxShadow = `${sx}px ${sy}px 24px rgba(30,20,10,0.20)`;
+            }
+
+            function reset() {
+                card.style.setProperty('--pointer-x', "0");
+                card.style.setProperty('--pointer-y', "0");
+                card.style.transform = "perspective(2200px) rotateX(0deg) rotateY(0deg) translateY(0)";
+                card.style.boxShadow = "0 18px 36px rgba(30,20,10,0.20)";
+            }
+
+            card.addEventListener('pointermove', update);
+            card.addEventListener('pointerleave', reset);
+            card.addEventListener('pointerup', reset);
+        })();
+    </script>
+</body>
+</html>
