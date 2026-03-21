@@ -269,7 +269,7 @@
         .card-ax-r { text-align: right; color: #334155; white-space: nowrap; }
         .card-track {
             position: relative;
-            height: 8px;
+            height: 12px;
             border-radius: 999px;
             border: 1px solid #dbe3ea;
             background: #f1f5f9;
@@ -281,7 +281,7 @@
             top: 0;
             bottom: 0;
             left: 50%;
-            width: 2px;
+            width: 3px;
             transform: translateX(-1px);
             background: rgba(100,116,139,0.75);
         }
@@ -501,8 +501,8 @@
                             <div><b>🎯 開桌偏好：</b>4 人局、中長時長</div>
                             <div><b>🧩 喜愛機制：</b>策略、合作、資源管理</div>
                             <div><b>🏠 偏好地點：</b>桌遊店 / 朋友家</div>
-                            <div><b>🎤 語言：</b>中文 / English</div>
-                            <div><b>📍 居住地：</b>台北市</div>
+                            <div><b>📝 文字接受度：</b>中文 / English</div>
+                            <div><b>📍 活動範圍：</b>台北市</div>
                         </div>
                         <div id="home-card-social" class="card-social">
                             <span>🙋 開放被揪</span><span>📷 alex.boardgame</span><span>📘 alex.tabletop</span><span>💬 alex-table</span>
@@ -775,7 +775,7 @@
             const cleanText = p.clean ? p.clean(raw) : raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
             const href = p.url ? p.url(raw) : null;
             const inner = `
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;flex-shrink:0;background:${p.color};color:#fff;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;background:transparent;color:#fff;">
                     ${p.svg}
                 </span>
                 <span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">${cleanText}</span>`;
@@ -885,9 +885,9 @@
         if (meta.table_preferences) infoRows.push(`<div><b>🎯 開桌偏好：</b>${meta.table_preferences}</div>`);
         if (meta.favorite_mechanisms) infoRows.push(`<div><b>🧩 喜愛機制：</b>${meta.favorite_mechanisms}</div>`);
         if (meta.preferred_locations) infoRows.push(`<div><b>🏠 偏好地點：</b>${meta.preferred_locations}</div>`);
-        if (meta.languages) infoRows.push(`<div><b>🎤 語言：</b>${meta.languages}</div>`);
+        if (meta.languages) infoRows.push(`<div><b>📝 文字接受度：</b>${meta.languages}</div>`);
         const regionText = getRegionText(user);
-        if (regionText) infoRows.push(`<div><b>📍 居住地：</b>${regionText}</div>`);
+        if (regionText) infoRows.push(`<div><b>📍 活動範圍：</b>${regionText}</div>`);
         const infoList = document.getElementById('home-card-info-list');
         if (infoList) {
             infoList.innerHTML = infoRows.join('');
