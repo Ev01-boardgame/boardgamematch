@@ -80,6 +80,31 @@ npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_user
 
 ---
 
+## add_profile_card_meta.sql
+
+為 `users` 表新增 **`profile_card_meta`**（TEXT，存 JSON），用於「名片補充資訊」（常玩時段、開桌偏好等），與 `profile.html` / 首頁名片一致。  
+執行後會將既有 **`social_links` JSON 內的 `card_meta`** 複製到新欄位（若存在）。
+
+### 方式一：Cloudflare 主控台
+
+1. **Workers & Pages** → **D1** → 選 **boardgame-match-db**
+2. **Console** → 開啟本專案的 `migrations/add_profile_card_meta.sql`，**複製檔案內全部 SQL**（不是檔名）→ 貼上 → **Run**
+
+### 方式二：wrangler（遠端）
+
+```bash
+cd cloudflare
+npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_profile_card_meta.sql
+```
+
+**常見錯誤 `near "add_profile_card_meta": syntax error at offset 0`**
+
+- 若使用 **`--command=add_profile_card_meta.sql`**（或把檔名當成 SQL 貼進主控台），SQLite 會把字串 **`add_profile_card_meta.sql` 當成要執行的 SQL**，因而從第一個字就語法錯誤。
+- **正確**：用 **`--file=./migrations/add_profile_card_meta.sql`**（讓 wrangler 讀檔案內容），或在 D1 Console **貼上檔案「裡面的 SQL」**，不要只貼檔名。
+- 若需分兩步執行：先跑 `add_profile_card_meta_alter_only.sql`，再跑 `add_profile_card_meta_backfill_only.sql`。
+
+---
+
 ## add_users_owned_to_buy_games.sql
 
 為 `users` 表新增 `owned_games`（擁有的遊戲）、`to_buy_games`（想買的遊戲），皆為 JSON 陣列字串（TEXT，預設 `[]`）。  

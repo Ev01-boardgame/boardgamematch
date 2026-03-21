@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_login INTEGER,
   bio TEXT,
   social_links TEXT,
+  profile_card_meta TEXT,
   region TEXT,
   want_contact INTEGER DEFAULT 0,
   explore_list TEXT,
