@@ -559,22 +559,18 @@
         <!-- 熱門桌遊 demo -->
         <section class="games-section">
             <h2 class="section-title">🏆 玩家最近都在玩什麼？</h2>
-            <p class="section-subtitle">以下為登入後首頁示意：顯示全站熱門與你可快速加入收藏的候選。</p>
+            <p class="section-subtitle">顯示全站熱門與最受期待候選（即時資料）。</p>
             <div class="games-grid">
                 <div class="games-card">
                     <h3>😍 最受歡迎</h3>
-                    <div>
-                        <span class="game-pill">瘟疫危機 · 合作 · 中等</span>
-                        <span class="game-pill">車票之旅 · 家庭 · 輕中</span>
-                        <span class="game-pill">花磚物語 · 抽象 · 輕度</span>
+                    <div id="home-popular-games">
+                        <span class="game-pill">載入中...</span>
                     </div>
                 </div>
                 <div class="games-card">
                     <h3>⭐ 最受期待</h3>
-                    <div>
-                        <span class="game-pill">幽港迷城 · 劇本 · 重度</span>
-                        <span class="game-pill">翼展 · 引擎建構 · 中度</span>
-                        <span class="game-pill">根 · 陣營不對稱 · 中重</span>
+                    <div id="home-wishlist-games">
+                        <span class="game-pill">載入中...</span>
                     </div>
                 </div>
             </div>
@@ -584,6 +580,7 @@
     </div>
 <script src="js/api-base.js?v=20260302-clear"></script>
 <script src="js/app.js?v=20260319"></script>
+<script src="js/game-names.js"></script>
 <script>
     (function () {
         const cards = document.querySelectorAll('.js-tilt');
@@ -623,6 +620,31 @@
 
     function parseProfileCardMeta(raw) {
         return parseObj(raw);
+    }
+
+    function getAuthHeadersSafe() {
+        return (typeof getAuthHeaders === 'function')
+            ? getAuthHeaders()
+            : { 'Content-Type': 'application/json' };
+    }
+
+    async function resolveCurrentUserForDemo() {
+        let user = (typeof GameMBTI !== 'undefined' && GameMBTI.getCurrentUser)
+            ? GameMBTI.getCurrentUser()
+            : null;
+        if (!user) return null;
+        if (user.id) return user;
+
+        const googleId = user.google_id || user.sub || null;
+        if (!googleId) return user;
+        try {
+            const allUsers = await GameMBTI.getAllUsers();
+            const matched = allUsers.find(u => u.google_id === googleId);
+            if (matched) return { ...user, ...matched };
+        } catch (e) {
+            // fallback existing user
+        }
+        return user;
     }
 
     function getProfileCardMetaForUser(user) {
@@ -777,7 +799,7 @@
         const nameEl = document.getElementById('home-card-name');
         if (!nameEl || typeof GameMBTI === 'undefined') return;
 
-        let user = GameMBTI.getCurrentUser();
+        let user = await resolveCurrentUserForDemo();
         if (!user) return;
 
         try {
@@ -789,11 +811,11 @@
             // fallback currentUser/local cache
         }
 
-        // 六軸資料來自 user_preference_profiles（和 profile 同來源）
+        // 六軸資料來自 user_preference_profiles（與 profile 完全同來源）
         try {
             if (user.id) {
-                const axisRes = await fetch(`/tables/user_preference_profiles/${encodeURIComponent(user.id)}`);
-                if (axisRes.ok) {
+                const axisRes = await fetch(`tables/user_preference_profiles/${encodeURIComponent(user.id)}`, { headers: getAuthHeadersSafe() });
+                if (axisRes.status !== 404 && axisRes.ok) {
                     const axisData = await axisRes.json();
                     user = { ...user, ...axisData };
                 }
@@ -855,6 +877,49 @@
         });
     }
 
+    function renderGamePills(containerId, items, countPrefix) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        if (!items.length) {
+            el.innerHTML = '<span class="game-pill">尚無資料</span>';
+            return;
+        }
+        el.innerHTML = items.map((item) => {
+            const gameName = (typeof GameNames !== 'undefined' && GameNames.formatInline)
+                ? GameNames.formatInline(item.game)
+                : item.game;
+            const countText = countPrefix ? `${countPrefix} ${item.count}` : `${item.count}`;
+            return `<span class="game-pill">${gameName} · ${countText}</span>`;
+        }).join('');
+    }
+
+    async function loadHomeRecentGames() {
+        if (typeof GameMBTI === 'undefined' || !GameMBTI.getAllUsers) return;
+        try {
+            const allUsers = await GameMBTI.getAllUsers();
+            const stats = GameMBTI.calculateStats(allUsers);
+            const popular = (stats.mostPopularGames || []).slice(0, 8);
+            renderGamePills('home-popular-games', popular, '❤️');
+
+            const wishlistCounts = {};
+            allUsers.forEach((u) => {
+                (u.wishlist || []).forEach((g) => {
+                    wishlistCounts[g] = (wishlistCounts[g] || 0) + 1;
+                });
+            });
+            const wishlistRanking = Object.entries(wishlistCounts)
+                .map(([game, count]) => ({ game, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 8);
+            renderGamePills('home-wishlist-games', wishlistRanking, '⭐');
+        } catch (e) {
+            const popularEl = document.getElementById('home-popular-games');
+            const wishEl = document.getElementById('home-wishlist-games');
+            if (popularEl) popularEl.innerHTML = '<span class="game-pill">資料讀取失敗</span>';
+            if (wishEl) wishEl.innerHTML = '<span class="game-pill">資料讀取失敗</span>';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.shortcut-card[data-href]').forEach((card) => {
             const href = card.getAttribute('data-href');
@@ -864,6 +929,7 @@
             });
         });
         loadHomeCardFromProfile();
+        loadHomeRecentGames();
     });
 </script>
 </body>
