@@ -4,21 +4,23 @@
     <meta charset="UTF-8">
     <title>Demo 首頁排版（本機預覽）</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <style>
         :root {
-            --primary: #059669;
-            --primary-dark: #047857;
-            --bg: #f9fafb;
-            --text-main: #111827;
+            --primary: #8b6f47;
+            --primary-dark: #a0826d;
+            --accent: #d4956c;
+            --bg: #faf8f5;
+            --text-main: #2d2d2d;
             --text-light: #6b7280;
             --card-bg: #ffffff;
-            --border-color: #e5e7eb;
+            --border-color: #e8e3dc;
         }
         * { box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: radial-gradient(circle at top left, #ecfdf5, #f9fafb 40%, #f3f4f6);
+            background: var(--bg);
             color: var(--text-main);
             margin: 0;
         }
@@ -37,9 +39,9 @@
             align-items: center;
             padding: 0.75rem 1rem;
             border-radius: 999px;
-            background: rgba(255,255,255,0.9);
-            box-shadow: 0 10px 30px rgba(15,23,42,0.08);
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            box-shadow: var(--shadow-md);
             margin-bottom: 1.5rem;
         }
         .navbar-demo-title {
@@ -53,7 +55,7 @@
             align-items: center;
             gap: 1rem;
             font-size: 0.9rem;
-            color: var(--text-light);
+            color: rgba(255,255,255,0.92);
         }
         .navbar-demo-links span {
             padding: 0.25rem 0.7rem;
@@ -61,27 +63,27 @@
             cursor: default;
         }
         .navbar-demo-links span.active {
-            background: #ecfdf5;
-            color: var(--primary-dark);
+            background: rgba(255,255,255,0.3);
+            color: #fff;
             font-weight: 600;
         }
 
         /* Hero 區 */
         .hero {
-            display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-            gap: 2.5rem;
-            align-items: center;
+            display: block;
             margin-bottom: 3rem;
+        }
+        .hero-welcome {
+            margin-bottom: 1rem;
         }
         .hero-title {
             font-size: 2rem;
             font-weight: 800;
             letter-spacing: 0.02em;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0;
         }
         .hero-highlight {
-            background: linear-gradient(120deg, #22c55e, #22c55e, #22c55e);
+            background: linear-gradient(120deg, var(--primary), var(--accent), var(--primary-dark));
             -webkit-background-clip: text;
             color: transparent;
         }
@@ -105,7 +107,7 @@
             font-size: 0.95rem;
             color: #fff;
             font-weight: 600;
-            box-shadow: 0 12px 30px rgba(16,185,129,0.35);
+            box-shadow: 0 10px 24px rgba(139,111,71,0.28);
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -121,7 +123,7 @@
             padding: 0.7rem 1.4rem;
             font-size: 0.9rem;
             color: var(--text-main);
-            background: rgba(255,255,255,0.9);
+            background: var(--card-bg);
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
@@ -145,64 +147,159 @@
             border: 1px solid rgba(209,213,219,0.7);
         }
 
+        .hero-card-wrap { perspective: 1200px; }
         .hero-card {
-            background: radial-gradient(circle at top left, #34d399, #10b981 45%, #047857 100%);
-            color: #ecfdf5;
-            border-radius: 1.5rem;
-            padding: 1.5rem 1.4rem;
-            box-shadow: 0 18px 45px rgba(4,120,87,0.6);
             position: relative;
+            transition: transform .22s ease, box-shadow .22s ease;
+            border-radius: 18px;
             overflow: hidden;
+            border: 1px solid rgba(232,227,220,0.9);
+            box-shadow: 0 16px 30px rgba(45,45,45,0.14);
+            background: linear-gradient(135deg, #b79c81, #8b6f47);
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
-        .hero-card::after {
-            content: '';
+        .hero-card::before {
+            content: "";
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 55%);
             pointer-events: none;
+            background: radial-gradient(circle at 10% 10%, rgba(255,255,255,0.35), transparent 45%);
         }
-        .hero-card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
+        .hero-card-inner {
+            padding: 14px 14px 12px;
+            background: linear-gradient(135deg, rgba(255,248,236,0.95), rgba(250,241,229,0.93));
+        }
+        .card-top {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+        .card-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            justify-content: center;
+            font-size: 2rem;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: 3px solid #fff;
+            box-shadow: 0 8px 16px rgba(45,45,45,0.22);
         }
-        .hero-card-steps {
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
-            color: #dcfce7;
+        .card-name { font-size: 1.12rem; font-weight: 800; color: #1f1a14; }
+        .card-sub { font-size: .9rem; color: #3f3327; margin-top: 3px; font-weight: 600; }
+        .card-mbti {
+            font-size: .74rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            padding: 3px 9px;
+            white-space: nowrap;
+            color: #475569;
         }
-        .hero-card-pill {
-            font-size: 0.75rem;
+        .card-bio {
+            border: 1px dashed #d9ccbf;
+            background: #fffaf4;
+            border-radius: 11px;
+            padding: 9px 10px;
+            font-size: .86rem;
+            line-height: 1.6;
+            color: #3e3023;
+            margin-bottom: 9px;
+            font-weight: 500;
+        }
+        .card-info-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 6px 10px;
+            margin-bottom: 10px;
+            font-size: .82rem;
+            color: #2f3a48;
+            font-weight: 500;
+        }
+        .card-info-list b { color: #1f2937; font-weight: 700; }
+        .card-social {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .card-social span {
+            font-size: .79rem;
+            border-radius: 999px;
+            border: 1px solid #c9b69f;
+            background: #fffdf9;
+            padding: 3px 9px;
+            color: #243447;
+            font-weight: 600;
+        }
+        .card-social a {
+            font-size: .79rem;
+            border-radius: 999px;
+            border: 1px solid #c9b69f;
+            background: #fffdf9;
+            padding: 3px 9px;
+            color: #243447;
+            font-weight: 600;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.7rem;
-            border-radius: 999px;
-            background: rgba(6,95,70,0.6);
-            margin-right: 0.35rem;
+            gap: 0.3rem;
         }
-        .hero-card-mock {
-            margin-top: 0.9rem;
-            padding: 0.7rem 0.75rem;
-            border-radius: 0.85rem;
-            background: rgba(15,23,42,0.35);
-            font-size: 0.8rem;
+        .card-social .chip-muted {
+            border: 1px solid #d5d5d5;
+            background: #f8fafc;
+            color: #475569;
         }
-        .hero-card-mock-row {
-            display: flex;
-            justify-content: space-between;
+        .card-axes { display: grid; gap: 6px; }
+        .card-ax-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 70px;
+            gap: 6px;
             align-items: center;
-            margin-bottom: 0.25rem;
+            font-size: .78rem;
+            font-weight: 600;
         }
-        .hero-card-tag {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
+        .card-ax-l { text-align: left; color: #334155; white-space: nowrap; }
+        .card-ax-r { text-align: right; color: #334155; white-space: nowrap; }
+        .card-track {
+            position: relative;
+            height: 8px;
             border-radius: 999px;
-            background: rgba(22,163,74,0.4);
-            font-size: 0.7rem;
+            border: 1px solid #dbe3ea;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .card-track::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            transform: translateX(-1px);
+            background: rgba(100,116,139,0.75);
+        }
+        .card-fill-right,
+        .card-fill-left {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+        }
+        .card-fill-right {
+            left: 50%;
+            background: linear-gradient(90deg, rgba(245,158,11,0.45), rgba(236,72,153,0.85));
+            border-radius: 0 999px 999px 0;
+        }
+        .card-fill-left {
+            right: 50%;
+            background: linear-gradient(90deg, rgba(59,130,246,0.85), rgba(59,130,246,0.45));
+            border-radius: 999px 0 0 999px;
         }
 
         /* 功能捷徑 */
@@ -270,7 +367,7 @@
         .mbti-card:hover {
             transform: translateY(-1px);
             box-shadow: 0 10px 20px rgba(15,23,42,0.06);
-            border-color: #a7f3d0;
+            border-color: #d9c5ae;
         }
         .mbti-code {
             font-weight: 700;
@@ -283,7 +380,7 @@
         }
         .mbti-games {
             font-size: 0.75rem;
-            color: #16a34a;
+            color: #8b6f47;
         }
 
         /* 熱門桌遊 demo */
@@ -315,7 +412,7 @@
             padding: 0.25rem 0.6rem;
             border-radius: 999px;
             font-size: 0.78rem;
-            background: #f3f4f6;
+            background: var(--bg);
             margin: 0.12rem;
         }
 
@@ -330,141 +427,137 @@
 
         @media (max-width: 768px) {
             .page-wrap { padding-inline: 1rem; }
-            .hero {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
+            .card-info-list { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="page-wrap">
-        <header class="navbar-demo">
-            <div class="navbar-demo-title">
-                <span>🎲</span>
-                <span>MBTI × 桌遊配對</span>
-            </div>
-            <div class="navbar-demo-links">
-                <span class="active">首頁</span>
-                <span>桌遊探索</span>
-                <span>我的檔案</span>
-                <span>揪桌趣處</span>
-            </div>
-        </header>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="active">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
 
-        <!-- Hero：測驗導向 + 副路徑 -->
+    <div class="page-wrap">
+
+        <!-- Hero：登入後情境 -->
         <section class="hero">
-            <div>
+            <div class="hero-welcome">
                 <h1 class="hero-title">
-                    根據 <span class="hero-highlight">MBTI</span> 找到<br>最適合你的桌遊體驗
+                    歡迎回來，<span class="hero-highlight">Alex</span><br>繼續你的桌遊旅程
                 </h1>
-                <p class="hero-subtitle">
-                    做一份 5–10 分鐘的桌遊人格測驗，系統會根據你的 MBTI 與遊戲偏好，
-                    幫你建立個人桌遊檔案，並推薦適合你風格的桌遊清單。
-                </p>
-                <div class="hero-actions">
-                    <button class="btn-main">
-                        <span>開始桌遊人格測驗</span>
-                        <span>→</span>
-                    </button>
-                    <button class="btn-ghost">
-                        <span>先看看桌遊推薦</span>
-                    </button>
-                </div>
-                <div class="hero-meta">
-                    <span>不需立即登入，做完再決定是否建立帳號</span>
-                    <span>隨時可編輯自己的桌遊喜好</span>
+            </div>
+            <div class="hero-card-wrap">
+                <div class="hero-card js-tilt">
+                    <div class="hero-card-inner">
+                        <div class="card-top">
+                            <div id="home-card-avatar" class="card-avatar">🎲</div>
+                            <div>
+                                <div id="home-card-name" class="card-name">Alex（桌遊旅人）</div>
+                                <div id="home-card-sub" class="card-sub">INFJ · 桌遊收藏 22 款</div>
+                            </div>
+                        </div>
+                        <div id="home-card-bio" class="card-bio">玩家簡介：喜歡有決策感與劇情沉浸的中長局，偏好與熟友固定團穩定開桌。</div>
+                        <div id="home-card-info-list" class="card-info-list">
+                            <div><b>📅 常玩時段：</b>平日晚上、週末午後</div>
+                            <div><b>🎯 開桌偏好：</b>4 人局、中長時長</div>
+                            <div><b>🧩 喜愛機制：</b>策略、合作、資源管理</div>
+                            <div><b>🏠 偏好地點：</b>桌遊店 / 朋友家</div>
+                            <div><b>🎤 語言：</b>中文 / English</div>
+                            <div><b>📍 居住地：</b>台北市</div>
+                        </div>
+                        <div id="home-card-social" class="card-social">
+                            <span>🙋 開放被揪</span><span>📷 alex.boardgame</span><span>📘 alex.tabletop</span><span>💬 alex-table</span>
+                        </div>
+                        <div class="card-axes">
+                            <div class="card-ax-row" data-axis-key="axis_entry"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">📚 複雜</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_mood"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_control"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_sociality"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🧘 自我</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_openness"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🎭 心機</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_competition"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">⚔️ 對抗</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <aside class="hero-card">
-                <div class="hero-card-title">🧬 桌遊人格 × 推薦示意</div>
-                <p class="hero-card-steps">
-                    完成測驗 → 建立偏好輪廓 → 自動產生推薦清單與代表桌遊。
-                </p>
-                <div>
-                    <span class="hero-card-pill">INFJ · 策略 / 故事導向</span>
-                    <span class="hero-card-pill">偏好合作 · 中長時間</span>
-                </div>
-                <div class="hero-card-mock">
-                    <div class="hero-card-mock-row">
-                        <span>推薦代表作</span>
-                        <span class="hero-card-tag">範例</span>
-                    </div>
-                    <div style="font-size:0.8rem;margin-bottom:0.25rem;">
-                        ・《瘟疫危機》：高互動合作、難度適中<br>
-                        ・《幽港迷城》：故事濃度與角色成長感強
-                    </div>
-                    <div style="font-size:0.75rem;color:#bbf7d0;">
-                        右上功能捷徑可直接進入「推薦列表」或「我的收藏」進一步調整。
-                    </div>
-                </div>
-            </aside>
         </section>
 
-        <!-- 功能捷徑：工具導向 -->
+        <!-- 功能捷徑：登入後工具導向 -->
         <section>
-            <h2 class="section-title">你可以在這裡做什麼？</h2>
+            <h2 class="section-title">桌遊工具</h2>
             <p class="section-subtitle">
-                新來的玩家可以先做測驗；已經玩過一陣子的玩家，也可以直接用下面的工具管理自己的桌遊世界。
+                試試這些桌遊工具分享自己的桌遊世界。
             </p>
             <div class="shortcut-grid">
                 <div class="shortcut-card">
-                    <div class="shortcut-title">📁 我的桌遊檔案</div>
+                    <div class="shortcut-title">🥇 桌遊排名圖</div>
                     <div class="shortcut-desc">
-                        查看自己的 MBTI × 桌遊偏好雷達，編輯「喜歡 / 普通 / 不喜歡 / 想玩」等分類，建立專屬收藏牆。
+                        依你自己的標準把桌遊分級，建立可分享的 Tier 排名圖與清單。
                     </div>
-                    <div class="shortcut-link">前往「我的檔案」頁（實際版連到 profile.html）</div>
+                    <a class="shortcut-link" href="tier-maker.html">前往 tier-maker.html</a>
                 </div>
                 <div class="shortcut-card">
-                    <div class="shortcut-title">🎯 桌遊推薦</div>
+                    <div class="shortcut-title">🧩 桌遊九宮格</div>
                     <div class="shortcut-desc">
-                        根據你的偏好與收藏，自動產生今天適合開的桌遊清單，支援依人數、時間、難度快速過濾。
+                        用 3×3 方式整理你的本月主題與必玩名單，快速產生個人展示版面。
                     </div>
-                    <div class="shortcut-link">前往「桌遊推薦」頁（實際版連到 recommend.html）</div>
+                    <a class="shortcut-link" href="collection-poster.html">前往 collection-poster.html</a>
                 </div>
                 <div class="shortcut-card">
-                    <div class="shortcut-title">🔍 桌遊探索</div>
+                    <div class="shortcut-title">🎯 今晚玩什麼</div>
                     <div class="shortcut-desc">
-                        用關鍵字、機制、主題等條件，從資料庫中搜尋適合的新遊戲，並一鍵加入自己的分類或想玩清單。
+                        輸入人數、時長與難度偏好，立即從你的候選遊戲中挑出最適合今晚開桌的選項。
                     </div>
-                    <div class="shortcut-link">前往「桌遊探索」頁（實際版連到 explore-list.html）</div>
+                    <a class="shortcut-link" href="game-picker.html">前往 game-picker.html</a>
                 </div>
                 <div class="shortcut-card">
-                    <div class="shortcut-title">📍 揪桌趣處</div>
+                    <div class="shortcut-title">🤝 尋找桌友</div>
                     <div class="shortcut-desc">
-                        找到實體桌遊店、線上遊玩平台與各地社群連結，一鍵開啟 Google 地圖或加群組。
+                        依玩家檔案與條件篩選，探索「開放被揪」的桌友並快速配對。
                     </div>
-                    <div class="shortcut-link">前往「揪桌趣處」頁（實際版連到 community.html）</div>
+                    <a class="shortcut-link" href="find-players.html">前往 find-players.html</a>
                 </div>
             </div>
         </section>
 
-        <!-- MBTI 區塊 demo -->
-        <section class="mbti-section">
-            <h2 class="section-title">🎯 16 種人格類型</h2>
-            <p class="section-subtitle">
-                已經知道自己的 MBTI 嗎？點一下，看看這個人格類型通常喜歡什麼樣的桌遊與代表作。
-            </p>
-            <div class="mbti-grid-demo">
-                <div class="mbti-card">
-                    <div class="mbti-code">INFJ · 倡導者</div>
-                    <div class="mbti-desc">重視故事與連結，喜歡有深度的合作與策略。</div>
-                    <div class="mbti-games">代表作：瘟疫危機、幽港迷城</div>
+        <!-- 常用功能入口 -->
+        <section>
+            <h2 class="section-title">常用功能入口</h2>
+            <p class="section-subtitle">保留你最常用的四個核心入口，方便快速切換。</p>
+            <div class="shortcut-grid">
+                <div class="shortcut-card">
+                    <div class="shortcut-title">📁 我的桌遊檔案</div>
+                    <div class="shortcut-desc">查看 MBTI 與偏好雷達，管理「喜歡 / 普普 / 不喜歡 / 想玩」分類。</div>
+                    <a class="shortcut-link" href="profile.html">前往 profile.html</a>
                 </div>
-                <div class="mbti-card">
-                    <div class="mbti-code">ENTP · 辯論家</div>
-                    <div class="mbti-desc">享受腦補與互動，喜歡變化多端、可以耍心機的遊戲。</div>
-                    <div class="mbti-games">代表作：阿瓦隆、血色狂怒</div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">🎯 桌遊推薦</div>
+                    <div class="shortcut-desc">依偏好與收藏產生推薦，並可按人數、時長、難度快速過濾。</div>
+                    <a class="shortcut-link" href="recommend.html">前往 recommend.html</a>
                 </div>
-                <div class="mbti-card">
-                    <div class="mbti-code">ISFP · 冒險家</div>
-                    <div class="mbti-desc">偏好輕鬆有氛圍，享受過程和美術勝過硬派計算。</div>
-                    <div class="mbti-games">代表作：花磚物語、卡斯卡迪亞之旅</div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">🔍 桌遊探索</div>
+                    <div class="shortcut-desc">用機制、主題、關鍵字找新遊戲，一鍵加入偏好分類或收藏。</div>
+                    <a class="shortcut-link" href="explore-list.html">前往 explore-list.html</a>
                 </div>
-                <div class="mbti-card">
-                    <div class="mbti-code">ESTJ · 管理者</div>
-                    <div class="mbti-desc">喜歡結構清楚、規劃感強的經營或路線規劃遊戲。</div>
-                    <div class="mbti-games">代表作：車票之旅、電力公司</div>
+                <div class="shortcut-card">
+                    <div class="shortcut-title">📍 揪桌趣處</div>
+                    <div class="shortcut-desc">查找桌遊店、線上平台與社群連結，快速安排下一場開桌。</div>
+                    <a class="shortcut-link" href="community.html">前往 community.html</a>
                 </div>
             </div>
         </section>
@@ -472,9 +565,7 @@
         <!-- 熱門桌遊 demo -->
         <section class="games-section">
             <h2 class="section-title">🏆 玩家最近都在玩什麼？</h2>
-            <p class="section-subtitle">
-                以下僅為排版示意；正式版會即時統計所有玩家的「喜歡」與「想玩」資料，產生排行榜。
-            </p>
+            <p class="section-subtitle">以下為登入後首頁示意：顯示全站熱門與你可快速加入收藏的候選。</p>
             <div class="games-grid">
                 <div class="games-card">
                     <h3>😍 最受歡迎</h3>
@@ -495,10 +586,268 @@
             </div>
         </section>
 
-        <div class="footer-demo">
-            這是本機 demo 頁面（demo-home.html），僅供版型與文案討論，尚未串接真實資料與導向連結。
-        </div>
+        <div class="footer-demo">這是本機 demo 頁面（demo-home.html）：已改成登入後情境與正式站配色風格。</div>
     </div>
+<script src="js/api-base.js?v=20260302-clear"></script>
+<script src="js/app.js?v=20260319"></script>
+<script>
+    (function () {
+        const cards = document.querySelectorAll('.js-tilt');
+        cards.forEach((card) => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = '0 22px 38px rgba(45,45,45,0.22)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 16px 30px rgba(45,45,45,0.14)';
+            });
+        });
+    })();
+
+    function parseObj(raw) {
+        if (!raw) return {};
+        if (typeof raw === 'string') {
+            try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
+        }
+        return typeof raw === 'object' ? raw : {};
+    }
+
+    function parseArr(raw) {
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+            try {
+                const p = JSON.parse(raw);
+                return Array.isArray(p) ? p : [];
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    function parseProfileCardMeta(raw) {
+        return parseObj(raw);
+    }
+
+    function getProfileCardMetaForUser(user) {
+        const direct = parseProfileCardMeta(user && user.profile_card_meta);
+        if (Object.keys(direct).length) return direct;
+        const userId = user && (user.google_id || user.id);
+        if (!userId) return {};
+        return parseProfileCardMeta(localStorage.getItem(`profile_card_meta_${userId}`));
+    }
+
+    function getRegionText(user) {
+        let arr = user && user.region ? user.region : [];
+        if (typeof arr === 'string') {
+            try { arr = JSON.parse(arr); } catch (e) { arr = [arr]; }
+        }
+        if (!Array.isArray(arr) || !arr.length) return '';
+        return arr.join('、');
+    }
+
+    function getDefaultAvatar(user) {
+        const userId = String(user?.google_id || user?.id || user?.email || 'guest');
+        const candidates = [
+            { emoji: '🎮', color: '#667eea' },
+            { emoji: '🎲', color: '#f093fb' },
+            { emoji: '🃏', color: '#4facfe' },
+            { emoji: '🎯', color: '#43e97b' },
+            { emoji: '🎪', color: '#fa709a' },
+            { emoji: '🎨', color: '#a8edea' }
+        ];
+        const idx = Math.abs(userId.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % candidates.length;
+        return candidates[idx];
+    }
+
+    function renderSocialInline(socialLinks, wantContact) {
+        const container = document.getElementById('home-card-social');
+        if (!container) return;
+
+        const platforms = [
+            {
+                key: 'discord',
+                label: 'Discord',
+                color: 'transparent',
+                svg: '<img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#5865F2;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>DC</span>\'">',
+                url: null
+            },
+            {
+                key: 'line',
+                label: 'LINE',
+                color: '#06C755',
+                svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>',
+                url: (v) => `https://line.me/R/ti/p/~${encodeURIComponent(v)}`
+            },
+            {
+                key: 'instagram',
+                label: 'Instagram',
+                color: 'transparent',
+                svg: '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png" width="18" height="18" style="border-radius:4px;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;font-size:10px;font-weight:700;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>📷</span>\'">',
+                url: (v) => `https://instagram.com/${v.replace(/^@/, '')}`
+            },
+            {
+                key: 'facebook',
+                label: 'Facebook',
+                color: 'transparent',
+                svg: '<img src="https://www.facebook.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#1877F2;color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>f</span>\'">',
+                url: (v) => `https://facebook.com/${v.replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '')}`
+            },
+            {
+                key: 'telegram',
+                label: 'Telegram',
+                color: '#26A5E4',
+                svg: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>',
+                url: (v) => `https://t.me/${v.replace(/^@/, '')}`
+            },
+            {
+                key: 'threads',
+                label: 'Threads',
+                color: 'transparent',
+                svg: '<img src="https://www.threads.net/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#000;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>@</span>\'">',
+                url: (v) => `https://threads.net/@${v.replace(/^@/, '')}`
+            },
+            {
+                key: 'bgg',
+                label: 'BGG',
+                color: 'transparent',
+                svg: '<img src="https://cf.geekdo-images.com/favicon.ico" width="18" height="18" style="border-radius:3px;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#FF5100;color:#fff;font-size:9px;font-weight:700;border-radius:3px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>BGG</span>\'">',
+                url: (v) => `https://boardgamegeek.com/user/${encodeURIComponent(v.replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, ''))}`
+            },
+            {
+                key: 'bga_id',
+                label: 'BGA',
+                color: 'transparent',
+                svg: '<img src="https://boardgamearena.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#11294D;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>B</span>\'">',
+                url: (v) => v
+            }
+        ];
+
+        const chips = [];
+        const baseStyle = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.2rem 0.6rem 0.2rem 0.2rem;border-radius:2rem;background:transparent;text-decoration:none;transition:background 0.15s;';
+        if (wantContact) chips.push('<span style="' + baseStyle + 'cursor:default;"><span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">🙋 開放被揪</span></span>');
+
+        platforms.forEach((p) => {
+            const raw = (socialLinks[p.key] || '').trim();
+            if (!raw) return;
+            const cleanText = raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
+            const href = p.url ? p.url(raw) : null;
+            const inner = `
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;flex-shrink:0;background:${p.color};color:#fff;">
+                    ${p.svg}
+                </span>
+                <span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">${cleanText}</span>`;
+            if (href) {
+                chips.push(
+                    `<a href="${href}" target="_blank" rel="noopener noreferrer"
+                        style="${baseStyle}"
+                        onmouseover="this.style.background='color-mix(in srgb,${p.color} 12%,transparent)';"
+                        onmouseout="this.style.background='transparent';"
+                        title="${p.label}: ${cleanText}">${inner}</a>`
+                );
+            } else {
+                chips.push(
+                    `<span style="${baseStyle}cursor:pointer;"
+                        onclick="navigator.clipboard?.writeText('${raw.replace(/'/g, "\\'")}');const t=this.querySelector('span:last-child');const orig=t.textContent;t.textContent='已複製！';setTimeout(()=>t.textContent=orig,1500);"
+                        onmouseover="this.style.background='color-mix(in srgb,${p.color} 12%,transparent)';"
+                        onmouseout="this.style.background='transparent';"
+                        title="${p.label}: ${cleanText}（點擊複製）">${inner}</span>`
+                );
+            }
+        });
+
+        container.innerHTML = chips.join('');
+        container.style.display = chips.length ? 'flex' : 'none';
+    }
+
+    function renderAxisRow(row, value) {
+        const left = row.querySelector('.card-fill-left');
+        const right = row.querySelector('.card-fill-right');
+        if (!left || !right) return;
+        let v = Number(value);
+        if (Number.isNaN(v)) v = 6;
+        v = Math.max(0, Math.min(12, Math.round(v)));
+        const delta = v - 6;
+        const width = Math.round((Math.abs(delta) / 6) * 50);
+        left.style.width = delta < 0 ? `${width}%` : '0';
+        right.style.width = delta > 0 ? `${width}%` : '0';
+    }
+
+    async function loadHomeCardFromProfile() {
+        const nameEl = document.getElementById('home-card-name');
+        if (!nameEl || typeof GameMBTI === 'undefined') return;
+
+        let user = GameMBTI.getCurrentUser();
+        if (!user) return;
+
+        try {
+            if (user.id) {
+                const fresh = await GameMBTI.getUserById(user.id);
+                if (fresh && fresh.id) user = { ...user, ...fresh };
+            }
+        } catch (e) {
+            // fallback currentUser/local cache
+        }
+
+        const displayName = user.display_name || user.username || user.nickname || '玩家';
+        const ownedCount = parseArr(user.owned_games).length;
+        const mbti = user.mbti_type || '未設定';
+        const avatar = user.avatar_url ? null : getDefaultAvatar(user);
+
+        const avatarEl = document.getElementById('home-card-avatar');
+        if (avatarEl) {
+            if (user.avatar_url) {
+                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${displayName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            } else if (avatar) {
+                avatarEl.textContent = avatar.emoji;
+                avatarEl.style.background = `linear-gradient(135deg, ${avatar.color}, var(--primary-dark))`;
+            }
+        }
+
+        nameEl.textContent = displayName;
+        const subEl = document.getElementById('home-card-sub');
+        if (subEl) subEl.textContent = `${mbti} · 桌遊收藏 ${ownedCount} 款`;
+
+        const bioEl = document.getElementById('home-card-bio');
+        if (bioEl) {
+            const bio = (user.bio || '').trim();
+            if (bio) {
+                bioEl.textContent = `玩家簡介：${bio}`;
+                bioEl.style.display = 'block';
+            } else {
+                bioEl.style.display = 'none';
+            }
+        }
+
+        const meta = getProfileCardMetaForUser(user);
+        const infoRows = [];
+        if (meta.play_times) infoRows.push(`<div><b>📅 常玩時段：</b>${meta.play_times}</div>`);
+        if (meta.table_preferences) infoRows.push(`<div><b>🎯 開桌偏好：</b>${meta.table_preferences}</div>`);
+        if (meta.favorite_mechanisms) infoRows.push(`<div><b>🧩 喜愛機制：</b>${meta.favorite_mechanisms}</div>`);
+        if (meta.preferred_locations) infoRows.push(`<div><b>🏠 偏好地點：</b>${meta.preferred_locations}</div>`);
+        if (meta.languages) infoRows.push(`<div><b>🎤 語言：</b>${meta.languages}</div>`);
+        const regionText = getRegionText(user);
+        if (regionText) infoRows.push(`<div><b>📍 居住地：</b>${regionText}</div>`);
+        const infoList = document.getElementById('home-card-info-list');
+        if (infoList) {
+            infoList.innerHTML = infoRows.join('');
+            infoList.style.display = infoRows.length ? 'grid' : 'none';
+        }
+
+        renderSocialInline(parseObj(user.social_links), !!user.want_contact);
+
+        document.querySelectorAll('.card-ax-row[data-axis-key]').forEach((row) => {
+            const key = row.getAttribute('data-axis-key');
+            renderAxisRow(row, user[key]);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadHomeCardFromProfile();
+    });
+</script>
 </body>
 </html>
 
