@@ -3198,6 +3198,10 @@
         function getProfileCardMetaForUser(user) {
             const direct = parseProfileCardMeta(user && user.profile_card_meta);
             if (Object.keys(direct).length) return direct;
+            let sl = user && user.social_links ? user.social_links : {};
+            if (typeof sl === 'string') { try { sl = JSON.parse(sl); } catch(e) { sl = {}; } }
+            const fromSocial = parseProfileCardMeta(sl && sl.card_meta);
+            if (Object.keys(fromSocial).length) return fromSocial;
             const userId = user && (user.google_id || user.id);
             if (!userId) return {};
             return parseProfileCardMeta(localStorage.getItem(`profile_card_meta_${userId}`));
@@ -3209,14 +3213,14 @@
             if (meta.table_preferences) rows.push({ icon: '🎯', label: '開桌偏好', value: meta.table_preferences });
             if (meta.favorite_mechanisms) rows.push({ icon: '🧩', label: '喜愛機制', value: meta.favorite_mechanisms });
             if (meta.preferred_locations) rows.push({ icon: '🏠', label: '偏好地點', value: meta.preferred_locations });
-            if (meta.languages) rows.push({ icon: '🎤', label: '語言', value: meta.languages });
+            if (meta.languages) rows.push({ icon: '📝', label: '文字接受度', value: meta.languages });
             let regionText = '';
             if (user && user.region) {
                 let arr = user.region;
                 if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = [arr]; } }
                 if (Array.isArray(arr) && arr.length) regionText = arr.join('、');
             }
-            if (regionText) rows.push({ icon: '📍', label: '居住地', value: regionText });
+            if (regionText) rows.push({ icon: '📍', label: '活動範圍', value: regionText });
             return rows;
         }
 
@@ -3975,6 +3979,7 @@
                     preferred_locations: document.getElementById('bio-input-preferred-locations').value.trim(),
                     languages: document.getElementById('bio-input-languages').value.trim()
                 };
+                socialLinks.card_meta = cardMeta;
 
                 // 組合 PATCH body（social_links 須序列化為 JSON 字串，DB 欄位為 text 型）
                 const patchBody = { social_links: JSON.stringify(socialLinks), bio: bioText };
@@ -4253,7 +4258,7 @@
                         style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
                 </div>
                 <div>
-                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">🎤 語言</label>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">📝 文字接受度</label>
                     <input type="text" id="bio-input-languages" placeholder="中文 / English"
                         style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
                 </div>

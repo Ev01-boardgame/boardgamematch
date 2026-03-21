@@ -672,6 +672,9 @@
     function getProfileCardMetaForUser(user) {
         const direct = parseProfileCardMeta(user && user.profile_card_meta);
         if (Object.keys(direct).length) return direct;
+        const sl = parseObj(user && user.social_links);
+        const fromSocial = parseProfileCardMeta(sl && sl.card_meta);
+        if (Object.keys(fromSocial).length) return fromSocial;
         const userId = user && (user.google_id || user.id);
         if (!userId) return {};
         return parseProfileCardMeta(localStorage.getItem(`profile_card_meta_${userId}`));
@@ -775,9 +778,7 @@
             const cleanText = p.clean ? p.clean(raw) : raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
             const href = p.url ? p.url(raw) : null;
             const inner = `
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;background:transparent;color:#fff;">
-                    ${p.svg}
-                </span>
+                ${p.svg}
                 <span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">${cleanText}</span>`;
             if (href) {
                 chips.push(
