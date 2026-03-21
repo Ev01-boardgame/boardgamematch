@@ -770,16 +770,14 @@
 
         const chips = [];
         const baseStyle = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.2rem 0.6rem 0.2rem 0.2rem;border-radius:2rem;background:transparent;text-decoration:none;transition:background 0.15s;';
-        if (wantContact) chips.push('<span style="' + baseStyle + 'cursor:default;"><span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">🙋 開放被揪</span></span>');
+        if (wantContact) chips.push('<span style="' + baseStyle + 'cursor:default;">🙋 開放被揪</span>');
 
         platforms.forEach((p) => {
             const raw = (socialLinks[p.key] || '').trim();
             if (!raw) return;
             const cleanText = p.clean ? p.clean(raw) : raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
             const href = p.url ? p.url(raw) : null;
-            const inner = `
-                ${p.svg}
-                <span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">${cleanText}</span>`;
+            const inner = `${p.svg} ${cleanText}`;
             if (href) {
                 chips.push(
                     `<a href="${href}" target="_blank" rel="noopener noreferrer"
