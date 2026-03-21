@@ -442,6 +442,11 @@
                             <p style="color: var(--text-light); margin-bottom: 0.5rem; margin-top: 0.2rem;" id="profile-created-at">加入於 -</p>
                             <!-- 個人簡介 -->
                             <p id="profile-bio-display" style="display:none; color:var(--text-color); font-size:0.95rem; line-height:1.6; margin-bottom:1rem; padding:0.6rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid var(--primary-color);"></p>
+                            <!-- 名片補充資訊（有值才顯示） -->
+                            <div id="profile-card-meta-display" style="display:none; margin-bottom:0.9rem; padding:0.65rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid #c7b39b;">
+                                <div style="font-weight:700; font-size:0.88rem; color:var(--text-color); margin-bottom:0.45rem;">🎴 玩家名片資訊</div>
+                                <div id="profile-card-meta-list" style="display:grid; gap:0.25rem; font-size:0.86rem; color:var(--text-color); line-height:1.45;"></div>
+                            </div>
                         </div>
                         
                         <div style="display:flex; flex-direction:column; gap: 0.75rem; align-items:flex-start; flex: 0 1 360px; min-width: 320px; max-width: 420px; width: 100%;">
@@ -1261,6 +1266,7 @@
                         bioDisplayEl.style.display = 'block';
                     }
                     updateProfileRegionDisplay();
+                    renderProfileCardMetaDisplay();
                 }
                 
                 // 統計數據
@@ -3181,6 +3187,55 @@
             displaySocialLinksInline();
         }
 
+        function parseProfileCardMeta(raw) {
+            if (!raw) return {};
+            if (typeof raw === 'string') {
+                try { return JSON.parse(raw) || {}; } catch(e) { return {}; }
+            }
+            return typeof raw === 'object' ? raw : {};
+        }
+
+        function getProfileCardMetaForUser(user) {
+            const direct = parseProfileCardMeta(user && user.profile_card_meta);
+            if (Object.keys(direct).length) return direct;
+            const userId = user && (user.google_id || user.id);
+            if (!userId) return {};
+            return parseProfileCardMeta(localStorage.getItem(`profile_card_meta_${userId}`));
+        }
+
+        function getProfileCardMetaRows(meta, user) {
+            const rows = [];
+            if (meta.play_times) rows.push({ icon: '📅', label: '常玩時段', value: meta.play_times });
+            if (meta.table_preferences) rows.push({ icon: '🎯', label: '開桌偏好', value: meta.table_preferences });
+            if (meta.favorite_mechanisms) rows.push({ icon: '🧩', label: '喜愛機制', value: meta.favorite_mechanisms });
+            if (meta.preferred_locations) rows.push({ icon: '🏠', label: '偏好地點', value: meta.preferred_locations });
+            if (meta.languages) rows.push({ icon: '🎤', label: '語言', value: meta.languages });
+            let regionText = '';
+            if (user && user.region) {
+                let arr = user.region;
+                if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = [arr]; } }
+                if (Array.isArray(arr) && arr.length) regionText = arr.join('、');
+            }
+            if (regionText) rows.push({ icon: '📍', label: '居住地', value: regionText });
+            return rows;
+        }
+
+        function renderProfileCardMetaDisplay() {
+            const wrap = document.getElementById('profile-card-meta-display');
+            const list = document.getElementById('profile-card-meta-list');
+            if (!wrap || !list) return;
+            const user = currentUser || window.currentUser || {};
+            const meta = getProfileCardMetaForUser(user);
+            const rows = getProfileCardMetaRows(meta, user);
+            if (!rows.length) {
+                wrap.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+            wrap.style.display = 'block';
+            list.innerHTML = rows.map(r => `<div><b>${r.icon} ${r.label}：</b>${r.value}</div>`).join('');
+        }
+
         function updateProfileRegionDisplay() {
             const el = document.getElementById('profile-region-display');
             if (!el) return;
@@ -3496,6 +3551,14 @@
             const bioText = currentUser.bio || '';
             document.getElementById('bio-text-input').value = bioText;
             document.getElementById('bio-text-count').textContent = bioText.length;
+
+            // 名片補充資訊（有值顯示、沒值隱藏）
+            const cardMeta = getProfileCardMetaForUser(currentUser);
+            document.getElementById('bio-input-play-times').value = cardMeta.play_times || '';
+            document.getElementById('bio-input-table-preferences').value = cardMeta.table_preferences || '';
+            document.getElementById('bio-input-favorite-mechanisms').value = cardMeta.favorite_mechanisms || '';
+            document.getElementById('bio-input-preferred-locations').value = cardMeta.preferred_locations || '';
+            document.getElementById('bio-input-languages').value = cardMeta.languages || '';
 
             // 填入社群連結（social_links 在 DB 中為 JSON 字串，需先解析）
             let sl = currentUser.social_links || {};
@@ -3905,9 +3968,17 @@
                     bga:       document.getElementById('bio-input-bga').value.trim(),
                     bga_id:    document.getElementById('bio-input-bga-id').value.trim()
                 };
+                const cardMeta = {
+                    play_times: document.getElementById('bio-input-play-times').value.trim(),
+                    table_preferences: document.getElementById('bio-input-table-preferences').value.trim(),
+                    favorite_mechanisms: document.getElementById('bio-input-favorite-mechanisms').value.trim(),
+                    preferred_locations: document.getElementById('bio-input-preferred-locations').value.trim(),
+                    languages: document.getElementById('bio-input-languages').value.trim()
+                };
 
                 // 組合 PATCH body（social_links 須序列化為 JSON 字串，DB 欄位為 text 型）
                 const patchBody = { social_links: JSON.stringify(socialLinks), bio: bioText };
+                patchBody.profile_card_meta = JSON.stringify(cardMeta);
                 if (nickname) patchBody.username = nickname;
                 const regionChecked = Array.from(document.querySelectorAll('input[name="bio-region-cb"]:checked')).map(el => el.value);
                 patchBody.region = regionChecked.length > 0 ? JSON.stringify(regionChecked) : null;
@@ -3944,7 +4015,19 @@
                 if (!_cu?.id) throw new Error('找不到使用者 ID，請重新整理頁面後再試');
                 console.log('📤 [saveBio] 開始儲存，URL:', patchUrl);
                 console.log('📤 [saveBio] patchBody keys:', Object.keys(patchBody));
-                const saved = await safePatch(patchUrl, patchBody);
+                let saved = null;
+                try {
+                    saved = await safePatch(patchUrl, patchBody);
+                } catch (e) {
+                    const msg = String(e && (e.message || e));
+                    if (patchBody.profile_card_meta && (msg.includes('profile_card_meta') || msg.toLowerCase().includes('no such column'))) {
+                        const retryBody = { ...patchBody };
+                        delete retryBody.profile_card_meta;
+                        saved = await safePatch(patchUrl, retryBody);
+                    } else {
+                        throw e;
+                    }
+                }
                 console.log('✅ [saveBio] 儲存回應:', saved?.id ? '成功' : '無 id', JSON.stringify(saved).slice(0,100));
                 if (!saved || !saved.id) throw new Error('儲存失敗（伺服器無回應）');
 
@@ -3953,6 +4036,9 @@
                 currentUser.bio = bioText;
                 currentUser.region = patchBody.region;
                 currentUser.want_contact = patchBody.want_contact;
+                currentUser.profile_card_meta = patchBody.profile_card_meta;
+                const metaUserId = currentUser?.google_id || currentUser?.id;
+                if (metaUserId) localStorage.setItem(`profile_card_meta_${metaUserId}`, patchBody.profile_card_meta || '{}');
                 if (nickname) {
                     currentUser.username = nickname;
                     document.getElementById('profile-username').textContent = nickname;
@@ -3964,6 +4050,7 @@
                     bioDisplayEl.style.display = bioText ? 'block' : 'none';
                 }
                 updateProfileRegionDisplay();
+                renderProfileCardMetaDisplay();
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
                 // 更新 inline 社群顯示
@@ -4137,6 +4224,39 @@
                 style="width:100%; padding:0.65rem 0.9rem; border:1px solid var(--border-color); border-radius:0.65rem; font-size:0.95rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box; resize:vertical; font-family:inherit; line-height:1.5;"></textarea>
             <div style="text-align:right; font-size:0.8rem; color:var(--text-light); margin-top:0.3rem;">
                 <span id="bio-text-count">0</span> / 120
+            </div>
+        </div>
+
+        <!-- 名片補充資訊 -->
+        <div style="margin-bottom:1.5rem;">
+            <label style="display:block; font-weight:600; margin-bottom:0.4rem; color:var(--text-color);">🎴 名片補充資訊</label>
+            <p style="font-size:0.82rem; color:var(--text-light); margin:0 0 0.75rem;">有填才顯示在首頁名片與個人檔案；沒填會自動隱藏</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:0.65rem;">
+                <div>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">📅 常玩時段</label>
+                    <input type="text" id="bio-input-play-times" placeholder="平日晚上、週末午後"
+                        style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">🎯 開桌偏好</label>
+                    <input type="text" id="bio-input-table-preferences" placeholder="4 人局、中長時長"
+                        style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">🧩 喜愛機制</label>
+                    <input type="text" id="bio-input-favorite-mechanisms" placeholder="策略、合作、資源管理"
+                        style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">🏠 偏好地點</label>
+                    <input type="text" id="bio-input-preferred-locations" placeholder="桌遊店 / 朋友家"
+                        style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.3rem; font-size:0.88rem; color:var(--text-light);">🎤 語言</label>
+                    <input type="text" id="bio-input-languages" placeholder="中文 / English"
+                        style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:0.5rem; font-size:0.9rem; background:var(--bg-color); color:var(--text-color); box-sizing:border-box;">
+                </div>
             </div>
         </div>
 
