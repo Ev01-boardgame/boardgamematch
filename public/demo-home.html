@@ -482,7 +482,7 @@
         <section class="hero">
             <div class="hero-welcome">
                 <h1 class="hero-title">
-                    歡迎回來，<span class="hero-highlight">Alex</span><br>繼續你的桌遊旅程
+                    歡迎回來，<span id="home-welcome-name" class="hero-highlight">玩家</span><br>繼續你的桌遊旅程
                 </h1>
             </div>
             <div class="hero-card-wrap">
@@ -850,6 +850,9 @@
         const ownedCount = parseArr(user.owned_games).length;
         const mbti = user.mbti_type || '未設定';
         const avatar = user.avatar_url ? null : getDefaultAvatar(user);
+
+        const welcomeNameEl = document.getElementById('home-welcome-name');
+        if (welcomeNameEl) welcomeNameEl.textContent = displayName;
 
         const avatarEl = document.getElementById('home-card-avatar');
         if (avatarEl) {
