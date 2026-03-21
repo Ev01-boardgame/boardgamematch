@@ -165,7 +165,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 10% 10%, rgba(255,255,255,0.35), transparent 45%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.06));
         }
         .hero-card-inner {
             padding: 14px 14px 12px;
@@ -407,6 +407,28 @@
             gap: 0.4rem;
             margin-bottom: 0.6rem;
         }
+        .games-card .game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid rgba(229,231,235,0.8);
+            font-size: 0.88rem;
+        }
+        .games-card .game-item:last-child { border-bottom: none; }
+        .games-card .game-name {
+            color: var(--text-main);
+            font-weight: 600;
+            line-height: 1.45;
+            min-width: 0;
+        }
+        .games-card .game-votes {
+            color: var(--text-light);
+            font-size: 0.82rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
         .game-pill {
             display: inline-flex;
             align-items: center;
@@ -559,18 +581,18 @@
         <!-- 熱門桌遊 demo -->
         <section class="games-section">
             <h2 class="section-title">🏆 玩家最近都在玩什麼？</h2>
-            <p class="section-subtitle">顯示全站熱門與最受期待候選（即時資料）。</p>
+            <p class="section-subtitle">顯示全站熱門與最受期待候選。</p>
             <div class="games-grid">
                 <div class="games-card">
                     <h3>😍 最受歡迎</h3>
                     <div id="home-popular-games">
-                        <span class="game-pill">載入中...</span>
+                        <div class="game-item"><span class="game-name">載入中...</span><span class="game-votes">⏳</span></div>
                     </div>
                 </div>
                 <div class="games-card">
                     <h3>⭐ 最受期待</h3>
                     <div id="home-wishlist-games">
-                        <span class="game-pill">載入中...</span>
+                        <div class="game-item"><span class="game-name">載入中...</span><span class="game-votes">⏳</span></div>
                     </div>
                 </div>
             </div>
@@ -881,15 +903,15 @@
         const el = document.getElementById(containerId);
         if (!el) return;
         if (!items.length) {
-            el.innerHTML = '<span class="game-pill">尚無資料</span>';
+            el.innerHTML = '<div class="game-item"><span class="game-name">尚無資料</span><span class="game-votes">-</span></div>';
             return;
         }
-        el.innerHTML = items.map((item) => {
+        el.innerHTML = items.map((item, index) => {
             const gameName = (typeof GameNames !== 'undefined' && GameNames.formatInline)
                 ? GameNames.formatInline(item.game)
                 : item.game;
             const countText = countPrefix ? `${countPrefix} ${item.count}` : `${item.count}`;
-            return `<span class="game-pill">${gameName} · ${countText}</span>`;
+            return `<div class="game-item"><span class="game-name">${index + 1}. ${gameName}</span><span class="game-votes">${countText}</span></div>`;
         }).join('');
     }
 
