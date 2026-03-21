@@ -328,6 +328,13 @@
             display: flex;
             flex-direction: column;
             gap: 0.35rem;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+        .shortcut-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(15,23,42,0.08);
+            border-color: #d9c5ae;
         }
         .shortcut-title {
             font-size: 0.98rem;
@@ -339,11 +346,6 @@
         .shortcut-desc {
             font-size: 0.86rem;
             color: var(--text-light);
-        }
-        .shortcut-link {
-            font-size: 0.8rem;
-            color: var(--primary-dark);
-            margin-top: 0.2rem;
         }
 
         /* MBTI 區塊 */
@@ -503,33 +505,29 @@
                 試試這些桌遊工具分享自己的桌遊世界。
             </p>
             <div class="shortcut-grid">
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="tier-maker.html">
                     <div class="shortcut-title">🥇 桌遊排名圖</div>
                     <div class="shortcut-desc">
                         依你自己的標準把桌遊分級，建立可分享的 Tier 排名圖與清單。
                     </div>
-                    <a class="shortcut-link" href="tier-maker.html">前往 tier-maker.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="collection-poster.html">
                     <div class="shortcut-title">🧩 桌遊九宮格</div>
                     <div class="shortcut-desc">
                         用 3×3 方式整理你的本月主題與必玩名單，快速產生個人展示版面。
                     </div>
-                    <a class="shortcut-link" href="collection-poster.html">前往 collection-poster.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="game-picker.html">
                     <div class="shortcut-title">🎯 今晚玩什麼</div>
                     <div class="shortcut-desc">
                         輸入人數、時長與難度偏好，立即從你的候選遊戲中挑出最適合今晚開桌的選項。
                     </div>
-                    <a class="shortcut-link" href="game-picker.html">前往 game-picker.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="find-players.html">
                     <div class="shortcut-title">🤝 尋找桌友</div>
                     <div class="shortcut-desc">
                         依玩家檔案與條件篩選，探索「開放被揪」的桌友並快速配對。
                     </div>
-                    <a class="shortcut-link" href="find-players.html">前往 find-players.html</a>
                 </div>
             </div>
         </section>
@@ -539,25 +537,21 @@
             <h2 class="section-title">常用功能入口</h2>
             <p class="section-subtitle">保留你最常用的四個核心入口，方便快速切換。</p>
             <div class="shortcut-grid">
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="profile.html">
                     <div class="shortcut-title">📁 我的桌遊檔案</div>
                     <div class="shortcut-desc">查看 MBTI 與偏好雷達，管理「喜歡 / 普普 / 不喜歡 / 想玩」分類。</div>
-                    <a class="shortcut-link" href="profile.html">前往 profile.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="recommend.html">
                     <div class="shortcut-title">🎯 桌遊推薦</div>
                     <div class="shortcut-desc">依偏好與收藏產生推薦，並可按人數、時長、難度快速過濾。</div>
-                    <a class="shortcut-link" href="recommend.html">前往 recommend.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="explore-list.html">
                     <div class="shortcut-title">🔍 桌遊探索</div>
                     <div class="shortcut-desc">用機制、主題、關鍵字找新遊戲，一鍵加入偏好分類或收藏。</div>
-                    <a class="shortcut-link" href="explore-list.html">前往 explore-list.html</a>
                 </div>
-                <div class="shortcut-card">
+                <div class="shortcut-card" data-href="community.html">
                     <div class="shortcut-title">📍 揪桌趣處</div>
                     <div class="shortcut-desc">查找桌遊店、線上平台與社群連結，快速安排下一場開桌。</div>
-                    <a class="shortcut-link" href="community.html">前往 community.html</a>
                 </div>
             </div>
         </section>
@@ -672,7 +666,8 @@
                 label: 'Discord',
                 color: 'transparent',
                 svg: '<img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#5865F2;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>DC</span>\'">',
-                url: null
+                url: null,
+                copyOnNoUrl: true
             },
             {
                 key: 'line',
@@ -717,11 +712,12 @@
                 url: (v) => `https://boardgamegeek.com/user/${encodeURIComponent(v.replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, ''))}`
             },
             {
-                key: 'bga_id',
+                key: 'bga',
                 label: 'BGA',
                 color: 'transparent',
                 svg: '<img src="https://boardgamearena.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML=\'<span style=&quot;background:#11294D;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>B</span>\'">',
-                url: (v) => v
+                clean: (v) => v,
+                url: () => (socialLinks.bga_id || '').trim() || null
             }
         ];
 
@@ -732,7 +728,7 @@
         platforms.forEach((p) => {
             const raw = (socialLinks[p.key] || '').trim();
             if (!raw) return;
-            const cleanText = raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
+            const cleanText = p.clean ? p.clean(raw) : raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
             const href = p.url ? p.url(raw) : null;
             const inner = `
                 <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;flex-shrink:0;background:${p.color};color:#fff;">
@@ -747,7 +743,7 @@
                         onmouseout="this.style.background='transparent';"
                         title="${p.label}: ${cleanText}">${inner}</a>`
                 );
-            } else {
+            } else if (p.copyOnNoUrl) {
                 chips.push(
                     `<span style="${baseStyle}cursor:pointer;"
                         onclick="navigator.clipboard?.writeText('${raw.replace(/'/g, "\\'")}');const t=this.querySelector('span:last-child');const orig=t.textContent;t.textContent='已複製！';setTimeout(()=>t.textContent=orig,1500);"
@@ -755,6 +751,8 @@
                         onmouseout="this.style.background='transparent';"
                         title="${p.label}: ${cleanText}（點擊複製）">${inner}</span>`
                 );
+            } else {
+                chips.push(`<span style="${baseStyle}" title="${p.label}: ${cleanText}">${inner}</span>`);
             }
         });
 
@@ -789,6 +787,19 @@
             }
         } catch (e) {
             // fallback currentUser/local cache
+        }
+
+        // 六軸資料來自 user_preference_profiles（和 profile 同來源）
+        try {
+            if (user.id) {
+                const axisRes = await fetch(`/tables/user_preference_profiles/${encodeURIComponent(user.id)}`);
+                if (axisRes.ok) {
+                    const axisData = await axisRes.json();
+                    user = { ...user, ...axisData };
+                }
+            }
+        } catch (e) {
+            // keep fallback axis from user if unavailable
         }
 
         const displayName = user.display_name || user.username || user.nickname || '玩家';
@@ -845,6 +856,13 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.shortcut-card[data-href]').forEach((card) => {
+            const href = card.getAttribute('data-href');
+            if (!href) return;
+            card.addEventListener('click', () => {
+                window.location.href = href;
+            });
+        });
         loadHomeCardFromProfile();
     });
 </script>
