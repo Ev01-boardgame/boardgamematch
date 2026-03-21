@@ -20,8 +20,8 @@ window.GameNames = (() => {
     let loadPromise = null;
 
     // ── LocalStorage 快取設定 ──
-    const CACHE_KEY     = 'gn_nameMap_v7';
-    const CACHE_TS_KEY  = 'gn_nameMap_ts_v7';
+    const CACHE_KEY     = 'gn_nameMap_v8';
+    const CACHE_TS_KEY  = 'gn_nameMap_ts_v8';
     const CACHE_TTL_MS  = 2 * 60 * 60 * 1000; // 2 小時
 
     // ── image_url 壓縮/還原 ──

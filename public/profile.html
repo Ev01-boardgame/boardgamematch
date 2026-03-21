@@ -678,8 +678,8 @@
         <p>© 2025 MBTI × 桌遊配對</p>
     </footer>
 
-    <script src="js/api-base.js?v=20260318"></script>
-    <script src="js/app.js?v=20260319"></script>
+    <script src="js/api-base.js?v=20260320"></script>
+    <script src="js/app.js?v=20260320"></script>
     <script src="js/game-names.js"></script>
 
     <script>
@@ -3258,115 +3258,44 @@
         function displaySocialLinksInline() {
             const container = document.getElementById('social-links-inline');
             if (!container) return;
-            // social_links 在 DB 中是 JSON 字串，需先解析
             let socialLinks = currentUser.social_links || {};
             if (typeof socialLinks === 'string') { try { socialLinks = JSON.parse(socialLinks); } catch(e) { socialLinks = {}; } }
 
-            // 各平台：品牌色、SVG icon path、連結產生器
             const platforms = [
-                {
-                    key: 'discord',
-                    label: 'Discord',
-                    color: 'transparent',
-                    svg: `<img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#5865F2;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>DC</span>'">`,
-                    url: null  // Discord 無公開個人頁，點擊複製
-                },
-                {
-                    key: 'line',
-                    label: 'LINE',
-                    color: '#06C755',
-                    svg: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`,
-                    url: v => `https://line.me/R/ti/p/~${encodeURIComponent(v)}`
-                },
-                {
-                    key: 'instagram',
-                    label: 'Instagram',
-                    color: 'transparent',
-                    svg: `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png" width="18" height="18" style="border-radius:4px;display:block;" onerror="this.outerHTML='<span style=&quot;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;font-size:10px;font-weight:700;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>📷</span>'\">`,
-                    url: v => `https://instagram.com/${v.replace(/^@/, '')}`
-                },
-                {
-                    key: 'facebook',
-                    label: 'Facebook',
-                    color: 'transparent',
-                    svg: `<img src="https://www.facebook.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#1877F2;color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>f</span>'\">`,
-                    url: v => `https://facebook.com/${v.replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '')}`
-                },
-                {
-                    key: 'telegram',
-                    label: 'Telegram',
-                    color: '#26A5E4',
-                    svg: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`,
-                    url: v => `https://t.me/${v.replace(/^@/, '')}`
-                },
-                {
-                    key: 'threads',
-                    label: 'Threads',
-                    color: 'transparent',
-                    svg: `<img src="https://www.threads.net/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#000;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>@</span>'\">`,
-                    url: v => `https://threads.net/@${v.replace(/^@/, '')}`
-                },
-                {
-                    key: 'bgg',
-                    label: 'BGG',
-                    color: 'transparent',
-                    svg: `<img src="https://cf.geekdo-images.com/favicon.ico" width="18" height="18" style="border-radius:3px;display:block;" onerror="this.outerHTML='<span style=&quot;background:#FF5100;color:#fff;font-size:9px;font-weight:700;border-radius:3px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>BGG</span>'">`,
-                    clean: v => v.replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, ''),
-                    url: v => `https://boardgamegeek.com/user/${encodeURIComponent(v.replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, ''))}`
-                },
-                {
-                    key: 'bga',
-                    label: 'BGA',
-                    color: 'transparent',
-                    svg: `<img src="https://boardgamearena.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#11294D;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>B</span>'">`,
-                    url: v => socialLinks.bga_id || null
-                },
+                { key: 'discord', label: 'Discord', svg: `<img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#5865F2;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>DC</span>'">`, url: null, copyOnNoUrl: true },
+                { key: 'line', label: 'LINE', svg: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>`, url: v => `https://line.me/R/ti/p/~${encodeURIComponent(v)}` },
+                { key: 'instagram', label: 'Instagram', svg: `<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/600px-Instagram_icon.png" width="18" height="18" style="border-radius:4px;display:block;" onerror="this.outerHTML='<span style=&quot;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;font-size:10px;font-weight:700;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>📷</span>'\">`, url: v => `https://instagram.com/${v.replace(/^@/, '')}` },
+                { key: 'facebook', label: 'Facebook', svg: `<img src="https://www.facebook.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#1877F2;color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>f</span>'\">`, url: v => `https://facebook.com/${v.replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '')}` },
+                { key: 'telegram', label: 'Telegram', svg: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`, url: v => `https://t.me/${v.replace(/^@/, '')}` },
+                { key: 'threads', label: 'Threads', svg: `<img src="https://www.threads.net/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#000;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>@</span>'\">`, url: v => `https://threads.net/@${v.replace(/^@/, '')}` },
+                { key: 'bgg', label: 'BGG', svg: `<img src="https://cf.geekdo-images.com/favicon.ico" width="18" height="18" style="border-radius:3px;display:block;" onerror="this.outerHTML='<span style=&quot;background:#FF5100;color:#fff;font-size:9px;font-weight:700;border-radius:3px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>BGG</span>'">`, url: v => `https://boardgamegeek.com/user/${encodeURIComponent(v.replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, ''))}` },
+                { key: 'bga', label: 'BGA', svg: `<img src="https://boardgamearena.com/favicon.ico" width="18" height="18" style="border-radius:50%;display:block;" onerror="this.outerHTML='<span style=&quot;background:#11294D;color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;&quot;>B</span>'">`, clean: (v) => v, url: () => (socialLinks.bga_id || '').trim() || null }
             ];
 
-            let html = '';
-            for (const p of platforms) {
-                const value = (socialLinks[p.key] || '').trim();
-                if (!value) continue;
-                const displayVal = p.clean ? p.clean(value) : value.replace(/^@/, '');
-                const href = p.url ? p.url(value) : null;
+            const chips = [];
+            const baseStyle = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.2rem 0.6rem 0.2rem 0.2rem;border-radius:2rem;text-decoration:none;transition:transform 0.15s, box-shadow 0.15s, filter 0.15s;background:linear-gradient(140deg,#fffefb 0%,#f7f1e7 55%,#efe5d7 100%);border:1px solid #c5b093;box-shadow:inset 0 1px 0 rgba(255,255,255,0.95),inset 0 -1px 0 rgba(139,111,71,0.16),0 3px 8px rgba(80,63,38,0.16);';
+            if (currentUser.want_contact) chips.push('<span style="' + baseStyle + 'cursor:default;">🙋 開放被揪</span>');
 
-                const inner = `
-                    <span style="display:inline-flex;align-items:center;justify-content:center;
-                                 width:18px;height:18px;border-radius:50%;flex-shrink:0;
-                                 background:${p.color};color:#fff;">
-                        ${p.svg}
-                    </span>
-                    <span style="font-weight:600;font-size:0.85rem;color:var(--text-color);">${displayVal}</span>`;
-
-                const baseStyle = `display:inline-flex;align-items:center;gap:0.4rem;
-                                   padding:0.2rem 0.6rem 0.2rem 0.2rem;
-                                   border-radius:2rem;background:transparent;
-                                   text-decoration:none;transition:background 0.15s;`;
-
+            platforms.forEach((p) => {
+                const raw = (socialLinks[p.key] || '').trim();
+                if (!raw) return;
+                const cleanText = p.clean ? p.clean(raw) : raw.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?facebook\.com\//, '').replace(/\/$/, '');
+                const href = p.url ? p.url(raw) : null;
+                const inner = `${p.svg} ${cleanText}`;
                 if (href) {
-                    html += `<a href="${href}" target="_blank" rel="noopener noreferrer"
-                                style="${baseStyle}"
-                                onmouseover="this.style.background='color-mix(in srgb,${p.color} 12%,transparent)';"
-                                onmouseout="this.style.background='transparent';"
-                                title="${p.label}: ${displayVal}">
-                                ${inner}
-                             </a>`;
+                    chips.push(
+                        `<a href="${href}" target="_blank" rel="noopener noreferrer" style="${baseStyle}" onmouseover="this.style.transform='translateY(-1px)';this.style.filter='brightness(1.03)';this.style.boxShadow='inset 0 1px 0 rgba(255,255,255,0.98),inset 0 -1px 0 rgba(139,111,71,0.2),0 6px 14px rgba(80,63,38,0.22)';" onmouseout="this.style.transform='translateY(0)';this.style.filter='none';this.style.boxShadow='inset 0 1px 0 rgba(255,255,255,0.95),inset 0 -1px 0 rgba(139,111,71,0.16),0 3px 8px rgba(80,63,38,0.16)';" title="${p.label}: ${cleanText}">${inner}</a>`
+                    );
+                } else if (p.copyOnNoUrl) {
+                    chips.push(
+                        `<span style="${baseStyle}cursor:pointer;" onclick="navigator.clipboard?.writeText('${raw.replace(/'/g, "\\'")}');" onmouseover="this.style.transform='translateY(-1px)';this.style.filter='brightness(1.03)';this.style.boxShadow='inset 0 1px 0 rgba(255,255,255,0.98),inset 0 -1px 0 rgba(139,111,71,0.2),0 6px 14px rgba(80,63,38,0.22)';" onmouseout="this.style.transform='translateY(0)';this.style.filter='none';this.style.boxShadow='inset 0 1px 0 rgba(255,255,255,0.95),inset 0 -1px 0 rgba(139,111,71,0.16),0 3px 8px rgba(80,63,38,0.16)';" title="${p.label}: ${cleanText}（點擊複製）">${inner}</span>`
+                    );
                 } else {
-                    // Discord：點擊複製
-                    html += `<span style="${baseStyle}cursor:pointer;"
-                                   onclick="navigator.clipboard?.writeText('${value}');
-                                            const t=this.querySelector('span:last-child');
-                                            const orig=t.textContent;
-                                            t.textContent='已複製！';
-                                            setTimeout(()=>t.textContent=orig,1500);"
-                                   onmouseover="this.style.background='color-mix(in srgb,${p.color} 12%,transparent)';"
-                                   onmouseout="this.style.background='transparent';"
-                                   title="${p.label}: ${displayVal}（點擊複製）">
-                                ${inner}
-                             </span>`;
+                    chips.push(`<span style="${baseStyle}" title="${p.label}: ${cleanText}">${inner}</span>`);
                 }
-            }
-            container.innerHTML = html || '';
+            });
+            container.innerHTML = chips.join('');
+            container.style.display = chips.length ? 'flex' : 'none';
         }
 
         async function displayExploreListSummary() {
