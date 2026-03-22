@@ -59,7 +59,7 @@
         .add-game-preview-col .global-preview-row {
             justify-content: flex-start;
         }
-        /* 分級風格預設（左）＋ Tier 背景色（右）：兩欄同層標題 */
+        /* 分級風格預設（左）＋ 排名圖背景色（右）：兩欄同層標題 */
         .tier-preset-export-split {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -575,7 +575,6 @@
                 </section>
                 <section class="add-game-global-right add-game-preview-col" aria-label="即時預覽">
                     <h3 class="add-game-col-head">即時預覽</h3>
-                    <p class="hint col-hint">同一張示範圖：原圖與套用中設定後的對照圖。</p>
                     <div class="global-preview-row" style="margin-top:0.35rem;">
                         <div>
                             <div class="global-preview-label">原圖</div>
@@ -597,13 +596,13 @@
         <div class="pool-block">
             <h2>待分類區</h2>
             <div class="pool-actions">
-                <button type="button" class="btn-outline" id="btnTierToPool" title="將預覽區內所有封面移回待分類區">預覽區全部移回待分區</button>
+                <button type="button" class="btn-outline" id="btnTierToPool" title="將預覽區內所有封面移回待分類區">預覽區全部移回待分類區</button>
                 <button type="button" class="btn-outline danger" id="btnClearPool">清空待分類區</button>
             </div>
             <div class="pool-zone" id="poolZone"></div>
         </div>
 
-        <h2 class="section-heading">Tier 排名預覽區</h2>
+        <h2 class="section-heading">排名圖預覽區</h2>
         <div id="export-root">
             <div id="exportThemePreviewTop" class="export-theme-preview-band" hidden aria-hidden="true"></div>
             <div id="tierRows"></div>
@@ -634,8 +633,8 @@
                     </div>
                     <button type="button" class="btn-outline" id="btnAddTierRow" style="margin-top:0.55rem;">＋ 新增階層</button>
                 </section>
-                <section class="tier-preset-export-bg" aria-label="Tier 背景色">
-                    <h3 class="tier-preset-col-head">Tier 背景色</h3>
+                <section class="tier-preset-export-bg" aria-label="排名圖背景色">
+                    <h3 class="tier-preset-col-head">排名圖背景色</h3>
                     <div class="color-row" style="margin-bottom:0.5rem;">
                         <input type="color" id="exportBgColor" value="#1e1e2e" title="自訂">
                         <span style="font-size:0.78rem;color:var(--text-light);">自訂顏色</span>
@@ -670,7 +669,7 @@
                         </div>
                     </div>
                     <div class="pool-actions" style="margin-top:0.65rem;">
-                        <button type="button" class="btn-outline" id="btnExportPng">匯出 Tier PNG</button>
+                        <button type="button" class="btn-outline" id="btnExportPng">匯出 PNG</button>
                         <button type="button" class="btn-outline" id="btnExportWindow">匯出到新視窗</button>
                     </div>
                 </section>
@@ -1654,7 +1653,7 @@
             return textColorForBg(bandHex);
         }
 
-        /** Tier 排名預覽區：即時顯示排名圖主題標題（與匯出 PNG 邏輯一致） */
+        /** 排名圖預覽區：即時顯示排名圖主題標題（與匯出 PNG 邏輯一致） */
         function syncExportThemePreview() {
             const top = document.getElementById('exportThemePreviewTop');
             const bottom = document.getElementById('exportThemePreviewBottom');
@@ -2379,7 +2378,7 @@
                     const w = window.open('', '_blank');
                     if (!w) {
                         URL.revokeObjectURL(url);
-                        alert('請允許彈出視窗，或改用「匯出 Tier PNG」下載。');
+                        alert('請允許彈出視窗，或改用「匯出 PNG」下載。');
                         return;
                     }
                     w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Tier 匯出預覽</title></head><body style="margin:0;background:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:12px;box-sizing:border-box;"><img src="' + url + '" alt="Tier" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></body></html>');
