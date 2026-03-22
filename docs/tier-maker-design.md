@@ -1,6 +1,7 @@
 # Tier Maker（V1 架構延伸）— 名詞與規格釐清
 
 > 延續離線原型：`public/demo-tier-maker-v1-image.html`（膠囊 + 待分區 + Tier）。  
+> **正式站入口**：`public/tier-maker.html`（完整 V1 內容 + 站內導覽／頁首；由 `scripts/build_tier_maker_page.py` 自 demo 組出，改 demo 後請執行 `python scripts/build_tier_maker_page.py` 同步）。  
 > 對齊 `collection-poster.html` 時，請分兩層理解，**不要**把「海報背景」與「單格封面怎麼塞進格子」混在一起。
 
 ---
