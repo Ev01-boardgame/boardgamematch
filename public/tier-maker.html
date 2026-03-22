@@ -679,10 +679,8 @@
                 </section>
                 <section class="export-settings-theme-col" aria-label="排名圖主題">
                     <h3 class="export-settings-col-head">排名圖主題</h3>
-                    <label class="sub-label" style="margin-top:0;"><input type="checkbox" id="exportThemeShow"> 匯出時顯示標題文字</label>
-                    <div class="form-row" style="margin-top:0.45rem;">
-                        <label for="exportThemeTitle">標題文字</label>
-                        <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier" value="">
+                    <div class="form-row" style="margin-top:0;">
+                        <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier（有輸入即顯示於預覽與匯出）" value="" aria-label="排名圖標題">
                     </div>
                     <div class="export-theme-style-grid">
                         <div class="export-theme-style-cell">
@@ -1616,7 +1614,6 @@
         });
 
         function getExportThemeConfig() {
-            const show = document.getElementById('exportThemeShow')?.checked;
             const text = (document.getElementById('exportThemeTitle')?.value || '').trim();
             const posEl = document.querySelector('#exportThemePosition .chip.active');
             const alignEl = document.querySelector('#exportThemeAlign .chip.active');
@@ -1629,7 +1626,7 @@
             const colorMode = ['light', 'dark', 'auto'].includes(colorEl?.dataset.color) ? colorEl.dataset.color : 'auto';
             const frameEl = document.querySelector('#exportThemeFrame .chip.active');
             const framed = frameEl?.dataset.frame === '1';
-            const active = !!(show && text);
+            const active = !!text;
             const bandPx = active ? Math.max(48, fontPx + 28) : 0;
             return { active, text, position, align, fontPx, colorMode, bandPx, framed };
         }
@@ -1664,7 +1661,7 @@
                 el.style.boxShadow = '';
             });
 
-            if (!cfg.active || !cfg.text) return;
+            if (!cfg.text) return;
 
             const bar = cfg.position === 'top' ? top : bottom;
             const inner = document.createElement('span');
@@ -1718,7 +1715,6 @@
         wireExportThemeChips('exportThemeColor', 'color');
         wireExportThemeChips('exportThemeFrame', 'frame');
 
-        document.getElementById('exportThemeShow')?.addEventListener('change', syncExportThemePreview);
         document.getElementById('exportThemeTitle')?.addEventListener('input', syncExportThemePreview);
 
         /** 將 Tier 區內所有磚移回待分區（不清空待分區既有內容） */
