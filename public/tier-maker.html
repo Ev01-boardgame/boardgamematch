@@ -88,7 +88,7 @@
         .tier-preset-export-card section > .hint {
             margin: 0 0 0.65rem;
         }
-        /* 匯出設定（左）＋ 排名圖主題（右）：兩欄同層標題 */
+        /* 匯出解析度設定（左）＋ 排名圖主題（右）：兩欄同層標題 */
         .export-settings-split {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
@@ -663,10 +663,9 @@
 
         <div class="ctrl-card export-settings-card" style="margin-top:0.75rem;">
             <div class="export-settings-split">
-                <section class="export-settings-export-col" aria-label="匯出設定">
-                    <h3 class="export-settings-col-head">匯出設定</h3>
+                <section class="export-settings-export-col" aria-label="匯出解析度設定">
+                    <h3 class="export-settings-col-head">匯出解析度設定</h3>
                     <div class="form-row">
-                        <label>解析度</label>
                         <div class="chip-row" id="export-scale-chips">
                             <button type="button" class="chip" data-scale="2">標準 (2×)</button>
                             <button type="button" class="chip active" data-scale="3">高清 (3×)</button>
