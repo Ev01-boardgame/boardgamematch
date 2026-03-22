@@ -88,7 +88,7 @@
         .tier-preset-export-card section > .hint {
             margin: 0 0 0.65rem;
         }
-        /* 匯出設定（左）＋ 排名圖主題（右）：兩欄同層標題 */
+        /* 匯出解析度設定（左）＋ 排名圖主題（右）：兩欄同層標題 */
         .export-settings-split {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
@@ -461,6 +461,7 @@
             text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .tier-item-cover.no-fallback-cap .cover-cap { display: none; }
+        .tier-item-cover.no-fallback-cap .cover-mini-title { display: none; }
         /* popover */
         #tile-popover {
             display: none; position: fixed; z-index: 10000;
@@ -526,7 +527,7 @@
             <div class="add-game-global-split">
                 <section class="add-game-global-left" aria-label="新增遊戲">
                     <h3 class="add-game-col-head">新增遊戲</h3>
-                    <p class="hint">搜尋／新增至待分類區、本機圖、無資料庫命中時的假封面樣式。</p>
+                    <p class="hint">搜尋／新增至待分類區、本機圖；無資料時使用右側「封面圖樣式」的預設封面。</p>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-manual-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -542,7 +543,7 @@
                         <label class="tier-file-btn"><input type="file" id="fileIn" accept="image/*" multiple>＋ 本機圖片</label>
                     </div>
                     <div class="form-row" style="margin-top:0.65rem;padding-top:0.5rem;border-top:1px dashed var(--border-color);">
-                        <label>無資料庫命中時 · 假封面（僅文字）</label>
+                        <label>無資料時，產生預設封面</label>
                         <div class="chip-row" id="fallbackStyleChips">
                             <button type="button" class="chip active" data-style="blur">漸層</button>
                             <button type="button" class="chip" data-style="rainbow">🌈</button>
@@ -550,14 +551,10 @@
                             <button type="button" class="chip" data-style="light">淺</button>
                             <button type="button" class="chip" data-style="bw">灰階</button>
                         </div>
-                        <label style="font-size:0.78rem;margin-top:0.35rem;display:block;">
-                            <input type="checkbox" id="chkFallbackCap" checked> 假封面底部名稱條
-                        </label>
                     </div>
                 </section>
                 <section class="add-game-global-mid" aria-label="封面圖樣式">
                     <h3 class="add-game-col-head">封面圖樣式</h3>
-                    <p class="hint col-hint">新加入真實封面與上傳圖的<strong>全域</strong>顯示預設（與左欄新增共用）；覆寫已放置的每一格請用<strong>右欄</strong>按鈕。</p>
                     <div class="form-row" style="margin-bottom:0;">
                         <label>封面圖顯示方式</label>
                         <div class="chip-row" id="global-imgfit">
@@ -567,9 +564,9 @@
                             <button type="button" class="chip" data-v="cover">填滿裁切</button>
                         </div>
                     </div>
-                    <p class="hint" style="font-size:0.72rem;margin:0.35rem 0 0;line-height:1.45;">「填滿裁切」預設<strong>置中</strong>；若要改為靠上／靠下／靠左／靠右，請點該格 <strong>⚙ 此格顯示方式</strong>，選「填滿裁切」後會出現對齊選項。</p>
+                    <p class="hint" style="font-size:0.72rem;margin:0.35rem 0 0;line-height:1.45;">點預覽區該格 <strong>⚙</strong> 可單獨修改</p>
                     <div class="form-row" style="margin-top:0.65rem;margin-bottom:0;">
-                        <label>遊戲名稱（真實封面格）</label>
+                        <label>遊戲名稱</label>
                         <div class="chip-row" id="global-showname">
                             <button type="button" class="chip active" data-v="always">一直顯示</button>
                             <button type="button" class="chip" data-v="none">不顯示</button>
@@ -578,7 +575,7 @@
                 </section>
                 <section class="add-game-global-right add-game-preview-col" aria-label="即時預覽">
                     <h3 class="add-game-col-head">即時預覽</h3>
-                    <p class="hint col-hint">同一張示範圖：原圖與套用中欄設定後的對照。</p>
+                    <p class="hint col-hint">同一張示範圖：原圖與套用中設定後的對照圖。</p>
                     <div class="global-preview-row" style="margin-top:0.35rem;">
                         <div>
                             <div class="global-preview-label">原圖</div>
@@ -626,7 +623,7 @@
                         <button type="button" class="chip" data-preset="hype" title="迷因風">夯–拉完了</button>
                     </div>
                     <div class="tier-layout-range">
-                        <label for="tierGapRange">格子間距</label>
+                        <label for="tierGapRange">封面間距</label>
                         <input type="range" id="tierGapRange" min="0" max="24" value="4" step="1">
                         <span class="tier-layout-val" id="tierGapVal">4px</span>
                     </div>
@@ -663,10 +660,9 @@
 
         <div class="ctrl-card export-settings-card" style="margin-top:0.75rem;">
             <div class="export-settings-split">
-                <section class="export-settings-export-col" aria-label="匯出設定">
-                    <h3 class="export-settings-col-head">匯出設定</h3>
+                <section class="export-settings-export-col" aria-label="匯出解析度設定">
+                    <h3 class="export-settings-col-head">匯出解析度設定</h3>
                     <div class="form-row">
-                        <label>解析度</label>
                         <div class="chip-row" id="export-scale-chips">
                             <button type="button" class="chip" data-scale="2">標準 (2×)</button>
                             <button type="button" class="chip active" data-scale="3">高清 (3×)</button>
@@ -680,11 +676,8 @@
                 </section>
                 <section class="export-settings-theme-col" aria-label="排名圖主題">
                     <h3 class="export-settings-col-head">排名圖主題</h3>
-                    <p class="hint">可加上標題、調整位置。</p>
-                    <label class="sub-label" style="margin-top:0;"><input type="checkbox" id="exportThemeShow"> 匯出時顯示標題文字</label>
-                    <div class="form-row" style="margin-top:0.45rem;">
-                        <label for="exportThemeTitle">標題文字</label>
-                        <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier" value="">
+                    <div class="form-row" style="margin-top:0;">
+                        <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier（有輸入即顯示於預覽與匯出）" value="" aria-label="排名圖標題">
                     </div>
                     <div class="export-theme-style-grid">
                         <div class="export-theme-style-cell">
@@ -862,6 +855,18 @@
             return a ? a.dataset.v : 'always';
         }
 
+        /** 預設封面格：遊戲名稱顯示與「封面圖樣式 → 遊戲名稱」一致 */
+        function syncFallbackCoversFromGlobal() {
+            const sn = getGlobalShowName();
+            document.querySelectorAll('.tier-item-cover').forEach(el => {
+                el.dataset.showName = sn;
+                const showCap = sn === 'always';
+                el.classList.toggle('no-fallback-cap', !showCap);
+                const inner = el.querySelector('.cover-inner');
+                if (inner) inner.style.height = showCap ? 'calc(100% - 12px)' : '100%';
+            });
+        }
+
         document.getElementById('fallbackStyleChips').addEventListener('click', e => {
             const b = e.target.closest('.chip');
             if (!b) return;
@@ -883,6 +888,7 @@
             document.querySelectorAll('#global-showname .chip').forEach(x => x.classList.remove('active'));
             b.classList.add('active');
             renderGlobalPreview();
+            syncFallbackCoversFromGlobal();
         });
 
         const exportBgColorInput = document.getElementById('exportBgColor');
@@ -1077,9 +1083,11 @@
             wrap.id = id;
             wrap.draggable = true;
             wrap.dataset.name = name;
+            const sn = getGlobalShowName();
+            wrap.dataset.showName = sn;
             const bg = coverBackground(activeFallbackStyle, name);
             const emoji = EMOJIS[hashHue(name) % EMOJIS.length];
-            const bottom = document.getElementById('chkFallbackCap').checked;
+            const bottom = sn === 'always';
             if (!bottom) wrap.classList.add('no-fallback-cap');
             const isLight = activeFallbackStyle === 'light';
             const tc = isLight ? '#0f172a' : 'rgba(255,255,255,0.95)';
@@ -1618,7 +1626,6 @@
         });
 
         function getExportThemeConfig() {
-            const show = document.getElementById('exportThemeShow')?.checked;
             const text = (document.getElementById('exportThemeTitle')?.value || '').trim();
             const posEl = document.querySelector('#exportThemePosition .chip.active');
             const alignEl = document.querySelector('#exportThemeAlign .chip.active');
@@ -1631,7 +1638,7 @@
             const colorMode = ['light', 'dark', 'auto'].includes(colorEl?.dataset.color) ? colorEl.dataset.color : 'auto';
             const frameEl = document.querySelector('#exportThemeFrame .chip.active');
             const framed = frameEl?.dataset.frame === '1';
-            const active = !!(show && text);
+            const active = !!text;
             const bandPx = active ? Math.max(48, fontPx + 28) : 0;
             return { active, text, position, align, fontPx, colorMode, bandPx, framed };
         }
@@ -1666,7 +1673,7 @@
                 el.style.boxShadow = '';
             });
 
-            if (!cfg.active || !cfg.text) return;
+            if (!cfg.text) return;
 
             const bar = cfg.position === 'top' ? top : bottom;
             const inner = document.createElement('span');
@@ -1720,7 +1727,6 @@
         wireExportThemeChips('exportThemeColor', 'color');
         wireExportThemeChips('exportThemeFrame', 'frame');
 
-        document.getElementById('exportThemeShow')?.addEventListener('change', syncExportThemePreview);
         document.getElementById('exportThemeTitle')?.addEventListener('input', syncExportThemePreview);
 
         /** 將 Tier 區內所有磚移回待分區（不清空待分區既有內容） */
@@ -1744,9 +1750,11 @@
                 refreshRealTile(el);
             });
             document.querySelectorAll('.tier-item-cover').forEach(el => {
-                /* 假封面僅同步「名稱條」概念：用 checkbox */
-                const cap = document.getElementById('chkFallbackCap').checked;
-                el.classList.toggle('no-fallback-cap', !cap);
+                el.dataset.showName = sn;
+                const showCap = sn === 'always';
+                el.classList.toggle('no-fallback-cap', !showCap);
+                const inner = el.querySelector('.cover-inner');
+                if (inner) inner.style.height = showCap ? 'calc(100% - 12px)' : '100%';
             });
         });
 
@@ -1769,9 +1777,7 @@
             }
 
             const curFit = el.dataset.imgFit || getGlobalImgFit();
-            const curSn = isReal
-                ? (el.dataset.showName || getGlobalShowName())
-                : (el.classList.contains('no-fallback-cap') ? 'none' : 'always');
+            const curSn = el.dataset.showName || getGlobalShowName();
             const curAlign = isReal ? (el.dataset.coverAlign || 'center') : 'center';
 
             document.getElementById('pop-imgfit').innerHTML = isReal
@@ -1858,6 +1864,7 @@
                 refreshRealTile(el);
             } else if (el.classList.contains('tier-item-cover')) {
                 if (snBtn) {
+                    el.dataset.showName = snBtn.dataset.v;
                     const show = snBtn.dataset.v === 'always';
                     el.classList.toggle('no-fallback-cap', !show);
                     const inner = el.querySelector('.cover-inner');
