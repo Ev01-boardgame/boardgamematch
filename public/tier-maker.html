@@ -519,15 +519,14 @@
     <div class="container">
         <div class="page-header">
             <h1 class="page-title">🥇 桌遊排名圖</h1>
-            <p class="page-subtitle">製作可匯出的桌遊 Tier 排名圖（本機離線 + D1 搜尋；需後端以使用遊戲庫）。其他原型：<a href="demo-tier-maker-hub.html">示範總覽</a>。</p>
+            <p class="page-subtitle">製作可匯出的 Tier 排名圖，可自行新增圖片或使用資料庫的圖片</p>
         </div>
         <div class="tier-maker-v1-page">
-        <p class="hint" style="margin-bottom:1rem;">膠囊同 <a href="edit-games-drag.html">edit-games-drag</a>（<code>tables/game_database?search=</code>）。<strong>Tier 整張背景</strong>與<strong>格子內封面顯示</strong>分開設定（對齊 <a href="collection-poster.html">collection-poster</a>）。點格子上的 <strong>⚙</strong> 只改該格；待分區不會匯出。</p>
         <div class="ctrl-card add-game-global-card" style="margin-bottom:1rem;">
             <div class="add-game-global-split">
                 <section class="add-game-global-left" aria-label="新增遊戲">
-                    <h3 class="add-game-col-head">新增遊戲（D1 搜尋／本機圖／假封面）</h3>
-                    <p class="hint">搜尋／新增至待分區、本機圖、無資料庫命中時的假封面樣式。</p>
+                    <h3 class="add-game-col-head">新增遊戲</h3>
+                    <p class="hint">搜尋／新增至待分類區、本機圖、無資料庫命中時的假封面樣式。</p>
                     <div class="add-game-input">
                         <div class="ac-wrap">
                             <input type="text" id="add-manual-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
@@ -556,8 +555,8 @@
                         </label>
                     </div>
                 </section>
-                <section class="add-game-global-mid" aria-label="新遊戲預設">
-                    <h3 class="add-game-col-head">新遊戲預設（全域）</h3>
+                <section class="add-game-global-mid" aria-label="封面圖樣式">
+                    <h3 class="add-game-col-head">封面圖樣式</h3>
                     <p class="hint col-hint">新加入真實封面與上傳圖的<strong>全域</strong>顯示預設（與左欄新增共用）；覆寫已放置的每一格請用<strong>右欄</strong>按鈕。</p>
                     <div class="form-row" style="margin-bottom:0;">
                         <label>封面圖顯示方式</label>
@@ -596,19 +595,18 @@
             </div>
         </div>
 
-        <div class="drop-hint" id="dropHint">本機圖片可拖到此處加入待分區</div>
+        <div class="drop-hint" id="dropHint">圖片可拖到此處加入</div>
 
         <div class="pool-block">
-            <h2>待分區（不匯出 · 拖入 Tier）</h2>
+            <h2>待分類區</h2>
             <div class="pool-actions">
-                <button type="button" class="btn-outline" id="btnTierToPool" title="將 Tier 排名區內所有封面移回此處">Tier 全部移回待分區</button>
-                <button type="button" class="btn-outline danger" id="btnClearPool">清空待分區</button>
+                <button type="button" class="btn-outline" id="btnTierToPool" title="將預覽區內所有封面移回待分類區">預覽區全部移回待分區</button>
+                <button type="button" class="btn-outline danger" id="btnClearPool">清空待分類區</button>
             </div>
             <div class="pool-zone" id="poolZone"></div>
         </div>
 
         <h2 class="section-heading">Tier 排名預覽區</h2>
-        <p class="hint" style="margin:-0.25rem 0 0.5rem;font-size:0.78rem;">此區為匯出範圍預覽；勾選下方「排名圖主題」並輸入標題後，標題會即時出現在區域<strong>上／下方</strong>（與匯出 PNG 相同邏輯）。</p>
         <div id="export-root">
             <div id="exportThemePreviewTop" class="export-theme-preview-band" hidden aria-hidden="true"></div>
             <div id="tierRows"></div>
@@ -619,7 +617,7 @@
             <div class="tier-preset-export-split">
                 <section class="tier-preset-export-left" aria-label="分級風格預設">
                     <h3 class="tier-preset-col-head">分級風格預設</h3>
-                    <p class="hint">套用後只改<strong>名稱與階層數</strong>（S–F／優戊為 6 階；其餘預設為 <strong>5 階</strong>，最後一階為<strong>灰色</strong>）；已放入的遊戲會依<strong>列順序</strong>留在對應階層。<strong>點左側分級標籤</strong>可編輯／刪除；<strong>按住標籤拖曳</strong>可上下調整整列。</p>
+                    <p class="hint"><strong>點左側分級標籤</strong>可編輯／刪除；<strong>按住標籤拖曳</strong>可上下調整整列。</p>
                     <div class="chip-row" id="tierPresetChips" style="flex-wrap:wrap;">
                         <button type="button" class="chip active" data-preset="sf" title="西洋字母">S–F</button>
                         <button type="button" class="chip" data-preset="youwu" title="甲乙丙丁戊">優–戊</button>
@@ -641,7 +639,6 @@
                 </section>
                 <section class="tier-preset-export-bg" aria-label="Tier 背景色">
                     <h3 class="tier-preset-col-head">Tier 背景色</h3>
-                    <p class="hint">此為 <code>#export-root</code> 區塊底色（整張 Tier 圖），不是單一遊戲封面。</p>
                     <div class="color-row" style="margin-bottom:0.5rem;">
                         <input type="color" id="exportBgColor" value="#1e1e2e" title="自訂">
                         <span style="font-size:0.78rem;color:var(--text-light);">自訂顏色</span>
@@ -668,7 +665,6 @@
             <div class="export-settings-split">
                 <section class="export-settings-export-col" aria-label="匯出設定">
                     <h3 class="export-settings-col-head">匯出設定</h3>
-                    <p class="hint">解析度越高檔案越大；「新視窗」僅預覽不下載。</p>
                     <div class="form-row">
                         <label>解析度</label>
                         <div class="chip-row" id="export-scale-chips">
@@ -684,8 +680,8 @@
                 </section>
                 <section class="export-settings-theme-col" aria-label="排名圖主題">
                     <h3 class="export-settings-col-head">排名圖主題</h3>
-                    <p class="hint">僅影響<strong>匯出 PNG／新視窗</strong>；可加上標題、調位置與對齊（預覽區上方／下方留白）。</p>
-                    <label class="sub-label" style="margin-top:0;"><input type="checkbox" id="exportThemeShow"> 匯出時顯示主題標題</label>
+                    <p class="hint">可加上標題、調整位置。</p>
+                    <label class="sub-label" style="margin-top:0;"><input type="checkbox" id="exportThemeShow"> 匯出時顯示標題文字</label>
                     <div class="form-row" style="margin-top:0.45rem;">
                         <label for="exportThemeTitle">標題文字</label>
                         <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier" value="">
@@ -1138,7 +1134,7 @@
                             return `<div class="add-game-ac-item" data-idx="${i}">
                                 ${imgHtml}
                                 <div class="ac-name"><div class="ac-name-zh">${escapeHtml(displayName)}</div>${subName ? `<div class="ac-name-en">${escapeHtml(subName)}</div>` : ''}</div>
-                                <span class="add-game-ac-badge">D1</span></div>`;
+                                <span class="add-game-ac-badge">資料庫</span></div>`;
                         }).join('');
                         drop.querySelectorAll('.add-game-ac-item[data-idx]').forEach(el => {
                             el.addEventListener('mousedown', ev => {
@@ -1752,7 +1748,6 @@
                 const cap = document.getElementById('chkFallbackCap').checked;
                 el.classList.toggle('no-fallback-cap', !cap);
             });
-            alert('已將全域「封面顯示／名稱」套用到所有<strong>真實封面</strong>格。假封面請用下方勾選調整後手動重建。');
         });
 
         function openPopover(el, ev) {
