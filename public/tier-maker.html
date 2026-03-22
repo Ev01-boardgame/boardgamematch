@@ -1,10 +1,500 @@
 <!DOCTYPE html>
+<!-- Tier Maker V1：請直接維護本檔（正式站唯一來源）。demo-tier-maker-v1-image.html 僅為舊離線備份，可刪除。 -->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🥇 桌遊排名圖 - MBTI × 桌遊配對</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        .tier-file-btn {
+            cursor: pointer; padding: 0.45rem 0.85rem; border-radius: 999px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff; font-weight: 600; font-size: 0.85rem; display: inline-block;
+        }
+        .tier-file-btn input[type="file"] { display: none; }
+        .btn-outline {
+            padding: 0.4rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color); cursor: pointer; font-size: 0.85rem;
+        }
+        .btn-outline.danger { border-color: #f87171; color: #b91c1c; }
+        .btn-outline.danger:hover { background: #fef2f2; }
+        .pool-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
+        .section-heading { font-size: 0.95rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--text-color); }
+        /* 新增遊戲（左）＋ 新遊戲預設（中）＋ 即時預覽（右）：三欄同層標題 */
+        .add-game-global-split {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(260px, 360px);
+            gap: 0.85rem 1rem;
+            align-items: start;
+        }
+        @media (min-width: 1000px) {
+            .add-game-global-mid,
+            .add-game-global-right {
+                padding-left: 1rem;
+                border-left: 1px dashed var(--border-color);
+            }
+        }
+        @media (max-width: 999px) {
+            .add-game-global-split { grid-template-columns: 1fr; }
+            .add-game-global-mid,
+            .add-game-global-right { padding-left: 0; border-left: none; }
+        }
+        .add-game-global-card .add-game-col-head {
+            margin: 0 0 0.35rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            line-height: 1.35;
+        }
+        .add-game-global-card section > .hint.col-hint {
+            margin: 0 0 0.65rem;
+        }
+        .add-game-global-card .add-game-global-left > .hint:not(.col-hint) {
+            margin: 0 0 0.65rem;
+        }
+        .add-game-preview-col .global-preview-row {
+            justify-content: flex-start;
+        }
+        /* 分級風格預設（左）＋ Tier 背景色（右）：兩欄同層標題 */
+        .tier-preset-export-split {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1rem 1.35rem;
+            align-items: start;
+        }
+        @media (min-width: 721px) {
+            .tier-preset-export-bg {
+                padding-left: 1rem;
+                border-left: 1px dashed var(--border-color);
+            }
+        }
+        @media (max-width: 720px) {
+            .tier-preset-export-split { grid-template-columns: 1fr; }
+            .tier-preset-export-bg { padding-left: 0; border-left: none; }
+        }
+        .tier-preset-export-card .tier-preset-col-head {
+            margin: 0 0 0.35rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            line-height: 1.35;
+        }
+        .tier-preset-export-card section > .hint {
+            margin: 0 0 0.65rem;
+        }
+        /* 匯出設定（左）＋ 排名圖主題（右）：兩欄同層標題 */
+        .export-settings-split {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+            gap: 1rem 1.35rem;
+            align-items: start;
+        }
+        .export-settings-card .export-settings-col-head {
+            margin: 0 0 0.35rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            line-height: 1.35;
+        }
+        .export-settings-export-col > .hint:first-of-type,
+        .export-settings-theme-col > .hint:first-of-type {
+            margin: 0 0 0.55rem;
+        }
+        @media (min-width: 721px) {
+            .export-settings-theme-col {
+                padding-left: 1rem;
+                border-left: 1px dashed var(--border-color);
+            }
+        }
+        @media (max-width: 720px) {
+            .export-settings-split { grid-template-columns: 1fr; }
+            .export-settings-theme-col { padding-left: 0; border-left: none; }
+        }
+        /** 排名圖主題：標題位置／對齊／字級／顏色／外框 五欄 */
+        .export-theme-style-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.5rem 0.55rem;
+            align-items: start;
+            margin-top: 0.45rem;
+        }
+        @media (max-width: 900px) {
+            .export-theme-style-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .export-theme-style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        .export-theme-style-cell .sub-label {
+            margin-top: 0 !important;
+            margin-bottom: 0.3rem;
+        }
+        .export-theme-style-cell .chip-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.3rem;
+        }
+        .export-theme-style-cell .chip-row .chip {
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            justify-content: center;
+        }
+        .export-settings-theme-col .form-row input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.4rem 0.55rem;
+            border-radius: 0.4rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.85rem;
+        }
+        .export-settings-theme-col label.sub-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-light);
+            display: block;
+            margin: 0.5rem 0 0.28rem;
+        }
+        .global-preview-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+        .global-preview-label {
+            font-size: 0.7rem; font-weight: 600; color: var(--text-light);
+            margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .global-preview-original-box {
+            width: 152px; height: 152px;
+            background: #2a2a35;
+            border-radius: 8px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border-color);
+        }
+        .global-preview-original-box img {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .global-preview-applied-outer {
+            width: 152px; height: 152px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background: #111;
+        }
+        .global-preview-applied-outer .tier-item--preview-global {
+            width: 152px !important; height: 152px !important;
+            border: none !important;
+            border-radius: 6px;
+            cursor: default !important;
+        }
+        .global-preview-applied-outer .tier-name-cap {
+            font-size: 11px !important;
+            padding: 4px 5px !important;
+        }
+        .ctrl-grid {
+            display: grid; gap: 0.75rem; margin-bottom: 1rem;
+        }
+        @media (min-width: 720px) {
+            .ctrl-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .ctrl-card {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 0.75rem; padding: 0.75rem 1rem;
+        }
+        .ctrl-card h3 {
+            margin: 0 0 0.5rem; font-size: 0.82rem; font-weight: 700;
+            color: var(--text-color); text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .ctrl-card .hint { font-size: 0.72rem; color: var(--text-light); margin: 0 0 0.5rem; line-height: 1.45; }
+        .form-row { margin-bottom: 0.5rem; }
+        .form-row label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 0.3rem; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+        .chip {
+            padding: 0.26rem 0.55rem; border-radius: 1.5rem; border: 1.5px solid var(--border-color);
+            background: transparent; font-size: 0.74rem; font-weight: 500; color: var(--text-light);
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .chip.active { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+        .color-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .color-row input[type="color"] { width: 44px; height: 36px; border: none; border-radius: 0.35rem; cursor: pointer; }
+        /* add-game (edit-games-drag) */
+        .add-game-section {
+            background: var(--bg-color); border-radius: 8px; padding: 5px 6px;
+            margin-bottom: 0.75rem; border: 1px solid var(--border-color);
+        }
+        .add-game-input { display: flex; gap: 6px; position: relative; flex-wrap: wrap; align-items: stretch; }
+        .add-game-input .ac-wrap { flex: 1; position: relative; min-width: 0; }
+        .add-game-input input {
+            width: 100%; box-sizing: border-box; padding: 6px 9px;
+            border: 1.5px solid var(--border-color); border-radius: 8px; font-size: 0.83rem;
+            background: var(--bg-color); color: var(--text-color);
+        }
+        .add-game-input input:focus { outline: none; border-color: var(--primary-color); }
+        .add-game-input .btn {
+            min-width: 62px; padding: 5px 10px !important; border-radius: 8px !important;
+            font-size: 0.83rem !important; line-height: 1.2;
+        }
+        .add-game-dropdown {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: var(--card-bg); border: 1.5px solid var(--border-color);
+            border-radius: 0.5rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;
+            max-height: 240px; overflow-y: auto;
+        }
+        .add-game-dropdown.open { display: block; }
+        .add-game-ac-item {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.45rem 0.75rem; cursor: pointer; font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .add-game-ac-item:last-child { border-bottom: none; }
+        .add-game-ac-item:hover, .add-game-ac-item.highlighted { background: var(--bg-light); }
+        .add-game-ac-item img { width: 28px; height: 28px; object-fit: cover; border-radius: 0.3rem; flex-shrink: 0; }
+        .add-game-ac-item .ac-name { flex: 1; min-width: 0; }
+        .add-game-ac-item .ac-name-zh { font-weight: 600; }
+        .add-game-ac-item .ac-name-en { font-size: 0.78rem; color: var(--text-light); }
+        .add-game-ac-badge { font-size: 0.72rem; padding: 0.1rem 0.4rem; border-radius: 999px; background: #dcfce7; color: #166534; flex-shrink: 0; }
+        .pool-block {
+            margin-bottom: 1rem; padding: 0.75rem 1rem;
+            background: var(--card-bg); border-radius: 0.75rem; border: 1px solid var(--border-color);
+        }
+        .pool-block h2 { font-size: 0.85rem; margin: 0 0 0.5rem; color: var(--text-color); }
+        .pool-zone {
+            display: flex; flex-wrap: wrap; gap: var(--tier-gap, 4px); align-content: flex-start;
+            min-height: 80px; padding: 8px; border-radius: 0.5rem;
+            background: rgba(99,102,241,0.06); border: 1px dashed var(--border-color);
+        }
+        .pool-zone.drag-target { outline: 2px dashed var(--primary-color); background: rgba(99,102,241,0.1); }
+        .drop-hint {
+            border: 2px dashed var(--border-color); border-radius: 0.75rem; padding: 0.75rem;
+            text-align: center; color: var(--text-light); font-size: 0.85rem; margin-bottom: 0.75rem;
+        }
+        .drop-hint.dragover { border-color: var(--primary-color); background: rgba(99,102,241,0.08); }
+        /* 版面：與 collection-poster 佈局類似，用 CSS 變數統一封面邊長／間距 */
+        :root {
+            --tier-cell: 72px;
+            --tier-gap: 4px;
+            --tier-label-w: 64px;
+        }
+        .tier-layout-range {
+            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            margin-top: 0.45rem; font-size: 0.78rem;
+        }
+        .tier-layout-range label { min-width: 5.5rem; color: var(--text-light); font-weight: 600; }
+        .tier-layout-range input[type="range"] { flex: 1; min-width: 120px; max-width: 220px; }
+        .tier-layout-range .tier-layout-val { min-width: 3rem; color: var(--text-color); font-variant-numeric: tabular-nums; }
+        /* 匯出區：整張 Tier 圖背景（collection-poster 的 🌈 背景語意） */
+        #export-root {
+            border-radius: 0.75rem; padding: 0.75rem; overflow: auto;
+            transition: background 0.2s;
+        }
+        /** 排名圖主題：在 Tier 區即時預覽（與匯出 PNG 位置／樣式一致） */
+        .export-theme-preview-band {
+            display: none;
+            align-items: center;
+            min-height: 48px;
+            padding: 10px 14px;
+            margin: 0 0 8px;
+            border-radius: 8px;
+            font-weight: 800;
+            line-height: 1.35;
+            box-sizing: border-box;
+            word-break: break-word;
+            box-shadow: none;
+        }
+        /** 有框時僅框住文字寬度（與 PNG 標題外框一致）；無框時不加任何邊線 */
+        .export-theme-preview-title-inner {
+            display: inline-block;
+            max-width: 100%;
+            word-break: break-word;
+            vertical-align: middle;
+        }
+        .export-theme-preview-band.is-visible {
+            display: flex;
+        }
+        #exportThemePreviewBottom.export-theme-preview-band {
+            margin: 8px 0 0;
+        }
+        .tier-row {
+            display: flex; align-items: stretch;
+            min-height: calc(var(--tier-cell, 72px) + 12px);
+            margin-bottom: 4px; border-radius: 6px;
+            /* 讓插入線可落在列與列之間的縫隙（export 底色上），勿裁切 */
+            overflow: visible;
+            position: relative;
+            isolation: isolate;
+        }
+        .tier-label {
+            width: var(--tier-label-w, 64px); flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1rem;
+            line-height: 1.1; text-align: center; word-break: break-word; padding: 3px 2px;
+            white-space: pre-line; cursor: grab; user-select: none;
+            overflow: hidden;
+            min-height: 0;
+            position: relative;
+            z-index: 2;
+            border-radius: 6px 0 0 6px;
+        }
+        .tier-label:active { cursor: grabbing; }
+        .tier-zone {
+            flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
+            gap: var(--tier-gap, 4px); padding: 5px 6px;
+            min-height: var(--tier-cell, 72px);
+            background: rgba(0,0,0,0.18);
+            position: relative;
+            z-index: 2;
+            border-radius: 0 6px 6px 0;
+            overflow: hidden;
+        }
+        .tier-item {
+            width: var(--tier-cell, 72px); height: var(--tier-cell, 72px); border-radius: 6px; overflow: hidden; cursor: grab;
+            border: 2px solid rgba(255,255,255,0.22); flex-shrink: 0; position: relative;
+            box-sizing: border-box;
+        }
+        .tier-item .tier-cell-inner { border-radius: 4px; overflow: hidden; width: 100%; height: 100%; }
+        .tier-cover-img {
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .tier-item:active { cursor: grabbing; }
+        .tier-row.drag-target .tier-zone { outline: 2px dashed rgba(255,255,255,0.45); }
+        /** 整列拖曳中：明顯浮起 + 亮黃虛線邊框（與插入線同色） */
+        .tier-row.tier-row--moving {
+            opacity: 1;
+            z-index: 80;
+            position: relative;
+            transform: scale(1.015);
+            transform-origin: center center;
+            outline: 3px dashed #fff176;
+            outline-offset: 1px;
+            border-radius: 8px;
+            box-shadow:
+                0 12px 32px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.12),
+                0 0 20px rgba(255, 235, 59, 0.35);
+            filter: brightness(1.08) saturate(1.05);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        /** 拖曳時其他列略暗，凸顯正在移動的那一列 */
+        body.tier-row-drag-active #tierRows .tier-row:not(.tier-row--moving) {
+            opacity: 0.58;
+            transition: opacity 0.12s ease;
+        }
+        /** 插入點上下兩列略分開（縫隙加總約 18px，動畫較柔和） */
+        .tier-row.tier-row--drop-gap-prev {
+            margin-bottom: 9px !important;
+            transition: margin 0.16s ease;
+        }
+        .tier-row.tier-row--drop-before {
+            margin-top: 9px !important;
+            transition: margin 0.16s ease;
+        }
+        /** 游標將插入「此列之前」— 亮黃虛線畫在縫隙（背景層），不蓋住標籤／封面 */
+        .tier-row.tier-row--drop-before::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            top: -5px;
+            border: none;
+            border-top: 3px dashed rgba(255, 241, 118, 0.92);
+            box-shadow: 0 0 10px rgba(255, 241, 118, 0.35);
+            pointer-events: none;
+            z-index: 0;
+        }
+        /** 游標將插入「最後一列之後」— 底端亮黃虛線 + 底部讓出空間 */
+        .tier-row.tier-row--drop-after {
+            margin-bottom: 14px !important;
+            transition: margin 0.16s ease;
+        }
+        .tier-row.tier-row--drop-after::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            bottom: -5px;
+            border: none;
+            border-bottom: 3px dashed rgba(255, 241, 118, 0.92);
+            box-shadow: 0 0 10px rgba(255, 241, 118, 0.35);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body.tier-row-drag-active { cursor: grabbing !important; }
+        #tier-row-drag-hint {
+            display: none; position: fixed; z-index: 9999; left: 50%; bottom: 1.25rem; transform: translateX(-50%);
+            padding: 0.45rem 0.9rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+            background: rgba(30, 30, 46, 0.92); color: #fffde7; border: 1px dashed rgba(255, 241, 118, 0.85);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 12px rgba(255, 241, 118, 0.2); pointer-events: none; max-width: 92vw; text-align: center;
+        }
+        #tier-row-drag-hint strong { color: #fff176; }
+        body.tier-row-drag-active #tier-row-drag-hint { display: block; }
+        .tier-edit-btn {
+            position: absolute; top: 2px; right: 2px; z-index: 20;
+            width: 22px; height: 22px; padding: 0; border: none; border-radius: 50%;
+            background: rgba(0,0,0,0.65); color: #fff; font-size: 0.7rem; cursor: pointer;
+            line-height: 1; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+        }
+        .tier-edit-btn:hover { background: var(--primary-color); }
+        /* fallback 無圖封面 */
+        .tier-item-cover .cover-inner {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 4px; box-sizing: border-box; text-align: center;
+        }
+        .tier-item-cover .cover-emoji { font-size: 1.1rem; margin-bottom: 2px; }
+        .tier-item-cover .cover-mini-title { font-size: 0.55rem; font-weight: 700; line-height: 1.12; word-break: break-all; max-height: 2.3em; overflow: hidden; }
+        .tier-item-cover .cover-cap {
+            position: absolute; bottom: 0; left: 0; right: 0; font-size: 0.5rem;
+            padding: 2px 3px; background: rgba(0,0,0,0.55); color: #fff;
+            text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tier-item-cover.no-fallback-cap .cover-cap { display: none; }
+        /* popover */
+        #tile-popover {
+            display: none; position: fixed; z-index: 10000;
+            min-width: 260px; max-width: 92vw;
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 0.75rem; padding: 0.85rem 1rem; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        }
+        #tile-popover.open { display: block; }
+        #tile-popover h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+        #tile-popover .pop-actions { margin-top: 0.65rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        #tile-popover button { padding: 0.35rem 0.65rem; border-radius: 0.45rem; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.82rem; background: var(--bg-color); }
+        #tile-popover button.primary { background: var(--primary-color); color: #fff; border-color: transparent; }
+        #tier-row-popover {
+            display: none; position: fixed; z-index: 10001;
+            min-width: 280px; max-width: 92vw;
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 0.75rem; padding: 0.85rem 1rem; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        }
+        #tier-row-popover.open { display: block; }
+        #tier-row-popover h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
+        #tier-row-popover textarea { resize: vertical; min-height: 3.2rem; font-size: 0.82rem; }
+        #tier-row-popover .pop-actions { margin-top: 0.65rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+        #tier-row-popover button { padding: 0.35rem 0.65rem; border-radius: 0.45rem; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.82rem; background: var(--bg-color); }
+        #tier-row-popover button.primary { background: var(--primary-color); color: #fff; border-color: transparent; }
+        #tier-row-popover button.danger { border-color: #f87171; color: #b91c1c; }
+    
+        /* tier-maker.html：主內容區（取代 demo 的 .page） */
+        .tier-maker-v1-page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 0 1.5rem;
+        }
+
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -26,24 +516,1930 @@
             </ul>
         </div>
     </nav>
-
     <div class="container">
         <div class="page-header">
             <h1 class="page-title">🥇 桌遊排名圖</h1>
-            <p class="page-subtitle">Tier Maker 工具施工中；可先試<strong>離線示範</strong>（圖片／文字庫／模擬 D1／批次圖卡）。</p>
+            <p class="page-subtitle">製作可匯出的桌遊 Tier 排名圖（本機離線 + D1 搜尋；需後端以使用遊戲庫）。其他原型：<a href="demo-tier-maker-hub.html">示範總覽</a>。</p>
+        </div>
+        <div class="tier-maker-v1-page">
+        <p class="hint" style="margin-bottom:1rem;">膠囊同 <a href="edit-games-drag.html">edit-games-drag</a>（<code>tables/game_database?search=</code>）。<strong>Tier 整張背景</strong>與<strong>格子內封面顯示</strong>分開設定（對齊 <a href="collection-poster.html">collection-poster</a>）。點格子上的 <strong>⚙</strong> 只改該格；待分區不會匯出。</p>
+        <div class="ctrl-card add-game-global-card" style="margin-bottom:1rem;">
+            <div class="add-game-global-split">
+                <section class="add-game-global-left" aria-label="新增遊戲">
+                    <h3 class="add-game-col-head">新增遊戲（D1 搜尋／本機圖／假封面）</h3>
+                    <p class="hint">搜尋／新增至待分區、本機圖、無資料庫命中時的假封面樣式。</p>
+                    <div class="add-game-input">
+                        <div class="ac-wrap">
+                            <input type="text" id="add-manual-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
+                                oninput="onTierAcInput(this)"
+                                onfocus="onTierAcInput(this)"
+                                onblur="closeTierAc()"
+                                onkeydown="onTierAcKey(event)">
+                            <div class="add-game-dropdown" id="drop-tier-ac"></div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addGameFromInput()" style="font-size:0.85rem;">新增</button>
+                    </div>
+                    <div style="margin:0.65rem 0 0.5rem;">
+                        <label class="tier-file-btn"><input type="file" id="fileIn" accept="image/*" multiple>＋ 本機圖片</label>
+                    </div>
+                    <div class="form-row" style="margin-top:0.65rem;padding-top:0.5rem;border-top:1px dashed var(--border-color);">
+                        <label>無資料庫命中時 · 假封面（僅文字）</label>
+                        <div class="chip-row" id="fallbackStyleChips">
+                            <button type="button" class="chip active" data-style="blur">漸層</button>
+                            <button type="button" class="chip" data-style="rainbow">🌈</button>
+                            <button type="button" class="chip" data-style="dark">深</button>
+                            <button type="button" class="chip" data-style="light">淺</button>
+                            <button type="button" class="chip" data-style="bw">灰階</button>
+                        </div>
+                        <label style="font-size:0.78rem;margin-top:0.35rem;display:block;">
+                            <input type="checkbox" id="chkFallbackCap" checked> 假封面底部名稱條
+                        </label>
+                    </div>
+                </section>
+                <section class="add-game-global-mid" aria-label="新遊戲預設">
+                    <h3 class="add-game-col-head">新遊戲預設（全域）</h3>
+                    <p class="hint col-hint">新加入真實封面與上傳圖的<strong>全域</strong>顯示預設（與左欄新增共用）；覆寫已放置的每一格請用<strong>右欄</strong>按鈕。</p>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <label>封面圖顯示方式</label>
+                        <div class="chip-row" id="global-imgfit">
+                            <button type="button" class="chip active" data-v="contain-blur">保留＋模糊底</button>
+                            <button type="button" class="chip" data-v="contain-black">保留＋黑底</button>
+                            <button type="button" class="chip" data-v="contain-white">保留＋白底</button>
+                            <button type="button" class="chip" data-v="cover">填滿裁切</button>
+                        </div>
+                    </div>
+                    <p class="hint" style="font-size:0.72rem;margin:0.35rem 0 0;line-height:1.45;">「填滿裁切」預設<strong>置中</strong>；若要改為靠上／靠下／靠左／靠右，請點該格 <strong>⚙ 此格顯示方式</strong>，選「填滿裁切」後會出現對齊選項。</p>
+                    <div class="form-row" style="margin-top:0.65rem;margin-bottom:0;">
+                        <label>遊戲名稱（真實封面格）</label>
+                        <div class="chip-row" id="global-showname">
+                            <button type="button" class="chip active" data-v="always">一直顯示</button>
+                            <button type="button" class="chip" data-v="none">不顯示</button>
+                        </div>
+                    </div>
+                </section>
+                <section class="add-game-global-right add-game-preview-col" aria-label="即時預覽">
+                    <h3 class="add-game-col-head">即時預覽</h3>
+                    <p class="hint col-hint">同一張示範圖：原圖與套用中欄設定後的對照。</p>
+                    <div class="global-preview-row" style="margin-top:0.35rem;">
+                        <div>
+                            <div class="global-preview-label">原圖</div>
+                            <div id="globalPreviewOriginal" class="global-preview-original-box" title="同一張圖，不套用顯示模式"></div>
+                        </div>
+                        <div>
+                            <div class="global-preview-label">套用後</div>
+                            <div id="globalPreviewAppliedWrap" class="global-preview-applied-outer"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-outline" id="btnApplyGlobalAll" style="width:100%;margin-top:0.75rem;"
+                        title="將中欄全域預設套用到已放置的每一格真實封面">套用到全部遊戲封面圖</button>
+                </section>
+            </div>
         </div>
 
-        <section>
-            <div style="background:var(--card-bg); border-radius:1rem; padding:2rem; box-shadow:var(--shadow-md); text-align:center;">
-                <div style="font-size:2.8rem; margin-bottom:0.8rem;">🚧</div>
-                <h2 style="font-size:1.35rem; margin-bottom:0.6rem;">施工中</h2>
-                <p style="color:var(--text-light); margin-bottom:1.2rem;">
-                    正式版將串接 D1 遊戲庫與個人收藏；目前可先玩離線原型。
-                </p>
-                <a href="demo-tier-maker-hub.html" class="btn btn-primary" style="margin-right:0.5rem;">開啟離線 Tier 示範總覽</a>
-                <a href="demo-home.html" class="btn btn-secondary">首頁 Demo</a>
+        <div class="drop-hint" id="dropHint">本機圖片可拖到此處加入待分區</div>
+
+        <div class="pool-block">
+            <h2>待分區（不匯出 · 拖入 Tier）</h2>
+            <div class="pool-actions">
+                <button type="button" class="btn-outline" id="btnTierToPool" title="將 Tier 排名區內所有封面移回此處">Tier 全部移回待分區</button>
+                <button type="button" class="btn-outline danger" id="btnClearPool">清空待分區</button>
             </div>
-        </section>
+            <div class="pool-zone" id="poolZone"></div>
+        </div>
+
+        <h2 class="section-heading">Tier 排名預覽區</h2>
+        <p class="hint" style="margin:-0.25rem 0 0.5rem;font-size:0.78rem;">此區為匯出範圍預覽；勾選下方「排名圖主題」並輸入標題後，標題會即時出現在區域<strong>上／下方</strong>（與匯出 PNG 相同邏輯）。</p>
+        <div id="export-root">
+            <div id="exportThemePreviewTop" class="export-theme-preview-band" hidden aria-hidden="true"></div>
+            <div id="tierRows"></div>
+            <div id="exportThemePreviewBottom" class="export-theme-preview-band" hidden aria-hidden="true"></div>
+        </div>
+
+        <div class="ctrl-card tier-preset-export-card" style="margin-top:1rem;">
+            <div class="tier-preset-export-split">
+                <section class="tier-preset-export-left" aria-label="分級風格預設">
+                    <h3 class="tier-preset-col-head">分級風格預設</h3>
+                    <p class="hint">套用後只改<strong>名稱與階層數</strong>（S–F／優戊為 6 階；其餘預設為 <strong>5 階</strong>，最後一階為<strong>灰色</strong>）；已放入的遊戲會依<strong>列順序</strong>留在對應階層。<strong>點左側分級標籤</strong>可編輯／刪除；<strong>按住標籤拖曳</strong>可上下調整整列。</p>
+                    <div class="chip-row" id="tierPresetChips" style="flex-wrap:wrap;">
+                        <button type="button" class="chip active" data-preset="sf" title="西洋字母">S–F</button>
+                        <button type="button" class="chip" data-preset="youwu" title="甲乙丙丁戊">優–戊</button>
+                        <button type="button" class="chip" data-preset="awesome" title="中英分行">很喜歡–或許適合你</button>
+                        <button type="button" class="chip" data-preset="bopomofo" title="五個注音">ㄅ–ㄦ</button>
+                        <button type="button" class="chip" data-preset="hype" title="迷因風">夯–拉完了</button>
+                    </div>
+                    <div class="tier-layout-range">
+                        <label for="tierGapRange">格子間距</label>
+                        <input type="range" id="tierGapRange" min="0" max="24" value="4" step="1">
+                        <span class="tier-layout-val" id="tierGapVal">4px</span>
+                    </div>
+                    <div class="tier-layout-range">
+                        <label for="tierCellRange">封面邊長</label>
+                        <input type="range" id="tierCellRange" min="48" max="120" value="72" step="2">
+                        <span class="tier-layout-val" id="tierCellVal">72px</span>
+                    </div>
+                    <button type="button" class="btn-outline" id="btnAddTierRow" style="margin-top:0.55rem;">＋ 新增階層</button>
+                </section>
+                <section class="tier-preset-export-bg" aria-label="Tier 背景色">
+                    <h3 class="tier-preset-col-head">Tier 背景色</h3>
+                    <p class="hint">此為 <code>#export-root</code> 區塊底色（整張 Tier 圖），不是單一遊戲封面。</p>
+                    <div class="color-row" style="margin-bottom:0.5rem;">
+                        <input type="color" id="exportBgColor" value="#1e1e2e" title="自訂">
+                        <span style="font-size:0.78rem;color:var(--text-light);">自訂顏色</span>
+                    </div>
+                    <div class="chip-row" id="exportBgPresets" style="flex-wrap:wrap;">
+                        <button type="button" class="chip active" data-bg="#1e1e2e">深灰</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(145deg,#1a1a2e,#16213e)">深藍漸層</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(135deg,#312e81,#1e1b4b)">紫漸層</button>
+                        <button type="button" class="chip" data-bg="#0f172a">純黑藍</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(135deg,#0f766e,#134e4a)">墨綠漸層</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(145deg,#ea580c,#be185d)">夕陽橘粉</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(160deg,#1e3a5f,#0c1829)">夜海藍</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(135deg,#4c1d95,#5b21b6)">深紫</button>
+                        <button type="button" class="chip" data-bg="#14532d">森林綠</button>
+                        <button type="button" class="chip" data-bg="#f1f5f9">淺灰白</button>
+                        <button type="button" class="chip" data-bg="#09090b">純黑</button>
+                        <button type="button" class="chip" data-bg="linear-gradient(135deg,#0ea5e9,#0369a1)">天藍漸層</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="ctrl-card export-settings-card" style="margin-top:0.75rem;">
+            <div class="export-settings-split">
+                <section class="export-settings-export-col" aria-label="匯出設定">
+                    <h3 class="export-settings-col-head">匯出設定</h3>
+                    <p class="hint">解析度越高檔案越大；「新視窗」僅預覽不下載。</p>
+                    <div class="form-row">
+                        <label>解析度</label>
+                        <div class="chip-row" id="export-scale-chips">
+                            <button type="button" class="chip" data-scale="2">標準 (2×)</button>
+                            <button type="button" class="chip active" data-scale="3">高清 (3×)</button>
+                            <button type="button" class="chip" data-scale="5">超清 (5×)</button>
+                        </div>
+                    </div>
+                    <div class="pool-actions" style="margin-top:0.65rem;">
+                        <button type="button" class="btn-outline" id="btnExportPng">匯出 Tier PNG</button>
+                        <button type="button" class="btn-outline" id="btnExportWindow">匯出到新視窗</button>
+                    </div>
+                </section>
+                <section class="export-settings-theme-col" aria-label="排名圖主題">
+                    <h3 class="export-settings-col-head">排名圖主題</h3>
+                    <p class="hint">僅影響<strong>匯出 PNG／新視窗</strong>；可加上標題、調位置與對齊（預覽區上方／下方留白）。</p>
+                    <label class="sub-label" style="margin-top:0;"><input type="checkbox" id="exportThemeShow"> 匯出時顯示主題標題</label>
+                    <div class="form-row" style="margin-top:0.45rem;">
+                        <label for="exportThemeTitle">標題文字</label>
+                        <input type="text" id="exportThemeTitle" maxlength="80" placeholder="例如：我的 2025 桌遊 Tier" value="">
+                    </div>
+                    <div class="export-theme-style-grid">
+                        <div class="export-theme-style-cell">
+                            <label class="sub-label">標題位置</label>
+                            <div class="chip-row" id="exportThemePosition">
+                                <button type="button" class="chip active" data-pos="top">圖的上方</button>
+                                <button type="button" class="chip" data-pos="bottom">圖的下方</button>
+                            </div>
+                        </div>
+                        <div class="export-theme-style-cell">
+                            <label class="sub-label">水平對齊</label>
+                            <div class="chip-row" id="exportThemeAlign">
+                                <button type="button" class="chip" data-align="left">靠左</button>
+                                <button type="button" class="chip active" data-align="center">置中</button>
+                                <button type="button" class="chip" data-align="right">靠右</button>
+                            </div>
+                        </div>
+                        <div class="export-theme-style-cell">
+                            <label class="sub-label">字級</label>
+                            <div class="chip-row" id="exportThemeSize">
+                                <button type="button" class="chip" data-size="sm">小</button>
+                                <button type="button" class="chip active" data-size="md">中</button>
+                                <button type="button" class="chip" data-size="lg">大</button>
+                            </div>
+                        </div>
+                        <div class="export-theme-style-cell">
+                            <label class="sub-label">標題顏色</label>
+                            <div class="chip-row" id="exportThemeColor">
+                                <button type="button" class="chip active" data-color="auto">自動（依底色）</button>
+                                <button type="button" class="chip" data-color="light">淺色字</button>
+                                <button type="button" class="chip" data-color="dark">深色字</button>
+                            </div>
+                        </div>
+                        <div class="export-theme-style-cell">
+                            <label class="sub-label">標題外框</label>
+                            <div class="chip-row" id="exportThemeFrame">
+                                <button type="button" class="chip" data-frame="1">有框</button>
+                                <button type="button" class="chip active" data-frame="0">無框</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+        </div>
     </div>
+
+    <div id="tile-popover" aria-hidden="true">
+        <h4 id="pop-title">編輯此格</h4>
+        <div class="form-row" id="pop-display-name-wrap" style="display:none;">
+            <label>顯示名稱（僅此 Tier 預覽／匯出）</label>
+            <input type="text" id="pop-display-name" maxlength="120" placeholder="覆寫顯示名稱；留空則用資料庫／檔案來源名稱" style="width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;border-radius:0.35rem;border:1px solid var(--border-color);font-size:0.85rem;">
+            <p class="hint" style="margin:0.25rem 0 0;font-size:0.7rem;">不會寫回資料庫；本機圖預設為檔名。</p>
+        </div>
+        <div class="form-row">
+            <label>封面圖顯示方式</label>
+            <div class="chip-row" id="pop-imgfit"></div>
+        </div>
+        <div class="form-row" id="pop-cover-align-wrap" style="display:none;">
+            <label>裁切對齊（填滿裁切）</label>
+            <div class="chip-row" id="pop-cover-align"></div>
+        </div>
+        <div class="form-row">
+            <label>遊戲名稱</label>
+            <div class="chip-row" id="pop-showname"></div>
+        </div>
+        <div class="pop-actions">
+            <button type="button" class="primary" id="pop-save">套用此格</button>
+            <button type="button" id="pop-close">關閉</button>
+        </div>
+    </div>
+
+    <div id="tier-row-popover" aria-hidden="true">
+        <h4 id="tier-row-pop-title">編輯此階層</h4>
+        <div class="form-row">
+            <label>等級名稱（可換行；中英建議同一行用空白，例如「很喜歡 Awesome」）</label>
+            <textarea id="tier-row-pop-label" rows="4" maxlength="200"></textarea>
+        </div>
+        <div class="form-row">
+            <label>此階層顏色</label>
+            <div class="color-row">
+                <input type="color" id="tier-row-pop-color" value="#ff7eb9" title="分級色">
+            </div>
+        </div>
+        <div class="pop-actions">
+            <button type="button" class="primary" id="tier-row-pop-save">套用</button>
+            <button type="button" class="danger" id="tier-row-pop-delete">刪除此階層</button>
+            <button type="button" id="tier-row-pop-close">關閉</button>
+        </div>
+    </div>
+
+    <div id="tier-row-drag-hint" aria-live="polite">拖曳中：移到目標位置後放開 · <strong>亮黃虛線</strong>表示插入位置</div>
+
+    <script>
+
+        const TIER_GRAY = '#b0b0b0';
+        /** 六階預設底色（與舊版 S–F 相同順序）；五階時最後一階固定灰色 */
+        function paletteForTierCount(n) {
+            const six = ['#ff7eb9', '#ff9f7f', '#ffdf7f', '#b8ff7f', '#7fdfff', TIER_GRAY];
+            if (n <= 0) return [];
+            if (n === 6) return six.slice();
+            if (n === 5) return [six[0], six[1], six[2], six[3], TIER_GRAY];
+            if (n < 5) {
+                const out = [];
+                for (let i = 0; i < n - 1; i++) out.push(six[i % 6]);
+                out.push(TIER_GRAY);
+                return out;
+            }
+            const out = [];
+            for (let i = 0; i < n; i++) out.push(six[i % 6]);
+            return out;
+        }
+
+        const TIER_STYLE_PRESETS = {
+            sf: { labels: ['S', 'A', 'B', 'C', 'D', 'F'] },
+            youwu: { labels: ['優', '甲', '乙', '丙', '丁', '戊'] },
+            awesome: {
+                labels: [
+                    '很喜歡 Awesome',
+                    '喜歡 Great',
+                    '不錯 Good',
+                    '普通 Okay',
+                    '或許適合你 Not for me'
+                ]
+            },
+            bopomofo: { labels: ['ㄅ', 'ㄆ', 'ㄇ', 'ㄈ', 'ㄦ'] },
+            hype: { labels: ['夯', '頂級', '人上人', 'NPC', '拉完了'] }
+        };
+
+        function newTierId() {
+            return 't-' + Math.random().toString(36).slice(2, 12);
+        }
+
+        function tiersFromPresetLabels(labels) {
+            const pal = paletteForTierCount(labels.length);
+            return labels.map((label, i) => ({
+                id: newTierId(),
+                label,
+                color: pal[i]
+            }));
+        }
+
+        let TIERS = tiersFromPresetLabels(TIER_STYLE_PRESETS.sf.labels);
+        const EMOJIS = ['🎲','🃏','♟️','🎯','🧩','🎭','🏆','⚔️','🌍','🔮'];
+        const IMG_FIT_OPTS = [
+            { v: 'contain-blur', t: '保留＋模糊底' },
+            { v: 'contain-black', t: '保留＋黑底' },
+            { v: 'contain-white', t: '保留＋白底' },
+            { v: 'cover', t: '填滿裁切' }
+        ];
+        /** 填滿裁切：object-position 對齊（僅每格 ⚙ 可選） */
+        const COVER_ALIGN_OPTS = [
+            { v: 'center', t: '置中' },
+            { v: 'top', t: '靠上' },
+            { v: 'bottom', t: '靠下' },
+            { v: 'left', t: '靠左' },
+            { v: 'right', t: '靠右' }
+        ];
+
+        let activeFallbackStyle = 'blur';
+        let lastAcResults = [];
+        let coverSeq = 0;
+        let acDebounce = null;
+        let popoverTarget = null;
+
+        const rowsEl = document.getElementById('tierRows');
+        const poolZone = document.getElementById('poolZone');
+
+        function getGlobalImgFit() {
+            const a = document.querySelector('#global-imgfit .chip.active');
+            return a ? a.dataset.v : 'contain-blur';
+        }
+        function getGlobalShowName() {
+            const a = document.querySelector('#global-showname .chip.active');
+            return a ? a.dataset.v : 'always';
+        }
+
+        document.getElementById('fallbackStyleChips').addEventListener('click', e => {
+            const b = e.target.closest('.chip');
+            if (!b) return;
+            document.querySelectorAll('#fallbackStyleChips .chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            activeFallbackStyle = b.dataset.style;
+        });
+
+        document.getElementById('global-imgfit').addEventListener('click', e => {
+            const b = e.target.closest('.chip');
+            if (!b) return;
+            document.querySelectorAll('#global-imgfit .chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            renderGlobalPreview();
+        });
+        document.getElementById('global-showname').addEventListener('click', e => {
+            const b = e.target.closest('.chip');
+            if (!b) return;
+            document.querySelectorAll('#global-showname .chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            renderGlobalPreview();
+        });
+
+        const exportBgColorInput = document.getElementById('exportBgColor');
+        document.getElementById('exportBgPresets').addEventListener('click', e => {
+            const b = e.target.closest('.chip');
+            if (!b) return;
+            document.querySelectorAll('#exportBgPresets .chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            const bg = b.dataset.bg;
+            const root = document.getElementById('export-root');
+            if (bg.startsWith('linear-gradient')) {
+                root.style.background = bg;
+            } else {
+                root.style.background = bg;
+                exportBgColorInput.value = bg.length === 7 ? bg : '#1e1e2e';
+            }
+            syncExportThemePreview();
+        });
+        exportBgColorInput.addEventListener('input', () => {
+            document.querySelectorAll('#exportBgPresets .chip').forEach(x => x.classList.remove('active'));
+            document.getElementById('export-root').style.background = exportBgColorInput.value;
+            syncExportThemePreview();
+        });
+
+        function hashHue(str) {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+            return h % 360;
+        }
+
+        function coverBackground(style, name) {
+            const i = coverSeq++;
+            const hue = hashHue(name || 'game');
+            switch (style) {
+                case 'dark': return '#1e1b4b';
+                case 'light': return 'linear-gradient(135deg,#e0e7ff,#c7d2fe)';
+                case 'bw': return 'linear-gradient(135deg,#2d2d2d,#555)';
+                case 'rainbow':
+                    return 'conic-gradient(from 200deg at 50% 40%, #f472b6, #a78bfa, #60a5fa, #34d399, #fbbf24, #fb7185, #f472b6)';
+                default:
+                    return `linear-gradient(135deg, hsl(${(hue + i * 47) % 360}, 50%, 28%), hsl(${(hue + 120 + i * 47) % 360}, 58%, 32%))`;
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+
+        /** BGG 圖跨域：顯示用代理，較利於 html2canvas */
+        function proxiedImageUrl(url) {
+            if (!url || !url.startsWith('http')) return url;
+            return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=400&h=400&fit=inside&output=jpg`;
+        }
+
+        function nameCapHtml(name, show) {
+            if (show !== 'always') return '';
+            return `<div class="tier-name-cap" style="position:absolute;bottom:0;left:0;right:0;z-index:10;font-size:8px;line-height:1.12;padding:2px 3px;background:rgba(0,0,0,0.65);color:#fff;text-align:center;white-space:pre-line;overflow:hidden;max-height:3.4em;">${escapeHtml(name)}</div>`;
+        }
+
+        /** 格內顯示／匯出名稱：本機與 D1 皆以 data.name 為來源，可被 displayName 覆寫 */
+        function getTileDisplayName(el) {
+            if (!el.classList.contains('tier-item--real')) return el.dataset.name || '';
+            const o = el.dataset.displayName;
+            if (o != null && String(o).trim() !== '') return String(o).trim();
+            return el.dataset.name || '';
+        }
+
+        function fileNameWithoutExt(filename) {
+            const base = String(filename || '').replace(/^.*[\\/]/, '') || '本機圖片';
+            return base.replace(/\.[^.]+$/, '') || base;
+        }
+
+        function coverAlignToPercents(align) {
+            switch (align) {
+                case 'top': return [50, 0];
+                case 'bottom': return [50, 100];
+                case 'left': return [0, 50];
+                case 'right': return [100, 50];
+                case 'center':
+                default: return [50, 50];
+            }
+        }
+
+        function buildRealInner(imageUrl, name, imgFit, showName, coverAlign) {
+            const url = proxiedImageUrl(imageUrl) || imageUrl;
+            const cap = nameCapHtml(name, showName);
+            const inner = '<div class="tier-cell-inner" style="position:relative;width:100%;height:100%;">';
+            const ca = coverAlign && COVER_ALIGN_OPTS.some(o => o.v === coverAlign) ? coverAlign : 'center';
+            const [cx, cy] = coverAlignToPercents(ca);
+            if (imgFit === 'cover') {
+                return `${inner}<img class="tier-cover-img" src="${url}" alt="" draggable="false" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;object-position:${cx}% ${cy}%;display:block;" title="填滿裁切（${COVER_ALIGN_OPTS.find(o => o.v === ca)?.t || '置中'}）" onerror="this.closest('.tier-item').classList.add('img-error')">${cap}</div>`;
+            }
+            if (imgFit === 'contain-black') {
+                return `${inner}<div style="position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;"><img src="${url}" alt="" crossorigin="anonymous" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" onerror="this.style.display='none'"></div>${cap}</div>`;
+            }
+            if (imgFit === 'contain-white') {
+                return `${inner}<div style="position:absolute;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;"><img src="${url}" alt="" crossorigin="anonymous" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" onerror="this.style.display='none'"></div>${cap}</div>`;
+            }
+            /* contain-blur */
+            return `${inner}
+                <div style="position:absolute;inset:0;overflow:hidden;">
+                    <img src="${url}" alt="" crossorigin="anonymous" style="width:125%;height:125%;object-fit:cover;position:absolute;top:-12%;left:-12%;filter:blur(10px) brightness(0.55);" onerror="this.style.display='none'">
+                </div>
+                <img src="${url}" alt="" crossorigin="anonymous" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;z-index:1;display:block;" onerror="this.style.display='none'">
+                ${cap}
+            </div>`;
+        }
+
+        /** 全域預覽：與 Tier 格相同邏輯（示範非正方形盒圖） */
+        /** 原圖直接使用 BGG cf.geekdo-images.com；套用後仍走 buildRealInner（weserv 代理） */
+        const PREVIEW_SAMPLE_IMAGE_RAW = 'https://cf.geekdo-images.com/peUgu3A20LRmAXAMyDQfpQ__itemrep/img/6TWoEvnQQe_sO--6WLd_PQOnEQg=/fit-in/246x300/filters:strip_icc()/pic8621446.jpg';
+        const PREVIEW_SAMPLE_NAME = '卡卡頌';
+
+        function renderGlobalPreview() {
+            const origEl = document.getElementById('globalPreviewOriginal');
+            const appliedEl = document.getElementById('globalPreviewAppliedWrap');
+            if (!origEl || !appliedEl) return;
+            origEl.innerHTML = `<img src="${PREVIEW_SAMPLE_IMAGE_RAW}" alt="BGG 原圖（cf.geekdo-images.com）" loading="lazy" referrerpolicy="no-referrer">`;
+            const fit = getGlobalImgFit();
+            const sn = getGlobalShowName();
+            const pTile = appliedEl.querySelector('.tier-item--preview-global');
+            let align = 'center';
+            if (pTile && pTile.dataset.coverAlign) align = pTile.dataset.coverAlign;
+            const alignAttr = fit === 'cover' ? ` data-cover-align="${align}"` : '';
+            appliedEl.innerHTML =
+                `<div class="tier-item tier-item--real tier-item--preview-global"${alignAttr}>${buildRealInner(PREVIEW_SAMPLE_IMAGE_RAW, PREVIEW_SAMPLE_NAME, fit, sn, fit === 'cover' ? align : undefined)}</div>`;
+        }
+
+        function editBtnHtml() {
+            return '<button type="button" class="tier-edit-btn" title="此格顯示方式">⚙</button>';
+        }
+
+        function refreshRealTile(el) {
+            if (!el.classList.contains('tier-item--real')) return;
+            const name = getTileDisplayName(el);
+            const url = el.dataset.imageUrl || '';
+            const imgFit = el.dataset.imgFit || getGlobalImgFit();
+            const showName = el.dataset.showName || getGlobalShowName();
+            if (imgFit !== 'cover') {
+                delete el.dataset.coverAlign;
+            }
+            const cAlign = imgFit === 'cover' ? (el.dataset.coverAlign || 'center') : undefined;
+            el.innerHTML = buildRealInner(url, name, imgFit, showName, cAlign) + editBtnHtml();
+            el.querySelector('.tier-edit-btn').addEventListener('click', ev => { ev.stopPropagation(); openPopover(el, ev); });
+        }
+
+        function wireDraggable(wrap) {
+            wrap.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', wrap.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+        }
+
+        function makeDbGameTile(game) {
+            const id = 'ti-' + Math.random().toString(36).slice(2);
+            const wrap = document.createElement('div');
+            wrap.className = 'tier-item tier-item--real';
+            wrap.id = id;
+            wrap.draggable = true;
+            const displayName = game.name_zh || game.name_en || game.name_ja || '';
+            wrap.dataset.name = displayName;
+            wrap.dataset.imageUrl = game.image_url || '';
+            wrap.dataset.gameId = game.id || '';
+            wrap.dataset.imgFit = getGlobalImgFit();
+            wrap.dataset.showName = getGlobalShowName();
+            refreshRealTile(wrap);
+            wireDraggable(wrap);
+            return wrap;
+        }
+
+        function makeImageFileTile(blobUrl, fileLabel) {
+            const id = 'ti-' + Math.random().toString(36).slice(2);
+            const wrap = document.createElement('div');
+            wrap.className = 'tier-item tier-item--real';
+            wrap.id = id;
+            wrap.draggable = true;
+            const disp = fileLabel != null ? fileNameWithoutExt(fileLabel) : '本機圖片';
+            wrap.dataset.name = disp;
+            delete wrap.dataset.displayName;
+            wrap.dataset.imageUrl = blobUrl;
+            wrap.dataset.imgFit = getGlobalImgFit();
+            wrap.dataset.showName = getGlobalShowName();
+            refreshRealTile(wrap);
+            wireDraggable(wrap);
+            return wrap;
+        }
+
+        function makeFallbackCoverTile(name) {
+            const id = 'ti-' + Math.random().toString(36).slice(2);
+            const wrap = document.createElement('div');
+            wrap.className = 'tier-item tier-item-cover';
+            wrap.id = id;
+            wrap.draggable = true;
+            wrap.dataset.name = name;
+            const bg = coverBackground(activeFallbackStyle, name);
+            const emoji = EMOJIS[hashHue(name) % EMOJIS.length];
+            const bottom = document.getElementById('chkFallbackCap').checked;
+            if (!bottom) wrap.classList.add('no-fallback-cap');
+            const isLight = activeFallbackStyle === 'light';
+            const tc = isLight ? '#0f172a' : 'rgba(255,255,255,0.95)';
+            wrap.innerHTML = `
+                <div class="cover-inner" style="background:${bg};${bottom ? 'height:calc(100% - 12px);' : ''}">
+                    <span class="cover-emoji">${emoji}</span>
+                    <span class="cover-mini-title" style="color:${tc};">${escapeHtml(name)}</span>
+                </div>
+                ${bottom ? `<div class="cover-cap">${escapeHtml(name)}</div>` : ''}
+                ${editBtnHtml()}`;
+            wrap.querySelector('.tier-edit-btn').addEventListener('click', ev => { ev.stopPropagation(); openPopover(wrap, ev); });
+            wireDraggable(wrap);
+            return wrap;
+        }
+
+        // ── D1 搜尋（edit-games-drag 同款）──
+        function onTierAcInput(inputEl) {
+            const drop = document.getElementById('drop-tier-ac');
+            const raw = inputEl.value.trim();
+            if (!raw) {
+                drop.classList.remove('open');
+                lastAcResults = [];
+                if (acDebounce) { clearTimeout(acDebounce); acDebounce = null; }
+                return;
+            }
+            if (raw.length < 2) {
+                drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">至少輸入 2 個字</div>';
+                drop.classList.add('open');
+                return;
+            }
+            if (acDebounce) clearTimeout(acDebounce);
+            acDebounce = setTimeout(() => {
+                acDebounce = null;
+                const query = inputEl.value.trim();
+                if (!query || query.length < 2) { drop.classList.remove('open'); return; }
+                fetch(`tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (inputEl.value.trim() !== query) return;
+                        lastAcResults = data.data || [];
+                        if (lastAcResults.length === 0) {
+                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">找不到符合項目；可按「新增」建立假封面</div>';
+                            drop.classList.add('open');
+                            return;
+                        }
+                        drop.innerHTML = lastAcResults.map((g, i) => {
+                            const displayName = g.name_zh || g.name_en || g.name_ja || '';
+                            const subName = (g.name_zh && g.name_en ? g.name_en : '') || '';
+                            const imgHtml = g.image_url
+                                ? `<img src="${proxiedImageUrl(g.image_url)}" alt="" loading="lazy">`
+                                : `<div style="width:28px;height:28px;background:var(--border-color);border-radius:0.3rem;display:flex;align-items:center;justify-content:center;">🎲</div>`;
+                            return `<div class="add-game-ac-item" data-idx="${i}">
+                                ${imgHtml}
+                                <div class="ac-name"><div class="ac-name-zh">${escapeHtml(displayName)}</div>${subName ? `<div class="ac-name-en">${escapeHtml(subName)}</div>` : ''}</div>
+                                <span class="add-game-ac-badge">D1</span></div>`;
+                        }).join('');
+                        drop.querySelectorAll('.add-game-ac-item[data-idx]').forEach(el => {
+                            el.addEventListener('mousedown', ev => {
+                                ev.preventDefault();
+                                const idx = parseInt(el.dataset.idx, 10);
+                                if (Number.isNaN(idx)) return;
+                                const g = lastAcResults[idx];
+                                if (!g) return;
+                                document.getElementById('add-manual-input').value = g.name_zh || g.name_en || g.name_ja || '';
+                                drop.classList.remove('open');
+                            });
+                        });
+                        drop.classList.add('open');
+                    })
+                    .catch(() => {
+                        if (inputEl.value.trim() === query) {
+                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">搜尋失敗（需在本站環境或已登入 API）</div>';
+                            drop.classList.add('open');
+                        }
+                    });
+            }, 280);
+        }
+
+        function closeTierAc() {
+            setTimeout(() => document.getElementById('drop-tier-ac').classList.remove('open'), 200);
+        }
+
+        function onTierAcKey(e) {
+            const drop = document.getElementById('drop-tier-ac');
+            const items = drop.querySelectorAll('.add-game-ac-item');
+            let idx = [...items].findIndex(el => el.classList.contains('highlighted'));
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (idx < items.length - 1) {
+                    if (idx >= 0) items[idx].classList.remove('highlighted');
+                    items[idx + 1].classList.add('highlighted');
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (idx > 0) {
+                    items[idx].classList.remove('highlighted');
+                    items[idx - 1].classList.add('highlighted');
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (idx >= 0 && items[idx]) {
+                    const zh = items[idx].querySelector('.ac-name-zh');
+                    if (zh) document.getElementById('add-manual-input').value = zh.textContent.trim();
+                }
+                addGameFromInput();
+            } else if (e.key === 'Escape') {
+                drop.classList.remove('open');
+            }
+        }
+
+        document.addEventListener('mousedown', e => {
+            if (!e.target.closest('.ac-wrap')) {
+                document.getElementById('drop-tier-ac').classList.remove('open');
+            }
+            if (!e.target.closest('#tile-popover') && !e.target.closest('.tier-edit-btn')) {
+                closePopover();
+            }
+            if (!e.target.closest('#tier-row-popover') && !e.target.closest('.tier-label')) {
+                closeTierRowPopover();
+            }
+        });
+
+        function findGameByInputName(name) {
+            const n = name.trim().toLowerCase();
+            return lastAcResults.find(g => {
+                const a = (g.name_zh || '').toLowerCase();
+                const b = (g.name_en || '').toLowerCase();
+                const c = (g.name_ja || '').toLowerCase();
+                return a === n || b === n || c === n;
+            });
+        }
+
+        function addGameFromInput() {
+            const input = document.getElementById('add-manual-input');
+            const name = (input.value || '').trim();
+            if (!name) {
+                alert('請輸入遊戲名稱');
+                return;
+            }
+            const hit = findGameByInputName(name);
+            if (hit && (hit.image_url || hit.name_zh)) {
+                poolZone.appendChild(makeDbGameTile(hit));
+            } else {
+                poolZone.appendChild(makeFallbackCoverTile(name));
+            }
+            input.value = '';
+            lastAcResults = [];
+        }
+
+        function addImagesFromFiles(files) {
+            for (const f of files) {
+                if (!f.type.startsWith('image/')) continue;
+                poolZone.appendChild(makeImageFileTile(URL.createObjectURL(f), f.name));
+            }
+        }
+
+        document.getElementById('fileIn').addEventListener('change', e => {
+            addImagesFromFiles(e.target.files);
+            e.target.value = '';
+        });
+
+        function toColorInputHex(c) {
+            if (!c || typeof c !== 'string') return '#888888';
+            const h = c.trim();
+            if (/^#[0-9a-fA-F]{3}$/.test(h)) {
+                return '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+            }
+            if (/^#[0-9a-fA-F]{6}$/.test(h)) return h;
+            return '#888888';
+        }
+
+        function hexToRgb(hex) {
+            const h = toColorInputHex(hex).slice(1);
+            return {
+                r: parseInt(h.slice(0, 2), 16),
+                g: parseInt(h.slice(2, 4), 16),
+                b: parseInt(h.slice(4, 6), 16)
+            };
+        }
+
+        function textColorForBg(hex) {
+            try {
+                const { r, g, b } = hexToRgb(hex);
+                const y = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                return y > 0.55 ? '#111111' : '#ffffff';
+            } catch {
+                return '#111111';
+            }
+        }
+
+        function applyTierLabelStyle(labelEl, bg) {
+            const hx = toColorInputHex(bg);
+            labelEl.style.background = hx;
+            const tc = textColorForBg(hx);
+            labelEl.style.color = tc;
+            labelEl.style.textShadow = tc === '#ffffff'
+                ? '0 1px 2px rgba(0,0,0,0.45)'
+                : '0 1px 0 rgba(255,255,255,0.35)';
+        }
+
+        /** 右側放封面區：帶一點該分級色，與左欄呼應 */
+        function applyTierZoneStyle(zoneEl, tierColor) {
+            const { r, g, b } = hexToRgb(tierColor);
+            zoneEl.style.background = `linear-gradient(180deg, rgba(${r},${g},${b},0.24) 0%, rgba(0,0,0,0.2) 100%)`;
+        }
+
+        function fitTierLabelFont(labelEl) {
+            if (!labelEl) return;
+            labelEl.style.fontSize = '';
+            let fs = parseFloat(getComputedStyle(labelEl).fontSize) || 14;
+            const maxFs = 18;
+            const minFs = 5;
+            fs = Math.min(maxFs, fs);
+            labelEl.style.fontSize = fs + 'px';
+            const maxH = labelEl.clientHeight;
+            if (maxH < 8) return;
+            let guard = 0;
+            while (labelEl.scrollHeight > maxH + 1 && fs > minFs && guard++ < 48) {
+                fs -= 0.45;
+                labelEl.style.fontSize = fs + 'px';
+            }
+        }
+
+        function syncTierRowFromData(tierId) {
+            const t = TIERS.find(x => x.id === tierId);
+            if (!t) return;
+            const row = rowsEl.querySelector('.tier-row[data-tier-id="' + tierId + '"]');
+            if (!row) return;
+            const labelEl = row.querySelector('.tier-label');
+            if (labelEl) {
+                labelEl.textContent = t.label;
+                applyTierLabelStyle(labelEl, t.color);
+                requestAnimationFrame(() => fitTierLabelFont(labelEl));
+            }
+            const zone = row.querySelector('.tier-zone');
+            if (zone) applyTierZoneStyle(zone, t.color);
+        }
+
+        function syncTiersOrderFromDom() {
+            const ids = [...rowsEl.querySelectorAll('.tier-row')].map(r => r.dataset.tierId);
+            const map = new Map(TIERS.map(x => [x.id, x]));
+            TIERS = ids.map(id => map.get(id)).filter(Boolean);
+        }
+
+        /**
+         * 依游標 Y 與各列「中線」決定插入點：游標在某列「上半」→ 插到該列之前（可落在兩列之間，例如 C、D 之間放 F → S…C, F, D…）。
+         * 不依賴 HTML5 drag（與子元素 draggable 衝突多），改用 pointer capture。
+         */
+        function placeTierRowAtPointer(fromRow, clientX, clientY) {
+            const others = [...rowsEl.querySelectorAll('.tier-row')].filter(r => r !== fromRow);
+            let insertBeforeNode = null;
+            for (const r of others) {
+                const rect = r.getBoundingClientRect();
+                const mid = rect.top + rect.height / 2;
+                if (clientY < mid) {
+                    insertBeforeNode = r;
+                    break;
+                }
+            }
+            if (insertBeforeNode) {
+                rowsEl.insertBefore(fromRow, insertBeforeNode);
+            } else {
+                rowsEl.appendChild(fromRow);
+            }
+            syncTiersOrderFromDom();
+        }
+
+        function clearTierRowDropIndicators() {
+            rowsEl.querySelectorAll('.tier-row--drop-before, .tier-row--drop-after, .tier-row--drop-gap-prev').forEach(el => {
+                el.classList.remove('tier-row--drop-before', 'tier-row--drop-after', 'tier-row--drop-gap-prev');
+            });
+        }
+
+        function prevTierRow(el) {
+            let p = el.previousElementSibling;
+            while (p && !p.classList.contains('tier-row')) p = p.previousElementSibling;
+            return p;
+        }
+
+        /** 拖曳移動時即時標示「鬆手後會插入」的列（與 placeTierRowAtPointer 邏輯一致） */
+        function updateTierRowDropIndicator(clientY, fromRow) {
+            clearTierRowDropIndicators();
+            const others = [...rowsEl.querySelectorAll('.tier-row')].filter(r => r !== fromRow);
+            let insertBeforeNode = null;
+            for (const r of others) {
+                const rect = r.getBoundingClientRect();
+                const mid = rect.top + rect.height / 2;
+                if (clientY < mid) {
+                    insertBeforeNode = r;
+                    break;
+                }
+            }
+            if (insertBeforeNode) {
+                insertBeforeNode.classList.add('tier-row--drop-before');
+                let prev = prevTierRow(insertBeforeNode);
+                if (prev && prev !== fromRow) {
+                    prev.classList.add('tier-row--drop-gap-prev');
+                } else if (prev === fromRow) {
+                    const prev2 = prevTierRow(fromRow);
+                    if (prev2) prev2.classList.add('tier-row--drop-gap-prev');
+                }
+            } else if (others.length) {
+                others[others.length - 1].classList.add('tier-row--drop-after');
+            }
+        }
+
+        function wireTierLabelAndZone(row, t) {
+            const labelEl = row.querySelector('.tier-label');
+            const zone = row.querySelector('.tier-zone');
+            const DRAG_THRESH = 10;
+            const CLICK_THRESH = 14;
+            let ptrSession = null;
+
+            labelEl.addEventListener('pointerdown', e => {
+                if (e.button !== 0) return;
+                ptrSession = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    rowEl: row,
+                    tierId: t.id,
+                    pointerId: e.pointerId,
+                    draggingRow: false
+                };
+                try { labelEl.setPointerCapture(e.pointerId); } catch (_) {}
+            });
+
+            labelEl.addEventListener('pointermove', e => {
+                if (!ptrSession || ptrSession.tierId !== t.id) return;
+                const dist = Math.abs(e.clientX - ptrSession.x) + Math.abs(e.clientY - ptrSession.y);
+                if (dist > DRAG_THRESH) {
+                    if (!ptrSession.draggingRow) {
+                        ptrSession.draggingRow = true;
+                        row.classList.add('tier-row--moving');
+                        document.body.classList.add('tier-row-drag-active');
+                    }
+                    updateTierRowDropIndicator(e.clientY, row);
+                }
+            });
+
+            function endLabelPointer(e) {
+                if (!ptrSession || ptrSession.tierId !== t.id) return;
+                const sess = ptrSession;
+                ptrSession = null;
+                try { labelEl.releasePointerCapture(e.pointerId); } catch (_) {}
+                row.classList.remove('tier-row--moving');
+                document.body.classList.remove('tier-row-drag-active');
+                clearTierRowDropIndicators();
+
+                if (sess.draggingRow) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    placeTierRowAtPointer(sess.rowEl, e.clientX, e.clientY);
+                    return;
+                }
+                const d = Math.abs(e.clientX - sess.x) + Math.abs(e.clientY - sess.y);
+                if (d > CLICK_THRESH) return;
+                e.preventDefault();
+                e.stopPropagation();
+                openTierRowPopover(sess.tierId, e);
+            }
+
+            labelEl.addEventListener('pointerup', endLabelPointer);
+            labelEl.addEventListener('pointercancel', endLabelPointer);
+
+            /** 遊戲封面磚仍用 HTML5 拖放：整列監聽即可涵蓋左欄＋右側格區 */
+            function onRowDragOver(e) {
+                const types = e.dataTransfer.types ? [...e.dataTransfer.types] : [];
+                // 本機「純檔案」拖曳才讓出（給上方 dropHint 等）；勿與封面磚混淆：
+                // Chrome 拖曳含 <img> 的 .tier-item 時 types 常同時含 Files + text/plain，
+                // 若僅判斷 Files 會 return 而不 preventDefault，導致無法 drop 進 Tier。
+                const hasPlain = types.includes('text/plain');
+                if (types.includes('Files') && !hasPlain) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                row.classList.add('drag-target');
+            }
+            function onRowDragLeave(e) {
+                const rel = e.relatedTarget;
+                if (rel && row.contains(rel)) return;
+                row.classList.remove('drag-target');
+            }
+            function onRowDrop(e) {
+                e.preventDefault();
+                row.classList.remove('drag-target');
+                const plain = e.dataTransfer.getData('text/plain') || '';
+                if (plain.startsWith('__TIER_ROW__:')) return;
+                const node = document.getElementById(plain);
+                if (node) zone.appendChild(node);
+            }
+            function onRowDragEnter(e) {
+                const types = e.dataTransfer.types ? [...e.dataTransfer.types] : [];
+                const hasPlain = types.includes('text/plain');
+                if (types.includes('Files') && !hasPlain) return;
+                e.preventDefault();
+            }
+            row.addEventListener('dragenter', onRowDragEnter);
+            row.addEventListener('dragover', onRowDragOver);
+            row.addEventListener('dragleave', onRowDragLeave);
+            row.addEventListener('drop', onRowDrop);
+        }
+
+        function buildRows() {
+            let buckets = [...rowsEl.querySelectorAll('.tier-row')].map(r => [...r.querySelectorAll('.tier-zone .tier-item')]);
+            if (buckets.length > TIERS.length) {
+                buckets.slice(TIERS.length).flat().forEach(n => poolZone.appendChild(n));
+                buckets = buckets.slice(0, TIERS.length);
+            }
+            while (buckets.length < TIERS.length) buckets.push([]);
+            rowsEl.innerHTML = '';
+            TIERS.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'tier-row';
+                row.dataset.tierId = t.id;
+                const labelEl = document.createElement('div');
+                labelEl.className = 'tier-label tier-drag-handle';
+                labelEl.title = '點一下編輯名稱／顏色；按住左欄拖曳可上下移動整列（對準兩列之間鬆手）';
+                labelEl.textContent = t.label;
+                applyTierLabelStyle(labelEl, t.color);
+                const zone = document.createElement('div');
+                zone.className = 'tier-zone';
+                zone.dataset.drop = '1';
+                applyTierZoneStyle(zone, t.color);
+                row.appendChild(labelEl);
+                row.appendChild(zone);
+                wireTierLabelAndZone(row, t);
+                rowsEl.appendChild(row);
+            });
+            const zones = [...rowsEl.querySelectorAll('.tier-zone')];
+            if (buckets.length > zones.length) {
+                buckets.slice(zones.length).flat().forEach(n => poolZone.appendChild(n));
+            }
+            const n = Math.min(buckets.length, zones.length);
+            for (let idx = 0; idx < n; idx++) {
+                buckets[idx].forEach(node => zones[idx].appendChild(node));
+            }
+            requestAnimationFrame(() => {
+                rowsEl.querySelectorAll('.tier-label').forEach(fitTierLabelFont);
+                requestAnimationFrame(() => {
+                    rowsEl.querySelectorAll('.tier-label').forEach(fitTierLabelFont);
+                });
+            });
+        }
+
+        function applyTierStylePreset(presetKey) {
+            const p = TIER_STYLE_PRESETS[presetKey];
+            if (!p) return;
+            TIERS = tiersFromPresetLabels(p.labels);
+            buildRows();
+            document.querySelectorAll('#tierPresetChips .chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.preset === presetKey);
+            });
+        }
+
+        let tierRowPopoverTargetId = null;
+        function closeTierRowPopover() {
+            const pop = document.getElementById('tier-row-popover');
+            if (pop) pop.classList.remove('open');
+            tierRowPopoverTargetId = null;
+        }
+
+        function openTierRowPopover(tierId, ev) {
+            const t = TIERS.find(x => x.id === tierId);
+            if (!t) return;
+            tierRowPopoverTargetId = tierId;
+            const pop = document.getElementById('tier-row-popover');
+            document.getElementById('tier-row-pop-label').value = t.label;
+            document.getElementById('tier-row-pop-color').value = toColorInputHex(t.color);
+            pop.classList.add('open');
+            if (ev && ev.clientX) {
+                pop.style.left = Math.min(window.innerWidth - 300, Math.max(8, ev.clientX - 140)) + 'px';
+                pop.style.top = Math.min(window.innerHeight - 300, Math.max(8, ev.clientY + 4)) + 'px';
+            } else {
+                pop.style.left = '100px';
+                pop.style.top = (window.innerHeight / 2 - 140) + 'px';
+            }
+            pop.setAttribute('aria-hidden', 'false');
+        }
+
+        function deleteTierById(tierId) {
+            if (TIERS.length <= 1) {
+                alert('至少保留一個階層。');
+                return;
+            }
+            const row = rowsEl.querySelector('.tier-row[data-tier-id="' + tierId + '"]');
+            if (!row) return;
+            row.querySelectorAll('.tier-zone .tier-item').forEach(n => poolZone.appendChild(n));
+            TIERS = TIERS.filter(x => x.id !== tierId);
+            buildRows();
+            closeTierRowPopover();
+        }
+
+        function addTierRow() {
+            const nextLen = TIERS.length + 1;
+            const pal = paletteForTierCount(nextLen);
+            TIERS.push({
+                id: newTierId(),
+                label: '新',
+                color: pal[nextLen - 1]
+            });
+            buildRows();
+        }
+
+        poolZone.addEventListener('dragover', e => { e.preventDefault(); poolZone.classList.add('drag-target'); });
+        poolZone.addEventListener('dragleave', () => poolZone.classList.remove('drag-target'));
+        poolZone.addEventListener('drop', e => {
+            e.preventDefault();
+            poolZone.classList.remove('drag-target');
+            const plain = e.dataTransfer.getData('text/plain') || '';
+            if (plain.startsWith('__TIER_ROW__:')) return;
+            const node = document.getElementById(plain);
+            if (node) poolZone.appendChild(node);
+        });
+
+        const dropHint = document.getElementById('dropHint');
+        ['dragenter','dragover'].forEach(ev => {
+            dropHint.addEventListener(ev, e => { e.preventDefault(); dropHint.classList.add('dragover'); });
+        });
+        dropHint.addEventListener('dragleave', () => dropHint.classList.remove('dragover'));
+        dropHint.addEventListener('drop', e => {
+            e.preventDefault();
+            dropHint.classList.remove('dragover');
+            addImagesFromFiles(e.dataTransfer.files);
+        });
+
+        function getExportScale() {
+            const a = document.querySelector('#export-scale-chips .chip.active');
+            /** 標準＝舊版高清 2×、高清＝舊版超清 3×、超清＝再提高 5× */
+            return Math.min(5, Math.max(2, parseInt(a?.dataset.scale || '3', 10) || 3));
+        }
+
+        document.getElementById('export-scale-chips').addEventListener('click', e => {
+            const b = e.target.closest('.chip');
+            if (!b) return;
+            document.querySelectorAll('#export-scale-chips .chip').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+        });
+
+        function getExportThemeConfig() {
+            const show = document.getElementById('exportThemeShow')?.checked;
+            const text = (document.getElementById('exportThemeTitle')?.value || '').trim();
+            const posEl = document.querySelector('#exportThemePosition .chip.active');
+            const alignEl = document.querySelector('#exportThemeAlign .chip.active');
+            const sizeEl = document.querySelector('#exportThemeSize .chip.active');
+            const colorEl = document.querySelector('#exportThemeColor .chip.active');
+            const position = posEl?.dataset.pos === 'bottom' ? 'bottom' : 'top';
+            const align = ['left', 'right', 'center'].includes(alignEl?.dataset.align) ? alignEl.dataset.align : 'center';
+            const sizeKey = sizeEl?.dataset.size || 'md';
+            const fontPx = { sm: 16, md: 22, lg: 30 }[sizeKey] || 22;
+            const colorMode = ['light', 'dark', 'auto'].includes(colorEl?.dataset.color) ? colorEl.dataset.color : 'auto';
+            const frameEl = document.querySelector('#exportThemeFrame .chip.active');
+            const framed = frameEl?.dataset.frame === '1';
+            const active = !!(show && text);
+            const bandPx = active ? Math.max(48, fontPx + 28) : 0;
+            return { active, text, position, align, fontPx, colorMode, bandPx, framed };
+        }
+
+        function exportThemeBandFillHex() {
+            const v = document.getElementById('exportBgColor')?.value || '';
+            return /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#1e1e2e';
+        }
+
+        function exportThemeTitleColorHex(mode, bandHex) {
+            if (mode === 'light') return '#f8fafc';
+            if (mode === 'dark') return '#0f172a';
+            return textColorForBg(bandHex);
+        }
+
+        /** Tier 排名預覽區：即時顯示排名圖主題標題（與匯出 PNG 邏輯一致） */
+        function syncExportThemePreview() {
+            const top = document.getElementById('exportThemePreviewTop');
+            const bottom = document.getElementById('exportThemePreviewBottom');
+            if (!top || !bottom) return;
+            const cfg = getExportThemeConfig();
+            const bandHex = exportThemeBandFillHex();
+            const color = exportThemeTitleColorHex(cfg.colorMode, bandHex);
+            const sizeKey = document.querySelector('#exportThemeSize .chip.active')?.dataset.size || 'md';
+            const fontRem = { sm: '0.98rem', md: '1.2rem', lg: '1.55rem' }[sizeKey] || '1.2rem';
+
+            [top, bottom].forEach(el => {
+                el.classList.remove('is-visible');
+                el.hidden = true;
+                el.setAttribute('aria-hidden', 'true');
+                el.textContent = '';
+                el.style.boxShadow = '';
+            });
+
+            if (!cfg.active || !cfg.text) return;
+
+            const bar = cfg.position === 'top' ? top : bottom;
+            const inner = document.createElement('span');
+            inner.className = 'export-theme-preview-title-inner';
+            inner.textContent = cfg.text;
+            bar.appendChild(inner);
+            bar.style.background = bandHex;
+            bar.style.color = color;
+            bar.style.fontSize = fontRem;
+            if (cfg.align === 'left') {
+                bar.style.justifyContent = 'flex-start';
+                bar.style.textAlign = 'left';
+            } else if (cfg.align === 'right') {
+                bar.style.justifyContent = 'flex-end';
+                bar.style.textAlign = 'right';
+            } else {
+                bar.style.justifyContent = 'center';
+                bar.style.textAlign = 'center';
+            }
+            inner.style.color = 'inherit';
+            inner.style.fontSize = 'inherit';
+            inner.style.fontWeight = 'inherit';
+            if (cfg.framed) {
+                inner.style.boxShadow = 'inset 0 0 0 2px rgba(255,255,255,0.42), inset 0 0 0 1px rgba(0,0,0,0.14)';
+                inner.style.borderRadius = '8px';
+                inner.style.padding = '0.2em 0.45em';
+            } else {
+                inner.style.boxShadow = 'none';
+                inner.style.padding = '0';
+                inner.style.borderRadius = '';
+            }
+            bar.classList.add('is-visible');
+            bar.hidden = false;
+            bar.setAttribute('aria-hidden', 'false');
+        }
+
+        function wireExportThemeChips(containerId, attr) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            el.addEventListener('click', e => {
+                const b = e.target.closest('.chip');
+                if (!b || !b.dataset[attr]) return;
+                el.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+                b.classList.add('active');
+                syncExportThemePreview();
+            });
+        }
+        wireExportThemeChips('exportThemePosition', 'pos');
+        wireExportThemeChips('exportThemeAlign', 'align');
+        wireExportThemeChips('exportThemeSize', 'size');
+        wireExportThemeChips('exportThemeColor', 'color');
+        wireExportThemeChips('exportThemeFrame', 'frame');
+
+        document.getElementById('exportThemeShow')?.addEventListener('change', syncExportThemePreview);
+        document.getElementById('exportThemeTitle')?.addEventListener('input', syncExportThemePreview);
+
+        /** 將 Tier 區內所有磚移回待分區（不清空待分區既有內容） */
+        document.getElementById('btnTierToPool').addEventListener('click', () => {
+            rowsEl.querySelectorAll('.tier-zone .tier-item').forEach(node => {
+                poolZone.appendChild(node);
+            });
+        });
+
+        document.getElementById('btnClearPool').addEventListener('click', () => {
+            poolZone.innerHTML = '';
+        });
+
+        document.getElementById('btnApplyGlobalAll').addEventListener('click', () => {
+            const fit = getGlobalImgFit();
+            const sn = getGlobalShowName();
+            document.querySelectorAll('.tier-item--real').forEach(el => {
+                el.dataset.imgFit = fit;
+                el.dataset.showName = sn;
+                delete el.dataset.coverAlign;
+                refreshRealTile(el);
+            });
+            document.querySelectorAll('.tier-item-cover').forEach(el => {
+                /* 假封面僅同步「名稱條」概念：用 checkbox */
+                const cap = document.getElementById('chkFallbackCap').checked;
+                el.classList.toggle('no-fallback-cap', !cap);
+            });
+            alert('已將全域「封面顯示／名稱」套用到所有<strong>真實封面</strong>格。假封面請用下方勾選調整後手動重建。');
+        });
+
+        function openPopover(el, ev) {
+            popoverTarget = el;
+            const pop = document.getElementById('tile-popover');
+            const isReal = el.classList.contains('tier-item--real');
+            const title = (isReal ? getTileDisplayName(el) : (el.dataset.name || '')) || '此格';
+            document.getElementById('pop-title').textContent = '編輯：' + title;
+
+            const dnWrap = document.getElementById('pop-display-name-wrap');
+            const dnInp = document.getElementById('pop-display-name');
+            if (isReal) {
+                dnWrap.style.display = 'block';
+                dnInp.value = el.dataset.displayName != null && String(el.dataset.displayName).trim() !== ''
+                    ? el.dataset.displayName
+                    : (el.dataset.name || '');
+            } else {
+                dnWrap.style.display = 'none';
+            }
+
+            const curFit = el.dataset.imgFit || getGlobalImgFit();
+            const curSn = isReal
+                ? (el.dataset.showName || getGlobalShowName())
+                : (el.classList.contains('no-fallback-cap') ? 'none' : 'always');
+            const curAlign = isReal ? (el.dataset.coverAlign || 'center') : 'center';
+
+            document.getElementById('pop-imgfit').innerHTML = isReal
+                ? IMG_FIT_OPTS.map(o =>
+                    `<button type="button" class="chip${curFit === o.v ? ' active' : ''}" data-v="${o.v}">${o.t}</button>`).join('')
+                : '<span style="font-size:0.8rem;color:var(--text-light);">假封面無 BGG 圖，無「顯示方式」</span>';
+            const alignWrap = document.getElementById('pop-cover-align-wrap');
+            const alignRow = document.getElementById('pop-cover-align');
+            if (isReal) {
+                alignRow.innerHTML = COVER_ALIGN_OPTS.map(o =>
+                    `<button type="button" class="chip${curAlign === o.v ? ' active' : ''}" data-v="${o.v}">${o.t}</button>`).join('');
+                alignWrap.style.display = curFit === 'cover' ? 'block' : 'none';
+            } else {
+                alignRow.innerHTML = '';
+                alignWrap.style.display = 'none';
+            }
+            document.getElementById('pop-showname').innerHTML = `
+                <button type="button" class="chip${curSn === 'always' ? ' active' : ''}" data-v="always">一直顯示</button>
+                <button type="button" class="chip${curSn === 'none' ? ' active' : ''}" data-v="none">不顯示</button>`;
+
+            document.getElementById('pop-imgfit').onclick = e => {
+                const b = e.target.closest('.chip');
+                if (!b || !isReal) return;
+                document.querySelectorAll('#pop-imgfit .chip').forEach(c => c.classList.remove('active'));
+                b.classList.add('active');
+                if (b.dataset.v === 'cover') {
+                    alignWrap.style.display = 'block';
+                    if (!document.querySelector('#pop-cover-align .chip.active')) {
+                        document.querySelectorAll('#pop-cover-align .chip').forEach(c => c.classList.remove('active'));
+                        const c0 = document.querySelector('#pop-cover-align .chip[data-v="center"]');
+                        if (c0) c0.classList.add('active');
+                    }
+                } else {
+                    alignWrap.style.display = 'none';
+                }
+            };
+            document.getElementById('pop-cover-align').onclick = e => {
+                const b = e.target.closest('.chip');
+                if (!b || !isReal) return;
+                document.querySelectorAll('#pop-cover-align .chip').forEach(c => c.classList.remove('active'));
+                b.classList.add('active');
+            };
+            document.getElementById('pop-showname').onclick = e => {
+                const b = e.target.closest('.chip');
+                if (!b) return;
+                document.querySelectorAll('#pop-showname .chip').forEach(c => c.classList.remove('active'));
+                b.classList.add('active');
+            };
+
+            pop.classList.add('open');
+            if (ev && ev.clientX) {
+                pop.style.left = Math.min(window.innerWidth - 290, Math.max(8, ev.clientX - 130)) + 'px';
+                pop.style.top = Math.min(window.innerHeight - 320, Math.max(8, ev.clientY + 6)) + 'px';
+            } else {
+                pop.style.left = '120px';
+                pop.style.top = (window.innerHeight / 2 - 120) + 'px';
+            }
+            pop.setAttribute('aria-hidden', 'false');
+        }
+
+        function closePopover() {
+            document.getElementById('tile-popover').classList.remove('open');
+            popoverTarget = null;
+        }
+
+        document.getElementById('pop-close').addEventListener('click', closePopover);
+        document.getElementById('pop-save').addEventListener('click', () => {
+            if (!popoverTarget) return;
+            const el = popoverTarget;
+            const fitBtn = document.querySelector('#pop-imgfit .chip.active');
+            const snBtn = document.querySelector('#pop-showname .chip.active');
+            if (el.classList.contains('tier-item--real')) {
+                const dn = document.getElementById('pop-display-name').value.trim();
+                if (dn) el.dataset.displayName = dn;
+                else delete el.dataset.displayName;
+                if (fitBtn) el.dataset.imgFit = fitBtn.dataset.v;
+                const alignBtn = document.querySelector('#pop-cover-align .chip.active');
+                if (fitBtn && fitBtn.dataset.v === 'cover' && alignBtn) {
+                    el.dataset.coverAlign = alignBtn.dataset.v;
+                } else {
+                    delete el.dataset.coverAlign;
+                }
+                if (snBtn) el.dataset.showName = snBtn.dataset.v;
+                refreshRealTile(el);
+            } else if (el.classList.contains('tier-item-cover')) {
+                if (snBtn) {
+                    const show = snBtn.dataset.v === 'always';
+                    el.classList.toggle('no-fallback-cap', !show);
+                    const inner = el.querySelector('.cover-inner');
+                    if (inner) inner.style.height = show ? 'calc(100% - 12px)' : '100%';
+                }
+            }
+            closePopover();
+        });
+
+        /** ── 匯出 PNG：與 collection-poster「下載 PNG」相同思路，封面用 Canvas 自繪（避免 html2canvas 破壞 object-fit）── */
+        function tierRoundRectPath(ctx, x, y, w, h, r) {
+            if (r <= 0) {
+                ctx.beginPath();
+                ctx.rect(x, y, w, h);
+                return;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.arcTo(x + w, y, x + w, y + r, r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+            ctx.lineTo(x + r, y + h);
+            ctx.arcTo(x, y + h, x, y + h - r, r);
+            ctx.lineTo(x, y + r);
+            ctx.arcTo(x, y, x + r, y, r);
+            ctx.closePath();
+        }
+
+        function drawImageCover(ctx, img, x, y, w, h) {
+            const imgW = img.width, imgH = img.height;
+            const scale = Math.max(w / imgW, h / imgH);
+            const sw = w / scale, sh = h / scale;
+            const sx = (imgW - sw) / 2, sy = (imgH - sh) / 2;
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+        }
+
+        /** 對齊 object-position（%）的 cover 裁切 */
+        function drawImageCoverAligned(ctx, img, x, y, w, h, px, py) {
+            const imgW = img.width, imgH = img.height;
+            const scale = Math.max(w / imgW, h / imgH);
+            const sw = w / scale, sh = h / scale;
+            let sx = (imgW - sw) * (px / 100);
+            let sy = (imgH - sh) * (py / 100);
+            sx = Math.max(0, Math.min(imgW - sw, sx));
+            sy = Math.max(0, Math.min(imgH - sh, sy));
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+        }
+
+        function drawImageContain(ctx, img, x, y, w, h) {
+            const imgW = img.width, imgH = img.height;
+            const scale = Math.min(w / imgW, h / imgH);
+            const dw = imgW * scale, dh = imgH * scale;
+            const dx = x + (w - dw) / 2, dy = y + (h - dh) / 2;
+            ctx.drawImage(img, dx, dy, dw, dh);
+        }
+
+        /** 與 collection-poster 相同：contain-blur（縮放模糊底 + 前景 contain） */
+        function drawImageContainBlur(ctx, img, x, y, w, h) {
+            const steps = 5;
+            const minSize = 8;
+            const tmpA = document.createElement('canvas');
+            tmpA.width = w; tmpA.height = h;
+            const ctxA = tmpA.getContext('2d');
+            const coverScale = Math.max(w / img.width, h / img.height) * 1.15;
+            const cw = img.width * coverScale, ch = img.height * coverScale;
+            ctxA.drawImage(img, (w - cw) / 2, (h - ch) / 2, cw, ch);
+            const tmpB = document.createElement('canvas');
+            tmpB.width = w; tmpB.height = h;
+            const ctxB = tmpB.getContext('2d');
+            let src = tmpA;
+            for (let s = 0; s < steps; s++) {
+                const tiny = document.createElement('canvas');
+                tiny.width = minSize; tiny.height = minSize;
+                tiny.getContext('2d').drawImage(src, 0, 0, minSize, minSize);
+                ctxB.clearRect(0, 0, w, h);
+                ctxB.drawImage(tiny, 0, 0, w, h);
+                ctxA.clearRect(0, 0, w, h);
+                ctxA.drawImage(tmpB, 0, 0);
+                src = tmpA;
+            }
+            ctxA.fillStyle = 'rgba(0,0,0,0.42)';
+            ctxA.fillRect(0, 0, w, h);
+            ctx.drawImage(tmpA, x, y);
+            const fScale = Math.min(w / img.width, h / img.height);
+            const fw = img.width * fScale, fh = img.height * fScale;
+            ctx.drawImage(img, x + (w - fw) / 2, y + (h - fh) / 2, fw, fh);
+        }
+
+        async function loadImageBitmapForTierExport(rawUrl) {
+            if (!rawUrl) return null;
+            try {
+                const proxy = rawUrl.startsWith('http') ? proxiedImageUrl(rawUrl) : rawUrl;
+                const r = await fetch(proxy, { signal: AbortSignal.timeout(20000) });
+                if (!r.ok) throw new Error('fetch failed');
+                const blob = await r.blob();
+                return await createImageBitmap(blob);
+            } catch (e) {
+                try {
+                    const r2 = await fetch(rawUrl, { signal: AbortSignal.timeout(8000) });
+                    if (!r2.ok) return null;
+                    return await createImageBitmap(await r2.blob());
+                } catch (e2) {
+                    return null;
+                }
+            }
+        }
+
+        function rectRelativeToExportRoot(root, el) {
+            const rr = root.getBoundingClientRect();
+            const er = el.getBoundingClientRect();
+            return {
+                x: er.left - rr.left + root.scrollLeft,
+                y: er.top - rr.top + root.scrollTop,
+                w: er.width,
+                h: er.height
+            };
+        }
+
+        /** 預覽區內已渲染的標題帶高度（與匯出 band 對齊用，避免 tier 座標重複位移） */
+        function getExportThemePreviewHeights() {
+            const top = document.getElementById('exportThemePreviewTop');
+            const bottom = document.getElementById('exportThemePreviewBottom');
+            const topH = (top && top.classList.contains('is-visible') && !top.hidden)
+                ? top.getBoundingClientRect().height : 0;
+            const bottomH = (bottom && bottom.classList.contains('is-visible') && !bottom.hidden)
+                ? bottom.getBoundingClientRect().height : 0;
+            return { topH, bottomH };
+        }
+
+        async function captureExportBackgroundOnly(root, scale) {
+            if (typeof html2canvas !== 'function') return null;
+            const w = Math.max(1, root.scrollWidth);
+            const h = Math.max(1, root.scrollHeight);
+            const ghost = document.createElement('div');
+            const cs = getComputedStyle(root);
+            ghost.style.position = 'fixed';
+            ghost.style.left = '-99999px';
+            ghost.style.top = '0';
+            ghost.style.width = w + 'px';
+            ghost.style.height = h + 'px';
+            ghost.style.boxSizing = cs.boxSizing || 'border-box';
+            ghost.style.background = root.style.background || cs.background;
+            ghost.style.borderRadius = cs.borderRadius;
+            ghost.style.padding = cs.padding;
+            document.body.appendChild(ghost);
+            try {
+                return await html2canvas(ghost, {
+                    scale,
+                    width: w,
+                    height: h,
+                    backgroundColor: null,
+                    logging: false,
+                    useCORS: true
+                });
+            } finally {
+                document.body.removeChild(ghost);
+            }
+        }
+
+        function drawFallbackTierItem(ctx, x, y, w, h, name, style, showCap) {
+            const n = name || '';
+            const hue = hashHue(n || 'x');
+            const i = Math.abs(n.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 997;
+            const roundFill = () => {
+                tierRoundRectPath(ctx, x, y, w, h, 6);
+                ctx.fill();
+            };
+            if (style === 'dark') {
+                ctx.fillStyle = '#1e1b4b';
+                roundFill();
+            } else if (style === 'light') {
+                const g = ctx.createLinearGradient(x, y, x + w, y + h);
+                g.addColorStop(0, '#e0e7ff');
+                g.addColorStop(1, '#c7d2fe');
+                ctx.fillStyle = g;
+                roundFill();
+            } else if (style === 'bw') {
+                const g = ctx.createLinearGradient(x, y, x + w, y + h);
+                g.addColorStop(0, '#2d2d2d');
+                g.addColorStop(1, '#555');
+                ctx.fillStyle = g;
+                roundFill();
+            } else if (style === 'rainbow') {
+                const g = ctx.createLinearGradient(x, y, x + w, y + h);
+                g.addColorStop(0, '#f472b6');
+                g.addColorStop(0.25, '#a78bfa');
+                g.addColorStop(0.5, '#60a5fa');
+                g.addColorStop(0.75, '#34d399');
+                g.addColorStop(1, '#fbbf24');
+                ctx.fillStyle = g;
+                roundFill();
+            } else {
+                const g = ctx.createLinearGradient(x, y, x + w, y + h);
+                g.addColorStop(0, `hsl(${(hue + i * 47) % 360}, 50%, 28%)`);
+                g.addColorStop(1, `hsl(${(hue + 120 + i * 47) % 360}, 58%, 32%)`);
+                ctx.fillStyle = g;
+                roundFill();
+            }
+            const em = EMOJIS[hashHue(n) % EMOJIS.length];
+            ctx.font = `${Math.max(12, Math.floor(w * 0.36))}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = style === 'light' ? '#0f172a' : 'rgba(255,255,255,0.95)';
+            ctx.fillText(em, x + w / 2, y + h * 0.42);
+            if (showCap && n) {
+                ctx.fillStyle = 'rgba(0,0,0,0.72)';
+                ctx.fillRect(x, y + h - 12, w, 12);
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.font = `600 ${Math.max(6, w * 0.09)}px system-ui, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                let t = n.slice(0, 18);
+                while (ctx.measureText(t).width > w - 6 && t.length > 3) t = t.slice(0, -1);
+                if (t.length < n.length) t += '…';
+                ctx.fillText(t, x + w / 2, y + h - 6);
+            }
+        }
+
+        async function renderTierListToCanvas() {
+            const root = document.getElementById('export-root');
+            if (typeof html2canvas !== 'function') {
+                alert('html2canvas 未載入');
+                return null;
+            }
+            const scale = getExportScale();
+            const theme = getExportThemeConfig();
+            const w = Math.max(1, root.scrollWidth);
+            const h = Math.max(1, root.scrollHeight);
+            const band = theme.bandPx;
+            const { topH, bottomH } = getExportThemePreviewHeights();
+            // 預覽已插入標題列時，tier 的 rect 已從該列下方起算，不可再整段加 band（否則會與 canvas 上方重畫的標題帶重疊、看起來「彈到外層」）
+            const yOff = theme.active && theme.position === 'top' ? (band - topH) : 0;
+            const bandHex = exportThemeBandFillHex();
+
+            let hCanvas = h + (theme.active ? band : 0);
+            if (theme.active && theme.position === 'top') hCanvas -= topH;
+            if (theme.active && theme.position === 'bottom') hCanvas -= bottomH;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(hCanvas * scale);
+            const ctx = canvas.getContext('2d');
+            const bg = await captureExportBackgroundOnly(root, scale);
+            if (bg) {
+                if (band > 0 && theme.position === 'top') {
+                    ctx.fillStyle = bandHex;
+                    ctx.fillRect(0, 0, canvas.width, band * scale);
+                    const srcY = topH * scale;
+                    const bodyH = Math.max(0, h - topH) * scale;
+                    ctx.drawImage(bg, 0, srcY, bg.width, bodyH, 0, band * scale, bg.width, bodyH);
+                } else if (band > 0 && theme.position === 'bottom') {
+                    const bodyH = Math.max(0, h - bottomH) * scale;
+                    ctx.drawImage(bg, 0, 0, bg.width, bodyH, 0, 0, bg.width, bodyH);
+                    ctx.fillStyle = bandHex;
+                    ctx.fillRect(0, bodyH, canvas.width, band * scale);
+                } else {
+                    ctx.drawImage(bg, 0, 0);
+                }
+            } else {
+                const hex = document.getElementById('exportBgColor')?.value || '#1e1e2e';
+                const fill = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#1e1e2e';
+                if (band > 0 && theme.position === 'top') {
+                    ctx.fillStyle = bandHex;
+                    ctx.fillRect(0, 0, canvas.width, band * scale);
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(0, band * scale, canvas.width, Math.max(0, h - topH) * scale);
+                } else if (band > 0 && theme.position === 'bottom') {
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(0, 0, canvas.width, Math.max(0, h - bottomH) * scale);
+                    ctx.fillStyle = bandHex;
+                    ctx.fillRect(0, Math.max(0, h - bottomH) * scale, canvas.width, band * scale);
+                } else {
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            ctx.save();
+            ctx.scale(scale, scale);
+
+            const realItems = [...root.querySelectorAll('.tier-item--real')];
+            const urls = [...new Set(realItems.map(el => el.dataset.imageUrl).filter(Boolean))];
+            const bitmapMap = new Map();
+            await Promise.all(urls.map(async u => {
+                const bmp = await loadImageBitmapForTierExport(u);
+                bitmapMap.set(u, bmp);
+            }));
+
+            const rows = [...root.querySelectorAll('#tierRows .tier-row')];
+            for (const row of rows) {
+                const tierId = row.dataset.tierId;
+                const t = TIERS.find(x => x.id === tierId);
+                const labelEl = row.querySelector('.tier-label');
+                const zone = row.querySelector('.tier-zone');
+                if (!t || !labelEl || !zone) continue;
+
+                const lrRaw = rectRelativeToExportRoot(root, labelEl);
+                const lr = { ...lrRaw, y: lrRaw.y + yOff };
+                const hx = toColorInputHex(t.color);
+                ctx.fillStyle = hx;
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(lr.x, lr.y, lr.w, lr.h, [6, 0, 0, 6]);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(lr.x, lr.y, lr.w, lr.h);
+                }
+
+                const tc = textColorForBg(hx);
+                ctx.fillStyle = tc;
+                const csL = getComputedStyle(labelEl);
+                ctx.font = csL.font || `800 ${parseFloat(csL.fontSize) || 14}px ${csL.fontFamily || 'sans-serif'}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const lines = (labelEl.textContent || '').split(/\r?\n/);
+                const fs = parseFloat(csL.fontSize) || 14;
+                const lineH = fs * 1.15;
+                const totalH = lines.length * lineH;
+                let startY = lr.y + lr.h / 2 - totalH / 2 + lineH / 2;
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, lr.x + lr.w / 2, startY + i * lineH);
+                });
+
+                const zrRaw = rectRelativeToExportRoot(root, zone);
+                const zr = { ...zrRaw, y: zrRaw.y + yOff };
+                const { r: tr, g: tg, b: tb } = hexToRgb(t.color);
+                const grd = ctx.createLinearGradient(zr.x, zr.y, zr.x, zr.y + zr.h);
+                grd.addColorStop(0, `rgba(${tr},${tg},${tb},0.24)`);
+                grd.addColorStop(1, 'rgba(0,0,0,0.2)');
+                ctx.fillStyle = grd;
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(zr.x, zr.y, zr.w, zr.h, [0, 6, 6, 0]);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(zr.x, zr.y, zr.w, zr.h);
+                }
+
+                const items = [...zone.querySelectorAll('.tier-item')];
+                const borderPx = 2;
+                for (const el of items) {
+                    const irRaw = rectRelativeToExportRoot(root, el);
+                    const ir = { ...irRaw, y: irRaw.y + yOff };
+                    const inner = {
+                        x: ir.x + borderPx,
+                        y: ir.y + borderPx,
+                        w: Math.max(0, ir.w - 2 * borderPx),
+                        h: Math.max(0, ir.h - 2 * borderPx)
+                    };
+
+                    ctx.save();
+                    tierRoundRectPath(ctx, ir.x, ir.y, ir.w, ir.h, 6);
+                    ctx.clip();
+
+                    if (el.classList.contains('tier-item--real')) {
+                        const raw = el.dataset.imageUrl || '';
+                        const bmp = bitmapMap.get(raw);
+                        const imgFit = el.dataset.imgFit || getGlobalImgFit();
+                        const showName = el.dataset.showName || getGlobalShowName();
+                        const align = el.dataset.coverAlign || 'center';
+                        const [px, py] = coverAlignToPercents(align);
+                        const name = getTileDisplayName(el);
+                        const err = el.classList.contains('img-error');
+
+                        if (bmp && inner.w > 0 && inner.h > 0 && !err) {
+                            if (imgFit === 'cover') {
+                                drawImageCoverAligned(ctx, bmp, inner.x, inner.y, inner.w, inner.h, px, py);
+                            } else if (imgFit === 'contain-black') {
+                                ctx.fillStyle = '#000';
+                                ctx.fillRect(inner.x, inner.y, inner.w, inner.h);
+                                drawImageContain(ctx, bmp, inner.x, inner.y, inner.w, inner.h);
+                            } else if (imgFit === 'contain-white') {
+                                ctx.fillStyle = '#fff';
+                                ctx.fillRect(inner.x, inner.y, inner.w, inner.h);
+                                drawImageContain(ctx, bmp, inner.x, inner.y, inner.w, inner.h);
+                            } else {
+                                drawImageContainBlur(ctx, bmp, inner.x, inner.y, inner.w, inner.h);
+                            }
+                        } else {
+                            ctx.fillStyle = '#2a2a3a';
+                            ctx.fillRect(inner.x, inner.y, inner.w, inner.h);
+                        }
+
+                        if (showName === 'always' && name) {
+                            const capH = Math.max(14, ir.h * 0.18);
+                            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+                            ctx.fillRect(inner.x, inner.y + inner.h - capH, inner.w, capH);
+                            ctx.fillStyle = '#fff';
+                            ctx.font = `600 ${Math.max(7, inner.w * 0.095)}px system-ui, 'Inter', sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            let txt = name;
+                            while (ctx.measureText(txt).width > inner.w - 6 && txt.length > 3) txt = txt.slice(0, -1);
+                            if (txt !== name) txt += '…';
+                            ctx.fillText(txt, inner.x + inner.w / 2, inner.y + inner.h - capH / 2);
+                        }
+                    } else {
+                        drawFallbackTierItem(ctx, inner.x, inner.y, inner.w, inner.h, el.dataset.name || '', activeFallbackStyle, !el.classList.contains('no-fallback-cap'));
+                    }
+
+                    ctx.restore();
+
+                    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+                    ctx.lineWidth = borderPx;
+                    tierRoundRectPath(ctx, ir.x + borderPx / 2, ir.y + borderPx / 2, ir.w - borderPx, ir.h - borderPx, 5);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+
+            if (theme.active && theme.text) {
+                const col = exportThemeTitleColorHex(theme.colorMode, bandHex);
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = col;
+                const fs = theme.fontPx * scale;
+                ctx.font = `800 ${fs}px system-ui, "Segoe UI", "Inter", sans-serif`;
+                ctx.textBaseline = 'middle';
+                if (theme.align === 'left') ctx.textAlign = 'left';
+                else if (theme.align === 'right') ctx.textAlign = 'right';
+                else ctx.textAlign = 'center';
+                const pad = 16 * scale;
+                const maxW = canvas.width - 2 * pad;
+                let line = theme.text;
+                while (ctx.measureText(line).width > maxW && line.length > 2) {
+                    line = line.slice(0, -1);
+                }
+                if (line !== theme.text && line.length > 0) line += '…';
+                let tx = canvas.width / 2;
+                if (theme.align === 'left') tx = pad;
+                if (theme.align === 'right') tx = canvas.width - pad;
+                const bPx = band * scale;
+                // 底部主題：scrollHeight 含預覽列，匯出時已裁掉 bottomH，標題帶接在內容底緣
+                const bodyHDev = (theme.position === 'bottom' ? Math.max(0, h - bottomH) : h) * scale;
+                const ty = theme.position === 'top'
+                    ? bPx / 2
+                    : bodyHDev + bPx / 2;
+
+                const m = ctx.measureText(line);
+                const tw = m.width;
+                const ascent = m.actualBoundingBoxAscent ?? fs * 0.72;
+                const descent = m.actualBoundingBoxDescent ?? fs * 0.24;
+                const boxPad = 10 * scale;
+                const r = 8 * scale;
+                let leftX;
+                let rightX;
+                if (theme.align === 'left') {
+                    leftX = pad;
+                    rightX = pad + tw;
+                } else if (theme.align === 'right') {
+                    rightX = canvas.width - pad;
+                    leftX = rightX - tw;
+                } else {
+                    leftX = tx - tw / 2;
+                    rightX = tx + tw / 2;
+                }
+                const topText = ty - ascent;
+                const boxW = rightX - leftX + 2 * boxPad;
+                const boxH = ascent + descent + 2 * boxPad;
+                const boxX = leftX - boxPad;
+
+                if (theme.framed) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.48)';
+                    ctx.lineWidth = Math.max(1.5, 2 * scale);
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.beginPath();
+                        ctx.roundRect(boxX, topText - boxPad, boxW, boxH, r);
+                        ctx.stroke();
+                    } else {
+                        tierRoundRectPath(ctx, boxX, topText - boxPad, boxW, boxH, r);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.fillText(line, tx, ty);
+                ctx.restore();
+            }
+
+            return canvas;
+        }
+
+        async function exportTierCanvas() {
+            return renderTierListToCanvas();
+        }
+
+        document.getElementById('btnExportPng').addEventListener('click', async () => {
+            try {
+                const canvas = await exportTierCanvas();
+                if (!canvas) return;
+                const a = document.createElement('a');
+                a.download = 'tier-list.png';
+                a.href = canvas.toDataURL('image/png');
+                a.click();
+            } catch (err) {
+                console.error(err);
+                alert('匯出失敗：' + (err.message || err));
+            }
+        });
+
+        document.getElementById('btnExportWindow').addEventListener('click', async () => {
+            try {
+                const canvas = await exportTierCanvas();
+                if (!canvas) return;
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        alert('無法產生圖片');
+                        return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const w = window.open('', '_blank');
+                    if (!w) {
+                        URL.revokeObjectURL(url);
+                        alert('請允許彈出視窗，或改用「匯出 Tier PNG」下載。');
+                        return;
+                    }
+                    w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Tier 匯出預覽</title></head><body style="margin:0;background:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:12px;box-sizing:border-box;"><img src="' + url + '" alt="Tier" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></body></html>');
+                    w.document.close();
+                }, 'image/png');
+            } catch (err) {
+                console.error(err);
+                alert('匯出失敗：' + (err.message || err));
+            }
+        });
+
+        document.getElementById('tierPresetChips').addEventListener('click', e => {
+            const b = e.target.closest('.chip[data-preset]');
+            if (!b) return;
+            applyTierStylePreset(b.dataset.preset);
+        });
+
+        document.getElementById('btnAddTierRow').addEventListener('click', () => {
+            addTierRow();
+        });
+
+        document.getElementById('tier-row-pop-close').addEventListener('click', closeTierRowPopover);
+        document.getElementById('tier-row-pop-save').addEventListener('click', () => {
+            if (!tierRowPopoverTargetId) return;
+            const t = TIERS.find(x => x.id === tierRowPopoverTargetId);
+            if (!t) return;
+            t.label = document.getElementById('tier-row-pop-label').value;
+            t.color = document.getElementById('tier-row-pop-color').value;
+            syncTierRowFromData(tierRowPopoverTargetId);
+            closeTierRowPopover();
+        });
+        document.getElementById('tier-row-pop-delete').addEventListener('click', () => {
+            if (tierRowPopoverTargetId) deleteTierById(tierRowPopoverTargetId);
+        });
+
+        function applyTierLayoutVars() {
+            const gapEl = document.getElementById('tierGapRange');
+            const cellEl = document.getElementById('tierCellRange');
+            const gap = gapEl ? Math.max(0, parseInt(gapEl.value, 10) || 0) : 4;
+            const cell = cellEl ? Math.max(40, parseInt(cellEl.value, 10) || 72) : 72;
+            document.documentElement.style.setProperty('--tier-gap', gap + 'px');
+            document.documentElement.style.setProperty('--tier-cell', cell + 'px');
+            const lw = Math.max(52, Math.min(100, Math.round(cell * 0.9)));
+            document.documentElement.style.setProperty('--tier-label-w', lw + 'px');
+            const gv = document.getElementById('tierGapVal');
+            const cv = document.getElementById('tierCellVal');
+            if (gv) gv.textContent = gap + 'px';
+            if (cv) cv.textContent = cell + 'px';
+            requestAnimationFrame(() => {
+                document.querySelectorAll('#tierRows .tier-label').forEach(fitTierLabelFont);
+            });
+        }
+
+        document.getElementById('tierGapRange').addEventListener('input', applyTierLayoutVars);
+        document.getElementById('tierCellRange').addEventListener('input', applyTierLayoutVars);
+
+        buildRows();
+        applyTierLayoutVars();
+        document.getElementById('export-root').style.background = '#1e1e2e';
+        renderGlobalPreview();
+        syncExportThemePreview();
+    
+    </script>
 </body>
 </html>
