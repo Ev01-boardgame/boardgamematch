@@ -59,7 +59,7 @@
         .add-game-preview-col .global-preview-row {
             justify-content: flex-start;
         }
-        /* 分級風格預設（左）＋ Tier 背景色（右）：兩欄同層標題 */
+        /* 分級風格預設（左）＋ 排名圖背景色（右）：兩欄同層標題 */
         .tier-preset-export-split {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -602,7 +602,7 @@
             <div class="pool-zone" id="poolZone"></div>
         </div>
 
-        <h2 class="section-heading">Tier 排名預覽區</h2>
+        <h2 class="section-heading">排名圖預覽區</h2>
         <div id="export-root">
             <div id="exportThemePreviewTop" class="export-theme-preview-band" hidden aria-hidden="true"></div>
             <div id="tierRows"></div>
@@ -633,8 +633,8 @@
                     </div>
                     <button type="button" class="btn-outline" id="btnAddTierRow" style="margin-top:0.55rem;">＋ 新增階層</button>
                 </section>
-                <section class="tier-preset-export-bg" aria-label="Tier 背景色">
-                    <h3 class="tier-preset-col-head">Tier 背景色</h3>
+                <section class="tier-preset-export-bg" aria-label="排名圖背景色">
+                    <h3 class="tier-preset-col-head">排名圖背景色</h3>
                     <div class="color-row" style="margin-bottom:0.5rem;">
                         <input type="color" id="exportBgColor" value="#1e1e2e" title="自訂">
                         <span style="font-size:0.78rem;color:var(--text-light);">自訂顏色</span>
@@ -1653,7 +1653,7 @@
             return textColorForBg(bandHex);
         }
 
-        /** Tier 排名預覽區：即時顯示排名圖主題標題（與匯出 PNG 邏輯一致） */
+        /** 排名圖預覽區：即時顯示排名圖主題標題（與匯出 PNG 邏輯一致） */
         function syncExportThemePreview() {
             const top = document.getElementById('exportThemePreviewTop');
             const bottom = document.getElementById('exportThemePreviewBottom');
