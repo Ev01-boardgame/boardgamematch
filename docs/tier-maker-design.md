@@ -1,7 +1,7 @@
 # Tier Maker（V1 架構延伸）— 名詞與規格釐清
 
-> 延續離線原型：`public/demo-tier-maker-v1-image.html`（膠囊 + 待分區 + Tier）。  
-> **正式站入口**：`public/tier-maker.html`（完整 V1 內容 + 站內導覽／頁首；由 `scripts/build_tier_maker_page.py` 自 demo 組出，改 demo 後請執行 `python scripts/build_tier_maker_page.py` 同步）。  
+> **實作與維護**：請以 `public/tier-maker.html` 為**唯一來源**（膠囊 + 待分區 + Tier + 站內導覽／頁首）。  
+> `demo-tier-maker-v1-image.html` 若仍存在，僅作舊離線備份參考，**可刪除**，不影響正式站。  
 > 對齊 `collection-poster.html` 時，請分兩層理解，**不要**把「海報背景」與「單格封面怎麼塞進格子」混在一起。
 
 ---
@@ -94,11 +94,11 @@ GET tables/game_database/{id}
 3. **格子**：每格 DOM 結構對齊 poster 的 `imgFit` 分支；**點格**開小面板改該格的 fit + 名稱顯示。
 4. **預設**：面板頂部維持「全域預設」，新格繼承；已改的格不隨全域變更（或提供「一鍵套用全域到全部」）。
 
-此文件僅釐清與對齊用；實作以 `demo-tier-maker-v1-image.html` 為主幹迭代。
+此文件僅釐清與對齊用；實作以 `public/tier-maker.html` 為主幹迭代。
 
 ---
 
-## 七、實作狀態（`public/demo-tier-maker-v1-image.html`）
+## 七、實作狀態（`public/tier-maker.html`）
 
 - [x] Tier 排名預覽：多組**風格預設**（6 階 S–F／優戊；5 階預設最後一階灰底）；**格子間距／封面邊長**（CSS 變數）；點**左欄**編輯／刪除，**整列拖放**換序；**＋ 新增階層**；本機圖＝**檔名**；⚙ **覆寫顯示名稱**；匯出 PNG 前**等圖載入**並 **onclone** 強化封面 object-fit（對齊 collection-poster 用 Canvas 自繪的穩定度思路）
 - [x] D1：`tables/game_database?search=` 膠囊搜尋（同 edit-games-drag）
