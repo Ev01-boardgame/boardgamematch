@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier Maker V2 · 文字桌遊庫（離線）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        .page { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; }
+        .layout { display: grid; gap: 1rem; }
+        @media (min-width: 800px) { .layout { grid-template-columns: 260px 1fr; } }
+        .pool {
+            background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 0.75rem;
+            padding: 0.75rem; max-height: 420px; overflow: auto;
+        }
+        .pool h3 { font-size: 0.85rem; margin: 0.5rem 0 0.35rem; color: var(--text-light); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip {
+            padding: 0.35rem 0.55rem; border-radius: 999px; font-size: 0.78rem; cursor: grab;
+            background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.35); color: var(--text-color);
+            max-width: 100%;
+        }
+        .chip.owned { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.1); }
+        .chip.wish { border-color: rgba(234,179,8,0.5); background: rgba(234,179,8,0.12); }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center; }
+        .toolbar button, .toolbar a {
+            padding: 0.4rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color); cursor: pointer; font-size: 0.85rem; text-decoration: none;
+        }
+        #export-root { background: #1e1e2e; border-radius: 0.75rem; padding: 0.75rem; }
+        .tier-row { display: flex; min-height: 72px; margin-bottom: 6px; border-radius: 6px; overflow: hidden; }
+        .tier-label {
+            width: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1.15rem; color: #111;
+        }
+        .tier-zone {
+            flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; padding: 8px;
+            min-height: 56px; background: rgba(0,0,0,0.2);
+        }
+        .tier-zone .chip {
+            padding: 0.35rem 0.55rem; border-radius: 8px; cursor: grab; font-size: 0.8rem;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.28); color: #f1f5f9;
+            max-width: 180px;
+        }
+        .tier-row.drag-target .tier-zone { outline: 2px dashed rgba(255,255,255,0.45); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="demo-tier-maker-hub.html">示範總覽</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="page">
+        <h1 style="font-size:1.25rem;margin-bottom:0.35rem;">V2 · 文字桌遊 Tier（模擬玩家資料）</h1>
+        <p style="color:var(--text-light);font-size:0.9rem;margin-bottom:1rem;">
+            左側為假資料：<strong>擁有</strong>／<strong>想玩</strong>／<strong>自訂</strong>。拖到右側 Tier；可匯出圖。
+        </p>
+        <div class="toolbar">
+            <button type="button" id="btnExport">匯出 PNG</button>
+            <button type="button" id="btnReset">還原池子</button>
+            <a href="demo-tier-maker-hub.html">← 總覽</a>
+        </div>
+        <div class="layout">
+            <div class="pool" id="pool">
+                <h3>擁有（owned_games 概念）</h3>
+                <div class="chips" id="poolOwned"></div>
+                <h3>想玩（wishlist）</h3>
+                <div class="chips" id="poolWish"></div>
+                <h3>自訂（手動加入）</h3>
+                <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+                    <input id="customName" type="text" placeholder="輸入遊戲名…" style="flex:1;min-width:120px;padding:0.35rem 0.5rem;border-radius:0.5rem;border:1px solid var(--border-color);">
+                    <button type="button" id="btnAdd">加入池</button>
+                </div>
+                <div class="chips" id="poolCustom"></div>
+            </div>
+            <div>
+                <div id="export-root">
+                    <div id="tierRows"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const MOCK = {
+            owned: ['璀璨寶石', '卡坦島', '狼人真言', '七大奇蹟：對決', '瘟疫危機', '阿瓦隆'],
+            wish: ['方舟動物園', '污痕聖杯', 'Earth', 'Forest Shuffle'],
+            custom: []
+        };
+        const TIERS = [
+            { id: 'S', label: 'S', color: '#ff7eb9' },
+            { id: 'A', label: 'A', color: '#ff9f7f' },
+            { id: 'B', label: 'B', color: '#ffdf7f' },
+            { id: 'C', label: 'C', color: '#b8ff7f' },
+            { id: 'D', label: 'D', color: '#7fdfff' },
+            { id: 'F', label: 'F', color: '#b0b0b0' }
+        ];
+        const rowsEl = document.getElementById('tierRows');
+
+        function buildRows() {
+            rowsEl.innerHTML = '';
+            TIERS.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'tier-row';
+                row.innerHTML = `
+                    <div class="tier-label" style="background:${t.color}">${t.label}</div>
+                    <div class="tier-zone" data-drop="1"></div>
+                `;
+                const zone = row.querySelector('.tier-zone');
+                zone.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drag-target'); });
+                zone.addEventListener('dragleave', () => row.classList.remove('drag-target'));
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    row.classList.remove('drag-target');
+                    const id = e.dataTransfer.getData('text/plain');
+                    const node = id && document.getElementById(id);
+                    if (node) zone.appendChild(node);
+                });
+                rowsEl.appendChild(row);
+            });
+        }
+
+        function makeChip(text, cls) {
+            const id = 'c-' + Math.random().toString(36).slice(2);
+            const el = document.createElement('div');
+            el.className = 'chip ' + (cls || '');
+            el.id = id;
+            el.textContent = text;
+            el.title = text;
+            el.draggable = true;
+            el.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            return el;
+        }
+
+        function fillPool() {
+            const po = document.getElementById('poolOwned');
+            const pw = document.getElementById('poolWish');
+            const pc = document.getElementById('poolCustom');
+            po.innerHTML = '';
+            pw.innerHTML = '';
+            pc.innerHTML = '';
+            MOCK.owned.forEach(n => po.appendChild(makeChip(n, 'owned')));
+            MOCK.wish.forEach(n => pw.appendChild(makeChip(n, 'wish')));
+            MOCK.custom.forEach(n => pc.appendChild(makeChip(n, '')));
+        }
+
+        document.getElementById('btnAdd').addEventListener('click', () => {
+            const v = document.getElementById('customName').value.trim();
+            if (!v) return;
+            MOCK.custom.push(v);
+            document.getElementById('customName').value = '';
+            fillPool();
+        });
+
+        const INITIAL_OWNED = ['璀璨寶石', '卡坦島', '狼人真言', '七大奇蹟：對決', '瘟疫危機', '阿瓦隆'];
+        const INITIAL_WISH = ['方舟動物園', '污痕聖杯', 'Earth', 'Forest Shuffle'];
+
+        function wirePoolDrop(container, restoreClass) {
+            container.addEventListener('dragover', e => e.preventDefault());
+            container.addEventListener('drop', e => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData('text/plain');
+                const node = id && document.getElementById(id);
+                if (!node || !node.classList.contains('chip')) return;
+                if (restoreClass) node.className = 'chip ' + restoreClass;
+                else node.className = 'chip';
+                container.appendChild(node);
+            });
+        }
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            MOCK.custom = [];
+            MOCK.owned = [...INITIAL_OWNED];
+            MOCK.wish = [...INITIAL_WISH];
+            buildRows();
+            fillPool();
+        });
+
+        document.getElementById('btnExport').addEventListener('click', async () => {
+            const root = document.getElementById('export-root');
+            if (typeof html2canvas !== 'function') {
+                alert('html2canvas 未載入');
+                return;
+            }
+            const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#1e1e2e' });
+            const a = document.createElement('a');
+            a.download = 'tier-games.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        });
+
+        buildRows();
+        fillPool();
+        wirePoolDrop(document.getElementById('poolOwned'), 'owned');
+        wirePoolDrop(document.getElementById('poolWish'), 'wish');
+        wirePoolDrop(document.getElementById('poolCustom'), '');
+    </script>
+</body>
+</html>

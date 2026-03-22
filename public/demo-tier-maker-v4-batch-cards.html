@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier Maker V4 · 名稱圖卡批次（離線）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .page { max-width: 720px; margin: 0 auto; padding: 1rem 1rem 3rem; }
+        textarea {
+            width: 100%; min-height: 160px; padding: 0.65rem; border-radius: 0.6rem;
+            border: 1px solid var(--border-color); font-size: 0.88rem; box-sizing: border-box;
+            font-family: inherit;
+        }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; align-items: center; }
+        .toolbar button, .toolbar a {
+            padding: 0.45rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color); cursor: pointer; font-size: 0.85rem; text-decoration: none;
+        }
+        .toolbar .primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff; border: none; font-weight: 600;
+        }
+        .hint { font-size: 0.85rem; color: var(--text-light); line-height: 1.55; margin-bottom: 0.75rem; }
+        #preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+        .thumb {
+            width: 120px; height: 120px; border-radius: 10px; overflow: hidden;
+            border: 1px solid var(--border-color); position: relative;
+            background: linear-gradient(145deg, #2d2d44, #1a1a2e);
+        }
+        .thumb span {
+            position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 6px 8px;
+            font-size: 0.68rem; line-height: 1.25; text-align: center; color: #fff;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="demo-tier-maker-hub.html">示範總覽</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="page">
+        <h1 style="font-size:1.25rem;margin-bottom:0.35rem;">V4 · 名稱圖卡批次</h1>
+        <p class="hint">
+            靈感來自 <a href="https://github.com/danbugs/tiermaker-template-generator" target="_blank" rel="noopener">tiermaker-template-generator</a>：
+            每行一個遊戲名 → 產生方塊圖（名稱疊在底圖上），可下載後丟進 <a href="demo-tier-maker-v1-image.html">V1 圖片 Tier</a> 使用。
+        </p>
+        <label for="lines" style="font-size:0.88rem;font-weight:600;">遊戲名（每行一個）</label>
+        <textarea id="lines" placeholder="璀璨寶石&#10;卡坦島&#10;方舟動物園"></textarea>
+        <div class="toolbar">
+            <button type="button" class="primary" id="btnGen">產生預覽</button>
+            <button type="button" id="btnDlAll">逐張下載 PNG</button>
+            <a href="demo-tier-maker-hub.html">← 總覽</a>
+        </div>
+        <div id="preview"></div>
+    </div>
+    <canvas id="c" width="400" height="400" style="display:none;"></canvas>
+    <script>
+        const preview = document.getElementById('preview');
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        let lastBlobs = [];
+
+        function drawCard(text) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const g = ctx.createLinearGradient(0, 0, w, h);
+            g.addColorStop(0, '#4f46e5');
+            g.addColorStop(0.5, '#7c3aed');
+            g.addColorStop(1, '#0f172a');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(6, 6, w - 12, h - 12);
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.beginPath();
+            ctx.arc(w * 0.72, h * 0.28, w * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 28px system-ui, "Segoe UI", sans-serif';
+            const lines = wrapText(ctx, text, w - 48);
+            let y = h * 0.38;
+            lines.forEach(line => {
+                ctx.fillText(line, 24, y);
+                y += 34;
+            });
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.font = '14px system-ui';
+            ctx.fillText('boardgamematch · offline', 24, h - 22);
+        }
+
+        function wrapText(ctx, text, maxW) {
+            const lines = [];
+            let cur = '';
+            for (const ch of text) {
+                const test = cur + ch;
+                if (ctx.measureText(test).width > maxW && cur) {
+                    lines.push(cur);
+                    cur = ch;
+                } else cur = test;
+            }
+            if (cur) lines.push(cur);
+            return lines.slice(0, 5);
+        }
+
+        function generate() {
+            const raw = document.getElementById('lines').value;
+            const names = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            preview.innerHTML = '';
+            lastBlobs = [];
+            names.forEach((name, i) => {
+                drawCard(name);
+                const url = canvas.toDataURL('image/png');
+                lastBlobs.push({ name, url });
+                const div = document.createElement('div');
+                div.className = 'thumb';
+                div.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;"><span>${escapeHtml(name)}</span>`;
+                preview.appendChild(div);
+            });
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        document.getElementById('btnGen').addEventListener('click', generate);
+
+        document.getElementById('btnDlAll').addEventListener('click', () => {
+            if (!lastBlobs.length) {
+                generate();
+            }
+            lastBlobs.forEach((item, i) => {
+                const a = document.createElement('a');
+                a.download = 'card-' + (i + 1) + '-' + safeFile(item.name) + '.png';
+                a.href = item.url;
+                a.click();
+            });
+        });
+
+        function safeFile(s) {
+            return s.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40) || 'game';
+        }
+    </script>
+</body>
+</html>
