@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier Maker V1b · 封面進階選項（離線）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        .page { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; }
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+            margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--card-bg);
+            border-radius: 0.75rem; border: 1px solid var(--border-color);
+        }
+        .toolbar label.btn {
+            cursor: pointer; padding: 0.45rem 0.85rem; border-radius: 999px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff; font-weight: 600; font-size: 0.85rem;
+        }
+        .toolbar input[type="file"] { display: none; }
+        .toolbar button, .toolbar a.back {
+            padding: 0.4rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color); cursor: pointer; font-size: 0.85rem;
+            text-decoration: none;
+        }
+        .add-game-section {
+            background: var(--bg-color);
+            border-radius: 8px;
+            padding: 5px 6px;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+        .add-game-input { display: flex; gap: 6px; position: relative; flex-wrap: wrap; align-items: stretch; }
+        .add-game-input .ac-wrap { flex: 1; position: relative; min-width: 0; }
+        .add-game-input input {
+            width: 100%; box-sizing: border-box; padding: 6px 9px;
+            border: 1.5px solid var(--border-color); border-radius: 8px;
+            font-size: 0.83rem; background: var(--bg-color); color: var(--text-color);
+        }
+        .add-game-input input:focus { outline: none; border-color: var(--primary-color); }
+        .add-game-input .btn {
+            min-width: 62px; padding: 5px 10px !important; border-radius: 8px !important;
+            font-size: 0.83rem !important; line-height: 1.2;
+        }
+        .add-game-dropdown {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: var(--card-bg); border: 1.5px solid var(--border-color);
+            border-radius: 0.5rem; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 999;
+            max-height: 220px; overflow-y: auto;
+        }
+        .add-game-dropdown.open { display: block; }
+        .add-game-ac-item { padding: 0.5rem 0.75rem; font-size: 0.82rem; color: var(--text-light); line-height: 1.45; }
+        .cover-style-panel { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); }
+        .cover-style-panel > label { font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 0.35rem; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .style-chip {
+            padding: 0.28rem 0.65rem; border-radius: 1.5rem; border: 1.5px solid var(--border-color);
+            background: transparent; font-size: 0.78rem; font-weight: 500; color: var(--text-light);
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .style-chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .style-chip.active { background: var(--primary-color); border-color: var(--primary-color); color: white; }
+        .adv-panel {
+            margin-top: 0.65rem; padding: 0.65rem 0.75rem;
+            background: rgba(99,102,241,0.06); border-radius: 0.5rem;
+            border: 1px dashed var(--border-color);
+        }
+        .adv-panel h4 { margin: 0 0 0.5rem; font-size: 0.78rem; color: var(--text-color); }
+        .range-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .range-row label { font-size: 0.78rem; color: var(--text-light); min-width: 72px; }
+        .range-row input[type="range"] { flex: 1; min-width: 120px; accent-color: var(--primary-color); }
+        .range-row .val { font-size: 0.8rem; font-weight: 700; color: var(--primary-color); min-width: 36px; }
+        .color-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .color-row input[type="color"] { width: 40px; height: 32px; border: none; border-radius: 0.35rem; cursor: pointer; }
+        .pool-block { margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--card-bg); border-radius: 0.75rem; border: 1px solid var(--border-color); }
+        .pool-block h2 { font-size: 0.85rem; margin: 0 0 0.5rem; color: var(--text-color); }
+        .pool-zone {
+            display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+            min-height: 80px; padding: 8px; border-radius: 0.5rem;
+            background: rgba(99,102,241,0.06); border: 1px dashed var(--border-color);
+        }
+        .pool-zone.drag-target { outline: 2px dashed var(--primary-color); background: rgba(99,102,241,0.1); }
+        .drop-hint {
+            border: 2px dashed var(--border-color); border-radius: 0.75rem; padding: 0.75rem;
+            text-align: center; color: var(--text-light); font-size: 0.85rem; margin-bottom: 0.75rem;
+        }
+        .drop-hint.dragover { border-color: var(--primary-color); background: rgba(99,102,241,0.08); }
+        #export-root { background: #1e1e2e; border-radius: 0.75rem; padding: 0.75rem; overflow: auto; }
+        .tier-row { display: flex; min-height: 88px; margin-bottom: 6px; border-radius: 6px; overflow: hidden; }
+        .tier-label {
+            width: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1.35rem; color: #111; text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+        }
+        .tier-zone {
+            flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; padding: 8px;
+            min-height: 72px; background: rgba(0,0,0,0.2);
+        }
+        .tier-item {
+            width: 72px; height: 72px; border-radius: 6px; overflow: hidden; cursor: grab;
+            border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; position: relative;
+        }
+        .tier-item img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .tier-item:active { cursor: grabbing; }
+        .tier-row.drag-target .tier-zone { outline: 2px dashed rgba(255,255,255,0.5); }
+        .tier-item-cover .cover-inner {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 4px; box-sizing: border-box; text-align: center;
+        }
+        .tier-item-cover .cover-emoji { font-size: 1.15rem; line-height: 1; margin-bottom: 2px; }
+        .tier-item-cover .cover-mini-title {
+            font-size: 0.58rem; font-weight: 700; line-height: 1.15;
+            word-break: break-all; max-height: 2.4em; overflow: hidden;
+        }
+        .tier-item-cover .cover-cap {
+            position: absolute; bottom: 0; left: 0; right: 0; font-size: 0.52rem;
+            padding: 2px 3px; background: rgba(0,0,0,0.55); color: #fff;
+            text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .tier-item-cover.no-bottom-cap .cover-cap { display: none; }
+        .tier-item-cover.no-bottom-cap .cover-inner { height: 100%; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="demo-tier-maker-hub.html">示範總覽</a></li>
+                <li><a href="demo-tier-maker-v1-image.html">V1 基本</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="page">
+        <h1 style="font-size:1.25rem;margin-bottom:0.35rem;">V1b · 封面進階（色相 + 自訂色）</h1>
+        <p style="color:var(--text-light);font-size:0.9rem;margin-bottom:0.75rem;">
+            在 <a href="demo-tier-maker-v1-image.html">V1</a> 基礎上增加：<strong>漸層色相偏移</strong>、<strong>自訂純色</strong>（討論用離線版）。
+        </p>
+        <div class="toolbar">
+            <label class="btn"><input type="file" id="fileIn" accept="image/*" multiple>＋ 選擇圖片</label>
+            <button type="button" id="btnExport">匯出 PNG</button>
+            <button type="button" id="btnClear">清空畫布</button>
+            <a class="back" href="demo-tier-maker-hub.html">← 總覽</a>
+        </div>
+        <div class="add-game-section">
+            <div class="add-game-input">
+                <div class="ac-wrap">
+                    <input type="text" id="add-manual-input" placeholder="輸入遊戲名稱搜尋..." autocomplete="off"
+                        onfocus="document.getElementById('drop-offline-hint').classList.add('open')"
+                        onblur="setTimeout(()=>document.getElementById('drop-offline-hint').classList.remove('open'), 180)"
+                        onkeydown="if(event.key==='Enter'){ event.preventDefault(); addManualCover(); }">
+                    <div class="add-game-dropdown" id="drop-offline-hint">
+                        <div class="add-game-ac-item">V1b：漸層模式可用滑桿調整色相；選「自訂色」時用右側色票。</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addManualCover()" style="font-size:0.85rem;">新增</button>
+            </div>
+            <div class="cover-style-panel">
+                <label>🌈 封面預設</label>
+                <div class="chip-row" id="styleChips">
+                    <button type="button" class="style-chip active" data-style="blur">漸層</button>
+                    <button type="button" class="style-chip" data-style="rainbow">🌈</button>
+                    <button type="button" class="style-chip" data-style="dark">深</button>
+                    <button type="button" class="style-chip" data-style="light">淺</button>
+                    <button type="button" class="style-chip" data-style="bw">灰階</button>
+                    <button type="button" class="style-chip" data-style="name">純色</button>
+                    <button type="button" class="style-chip" data-style="custom">自訂色</button>
+                </div>
+                <label style="margin-top:0.5rem;">
+                    <input type="checkbox" id="chkBottomCap" checked> 底部名稱條（poster 風格）
+                </label>
+                <div class="adv-panel">
+                    <h4>進階選項（離線試驗）</h4>
+                    <div class="range-row">
+                        <label>漸層色相</label>
+                        <input type="range" id="hueSlider" min="0" max="360" value="200">
+                        <span class="val" id="hueVal">200°</span>
+                    </div>
+                    <p style="font-size:0.72rem;color:var(--text-light);margin:0 0 0.5rem;">
+                        僅在「漸層」時作為<strong>色相基底</strong>；仍會依遊戲名與序號微調（collection-poster 的 blur 邏輯）。
+                    </p>
+                    <div class="color-row">
+                        <label style="font-size:0.78rem;color:var(--text-light);">自訂色：</label>
+                        <input type="color" id="customColor" value="#6366f1">
+                        <span style="font-size:0.72rem;color:var(--text-light);">選「自訂色」預設時套用</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="pool-block">
+            <h2>待分區（拖入 Tier）</h2>
+            <div class="pool-zone" id="poolZone"></div>
+        </div>
+        <div class="drop-hint" id="dropHint">圖片可拖到此處加入池</div>
+        <div id="export-root">
+            <div id="tierRows"></div>
+        </div>
+    </div>
+    <script>
+        const TIERS = [
+            { id: 'S', label: 'S', color: '#ff7eb9' },
+            { id: 'A', label: 'A', color: '#ff9f7f' },
+            { id: 'B', label: 'B', color: '#ffdf7f' },
+            { id: 'C', label: 'C', color: '#b8ff7f' },
+            { id: 'D', label: 'D', color: '#7fdfff' },
+            { id: 'F', label: 'F', color: '#b0b0b0' }
+        ];
+        const EMOJIS = ['🎲','🃏','♟️','🎯','🧩','🎭','🏆','⚔️','🌍','🔮'];
+        let activeStyle = 'blur';
+        let coverSeq = 0;
+
+        const rowsEl = document.getElementById('tierRows');
+        const poolZone = document.getElementById('poolZone');
+        const hueSlider = document.getElementById('hueSlider');
+        const hueVal = document.getElementById('hueVal');
+
+        hueSlider.addEventListener('input', () => {
+            hueVal.textContent = hueSlider.value + '°';
+        });
+
+        function hashHue(str) {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+            return h % 360;
+        }
+
+        function getHueBase(name) {
+            const slider = parseInt(hueSlider.value, 10) || 0;
+            return (slider + hashHue(name || 'x')) % 360;
+        }
+
+        function coverBackground(style, name) {
+            const i = coverSeq++;
+            const hue = getHueBase(name);
+            const custom = document.getElementById('customColor').value;
+            switch (style) {
+                case 'custom': return custom;
+                case 'dark': return '#1e1b4b';
+                case 'light': return 'linear-gradient(135deg,#e0e7ff,#c7d2fe)';
+                case 'bw': return 'linear-gradient(135deg,#2d2d2d,#555)';
+                case 'name': return '#312e81';
+                case 'rainbow':
+                    return 'conic-gradient(from 200deg at 50% 40%, #f472b6, #a78bfa, #60a5fa, #34d399, #fbbf24, #fb7185, #f472b6)';
+                case 'blur':
+                default:
+                    return `linear-gradient(135deg, hsl(${(hue + i * 47) % 360}, 50%, 28%), hsl(${(hue + 120 + i * 47) % 360}, 58%, 32%))`;
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        }
+
+        document.getElementById('styleChips').addEventListener('click', e => {
+            const btn = e.target.closest('.style-chip');
+            if (!btn) return;
+            document.querySelectorAll('#styleChips .style-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeStyle = btn.dataset.style;
+        });
+
+        function wireDraggable(wrap) {
+            wrap.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', wrap.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+        }
+
+        function makeImageItem(src) {
+            const id = 'ti-' + Math.random().toString(36).slice(2);
+            const wrap = document.createElement('div');
+            wrap.className = 'tier-item';
+            wrap.id = id;
+            wrap.draggable = true;
+            wrap.innerHTML = `<img alt="" src="${src}">`;
+            wireDraggable(wrap);
+            return wrap;
+        }
+
+        function makeCoverItem(name) {
+            const id = 'ti-' + Math.random().toString(36).slice(2);
+            const wrap = document.createElement('div');
+            wrap.className = 'tier-item tier-item-cover';
+            wrap.id = id;
+            wrap.draggable = true;
+            wrap.dataset.name = name;
+            const bg = coverBackground(activeStyle, name);
+            const emoji = EMOJIS[hashHue(name) % EMOJIS.length];
+            const bottom = document.getElementById('chkBottomCap').checked;
+            if (!bottom) wrap.classList.add('no-bottom-cap');
+            const isLight = activeStyle === 'light';
+            const tc = isLight ? '#0f172a' : 'rgba(255,255,255,0.95)';
+            wrap.innerHTML = `
+                <div class="cover-inner" style="background:${bg};${bottom ? 'height:calc(100% - 14px);' : ''}">
+                    <span class="cover-emoji" style="opacity:${isLight ? 0.9 : 1};">${emoji}</span>
+                    <span class="cover-mini-title" style="color:${tc};">${escapeHtml(name)}</span>
+                </div>
+                ${bottom ? `<div class="cover-cap">${escapeHtml(name)}</div>` : ''}`;
+            wireDraggable(wrap);
+            return wrap;
+        }
+
+        function addManualCover() {
+            const input = document.getElementById('add-manual-input');
+            const name = (input.value || '').trim();
+            if (!name) {
+                alert('請輸入遊戲名稱');
+                return;
+            }
+            poolZone.appendChild(makeCoverItem(name));
+            input.value = '';
+            input.focus();
+        }
+
+        function buildRows() {
+            rowsEl.innerHTML = '';
+            TIERS.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'tier-row';
+                row.dataset.tierId = t.id;
+                row.innerHTML = `
+                    <div class="tier-label" style="background:${t.color}">${t.label}</div>
+                    <div class="tier-zone" data-drop="1"></div>`;
+                const zone = row.querySelector('.tier-zone');
+                zone.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drag-target'); });
+                zone.addEventListener('dragleave', () => row.classList.remove('drag-target'));
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    row.classList.remove('drag-target');
+                    const node = document.getElementById(e.dataTransfer.getData('text/plain'));
+                    if (node) zone.appendChild(node);
+                });
+                rowsEl.appendChild(row);
+            });
+        }
+
+        function addImagesFromFiles(files) {
+            for (const f of files) {
+                if (!f.type.startsWith('image/')) continue;
+                const url = URL.createObjectURL(f);
+                poolZone.appendChild(makeImageItem(url));
+            }
+        }
+
+        document.getElementById('fileIn').addEventListener('change', e => {
+            addImagesFromFiles(e.target.files);
+            e.target.value = '';
+        });
+
+        poolZone.addEventListener('dragover', e => { e.preventDefault(); poolZone.classList.add('drag-target'); });
+        poolZone.addEventListener('dragleave', () => poolZone.classList.remove('drag-target'));
+        poolZone.addEventListener('drop', e => {
+            e.preventDefault();
+            poolZone.classList.remove('drag-target');
+            const node = document.getElementById(e.dataTransfer.getData('text/plain'));
+            if (node) poolZone.appendChild(node);
+        });
+
+        const dropHint = document.getElementById('dropHint');
+        ['dragenter','dragover'].forEach(ev => {
+            dropHint.addEventListener(ev, e => { e.preventDefault(); dropHint.classList.add('dragover'); });
+        });
+        dropHint.addEventListener('dragleave', () => dropHint.classList.remove('dragover'));
+        dropHint.addEventListener('drop', e => {
+            e.preventDefault();
+            dropHint.classList.remove('dragover');
+            addImagesFromFiles(e.dataTransfer.files);
+        });
+
+        document.getElementById('btnClear').addEventListener('click', () => {
+            rowsEl.querySelectorAll('.tier-zone').forEach(z => { z.innerHTML = ''; });
+            poolZone.innerHTML = '';
+        });
+
+        document.getElementById('btnExport').addEventListener('click', async () => {
+            const root = document.getElementById('export-root');
+            if (typeof html2canvas !== 'function') {
+                alert('html2canvas 未載入');
+                return;
+            }
+            const canvas = await html2canvas(root, { scale: 2, useCORS: true, backgroundColor: '#1e1e2e' });
+            const a = document.createElement('a');
+            a.download = 'tier-list-v1b.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        });
+
+        buildRows();
+    </script>
+</body>
+</html>

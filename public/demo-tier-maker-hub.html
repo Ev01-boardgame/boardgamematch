@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌遊 Tier Maker 離線示範總覽</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .wrap { max-width: 900px; margin: 2rem auto; padding: 0 1.25rem 3rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .sub { color: var(--text-light); margin-bottom: 1.5rem; line-height: 1.6; }
+        .grid { display: grid; gap: 1rem; }
+        @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+        .card {
+            background: var(--card-bg); border-radius: 1rem; padding: 1.1rem 1.2rem;
+            border: 1px solid var(--border-color); box-shadow: var(--shadow-md);
+        }
+        .card h2 { font-size: 1.05rem; margin-bottom: 0.45rem; color: var(--text-color); }
+        .card p { font-size: 0.88rem; color: var(--text-light); line-height: 1.55; margin-bottom: 0.75rem; }
+        .card a {
+            display: inline-block; padding: 0.45rem 0.9rem; border-radius: 999px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff; font-weight: 600; font-size: 0.88rem; text-decoration: none;
+        }
+        .card a:hover { filter: brightness(1.05); }
+        .ref { font-size: 0.8rem; color: var(--text-light); margin-top: 1.25rem; }
+        .ref a { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">回到首頁</a></li>
+                <li><a href="tier-maker.html">桌遊排名圖</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="wrap">
+        <h1>🥇 桌遊 Tier Maker — 離線示範（多版本）</h1>
+        <p class="sub">
+            參考 <a href="https://github.com/SuperFola/TierListMaker" target="_blank" rel="noopener">SuperFola/TierListMaker</a>
+           （純前端、拖曳、匯出圖）與
+            <a href="https://github.com/danbugs/tiermaker-template-generator" target="_blank" rel="noopener">danbugs/tiermaker-template-generator</a>
+            （名稱疊圖、批次產素材）的思路，先做出<strong>可本機開啟</strong>的原型；之後再接 D1（<code>users</code> 收藏／清單、<code>game_database</code> 等）。
+        </p>
+        <div class="grid">
+            <div class="card">
+                <h2>V1 · 主規格（D1 + Tier 背景 + 每格封面）</h2>
+                <p><strong>D1 搜尋</strong>、<strong>Tier 整張背景</strong>、<strong>封面顯示四模式</strong>（同 poster）、每格 <strong>⚙</strong> 自訂；無命中時假封面。待分區不匯出。</p>
+                <a href="demo-tier-maker-v1-image.html">開啟 V1</a>
+            </div>
+            <div class="card">
+                <h2>V1b · 封面進階（色相／自訂色）</h2>
+                <p>同 V1，另加漸層<strong>色相滑桿</strong>、<strong>自訂純色</strong>預設，方便試視覺再決定正式站規格。</p>
+                <a href="demo-tier-maker-v1b-cover-options.html">開啟 V1b</a>
+            </div>
+            <div class="card">
+                <h2>V2 · 文字桌遊卡（模擬玩家資料）</h2>
+                <p>內建「擁有／想玩／自訂清單」假資料，以遊戲名 chip 拖入 Tier；適合對齊本站遊戲名與收藏。</p>
+                <a href="demo-tier-maker-v2-library.html">開啟 V2</a>
+            </div>
+            <div class="card">
+                <h2>V3 · 混合 + localStorage（模擬 D1）</h2>
+                <p>一鍵載入模擬 API JSON、手動加遊戲、存檔／還原；展示未來如何接真實 API。</p>
+                <a href="demo-tier-maker-v3-d1-mock.html">開啟 V3</a>
+            </div>
+            <div class="card">
+                <h2>V4 · 名稱圖卡批次（danbugs 路線）</h2>
+                <p>多行遊戲名 → 各產一張方塊圖（名稱疊在底圖上），方便丟到 V1 或外站用。</p>
+                <a href="demo-tier-maker-v4-batch-cards.html">開啟 V4</a>
+            </div>
+        </div>
+        <p class="ref">正式站占位：<a href="tier-maker.html">tier-maker.html</a></p>
+    </div>
+</body>
+</html>
