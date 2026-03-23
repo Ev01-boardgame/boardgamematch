@@ -169,6 +169,20 @@ async function checkAdmin(db, googleId) {
   return !!row;
 }
 
+/**
+ * 與 public/js/admin-auth.js 的 SUPER_ADMIN_IDS 保持一致（JWT payload.sub = Google user id）
+ * 超級管理員未寫入 admin_whitelist 時，仍須能呼叫 /admin/aggregate-game-names 等管理端點
+ */
+const SUPER_ADMIN_GOOGLE_IDS = new Set([
+  '101279808163813574015',
+  '103111021786847709012'
+]);
+
+async function checkAdminOrSuper(db, googleId) {
+  if (googleId != null && SUPER_ADMIN_GOOGLE_IDS.has(String(googleId))) return true;
+  return checkAdmin(db, googleId);
+}
+
 // ══ CORS ══
 function corsHeaders(origin, env) {
   const allowedOrigins = (env?.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim());
@@ -292,7 +306,7 @@ export default {
 
     // ── 大頭貼讀取（GET /avatars/:userId）：公開，從 R2 回傳圖片，其他玩家可載入 ──
     // ── Admin：遊戲名稱聚合（別名整合後台） GET /admin/aggregate-game-names
-    // 需 X-Api-Key（若已設定）+ JWT + admin_whitelist；回傳參與人數、各字串次數、遊戲庫 name_zh/name_en
+    // 需 X-Api-Key（若已設定）+ JWT +（admin_whitelist 或 SUPER_ADMIN_GOOGLE_IDS）
     if (url.pathname === '/admin/aggregate-game-names' && method === 'GET') {
       const db = env.DB;
       const authHeader = request.headers.get('Authorization') || '';
@@ -304,7 +318,7 @@ export default {
       } catch (err) {
         return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
       }
-      const isAdmin = await checkAdmin(db, jwtPayload.sub);
+      const isAdmin = await checkAdminOrSuper(db, jwtPayload.sub);
       if (!isAdmin) return errorResponse('Admin access required', 403, origin, env);
       try {
         const [agg, games] = await Promise.all([
