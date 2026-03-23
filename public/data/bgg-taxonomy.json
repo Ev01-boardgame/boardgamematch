@@ -1,0 +1,1122 @@
+{
+  "meta": {
+    "sources": [
+      "https://boardgamegeek.com/browse/boardgamecategory",
+      "https://boardgamegeek.com/browse/boardgamemechanic"
+    ],
+    "note": "Parsed from scripts/bgg-snapshots/*.md. Update snapshots if BGG adds items, then re-run this script.",
+    "generatedAt": "2026-03-23"
+  },
+  "categories": [
+    {
+      "id": 1009,
+      "name": "Abstract Strategy"
+    },
+    {
+      "id": 1032,
+      "name": "Action / Dexterity"
+    },
+    {
+      "id": 1022,
+      "name": "Adventure"
+    },
+    {
+      "id": 2726,
+      "name": "Age of Reason"
+    },
+    {
+      "id": 1048,
+      "name": "American Civil War"
+    },
+    {
+      "id": 1108,
+      "name": "American Indian Wars"
+    },
+    {
+      "id": 1075,
+      "name": "American Revolutionary War"
+    },
+    {
+      "id": 1055,
+      "name": "American West"
+    },
+    {
+      "id": 1050,
+      "name": "Ancient"
+    },
+    {
+      "id": 1089,
+      "name": "Animals"
+    },
+    {
+      "id": 1052,
+      "name": "Arabian"
+    },
+    {
+      "id": 2650,
+      "name": "Aviation / Flight"
+    },
+    {
+      "id": 1023,
+      "name": "Bluffing"
+    },
+    {
+      "id": 1117,
+      "name": "Book"
+    },
+    {
+      "id": 1002,
+      "name": "Card Game"
+    },
+    {
+      "id": 1041,
+      "name": "Children's Game"
+    },
+    {
+      "id": 1029,
+      "name": "City Building"
+    },
+    {
+      "id": 1102,
+      "name": "Civil War"
+    },
+    {
+      "id": 1015,
+      "name": "Civilization"
+    },
+    {
+      "id": 1044,
+      "name": "Collectible Components"
+    },
+    {
+      "id": 1116,
+      "name": "Comic Book / Strip"
+    },
+    {
+      "id": 1039,
+      "name": "Deduction"
+    },
+    {
+      "id": 1017,
+      "name": "Dice"
+    },
+    {
+      "id": 1021,
+      "name": "Economic"
+    },
+    {
+      "id": 1094,
+      "name": "Educational"
+    },
+    {
+      "id": 1072,
+      "name": "Electronic"
+    },
+    {
+      "id": 1084,
+      "name": "Environmental"
+    },
+    {
+      "id": 1042,
+      "name": "Expansion for Base-game"
+    },
+    {
+      "id": 1020,
+      "name": "Exploration"
+    },
+    {
+      "id": 2687,
+      "name": "Fan Expansion"
+    },
+    {
+      "id": 1010,
+      "name": "Fantasy"
+    },
+    {
+      "id": 1013,
+      "name": "Farming"
+    },
+    {
+      "id": 1046,
+      "name": "Fighting"
+    },
+    {
+      "id": 1119,
+      "name": "Game System"
+    },
+    {
+      "id": 1024,
+      "name": "Horror"
+    },
+    {
+      "id": 1079,
+      "name": "Humor"
+    },
+    {
+      "id": 1088,
+      "name": "Industry / Manufacturing"
+    },
+    {
+      "id": 1091,
+      "name": "Korean War"
+    },
+    {
+      "id": 1033,
+      "name": "Mafia"
+    },
+    {
+      "id": 1104,
+      "name": "Math"
+    },
+    {
+      "id": 1118,
+      "name": "Mature / Adult"
+    },
+    {
+      "id": 1059,
+      "name": "Maze"
+    },
+    {
+      "id": 2145,
+      "name": "Medical"
+    },
+    {
+      "id": 1035,
+      "name": "Medieval"
+    },
+    {
+      "id": 1045,
+      "name": "Memory"
+    },
+    {
+      "id": 1047,
+      "name": "Miniatures"
+    },
+    {
+      "id": 1069,
+      "name": "Modern Warfare"
+    },
+    {
+      "id": 1064,
+      "name": "Movies / TV / Radio theme"
+    },
+    {
+      "id": 1040,
+      "name": "Murder / Mystery"
+    },
+    {
+      "id": 1054,
+      "name": "Music"
+    },
+    {
+      "id": 1082,
+      "name": "Mythology"
+    },
+    {
+      "id": 1051,
+      "name": "Napoleonic"
+    },
+    {
+      "id": 1008,
+      "name": "Nautical"
+    },
+    {
+      "id": 1026,
+      "name": "Negotiation"
+    },
+    {
+      "id": 1093,
+      "name": "Novel-based"
+    },
+    {
+      "id": 1098,
+      "name": "Number"
+    },
+    {
+      "id": 1030,
+      "name": "Party Game"
+    },
+    {
+      "id": 2725,
+      "name": "Pike and Shot"
+    },
+    {
+      "id": 1090,
+      "name": "Pirates"
+    },
+    {
+      "id": 1001,
+      "name": "Political"
+    },
+    {
+      "id": 2710,
+      "name": "Post-Napoleonic"
+    },
+    {
+      "id": 1036,
+      "name": "Prehistoric"
+    },
+    {
+      "id": 1120,
+      "name": "Print & Play"
+    },
+    {
+      "id": 1028,
+      "name": "Puzzle"
+    },
+    {
+      "id": 1031,
+      "name": "Racing"
+    },
+    {
+      "id": 1037,
+      "name": "Real-time"
+    },
+    {
+      "id": 1115,
+      "name": "Religious"
+    },
+    {
+      "id": 1070,
+      "name": "Renaissance"
+    },
+    {
+      "id": 1016,
+      "name": "Science Fiction"
+    },
+    {
+      "id": 1113,
+      "name": "Space Exploration"
+    },
+    {
+      "id": 1081,
+      "name": "Spies / Secret Agents"
+    },
+    {
+      "id": 1038,
+      "name": "Sports"
+    },
+    {
+      "id": 1086,
+      "name": "Territory Building"
+    },
+    {
+      "id": 3129,
+      "name": "Third-party Expansion"
+    },
+    {
+      "id": 1034,
+      "name": "Trains"
+    },
+    {
+      "id": 1011,
+      "name": "Transportation"
+    },
+    {
+      "id": 1097,
+      "name": "Travel"
+    },
+    {
+      "id": 1027,
+      "name": "Trivia"
+    },
+    {
+      "id": 1101,
+      "name": "Video Game Theme"
+    },
+    {
+      "id": 1109,
+      "name": "Vietnam War"
+    },
+    {
+      "id": 1019,
+      "name": "Wargame"
+    },
+    {
+      "id": 1025,
+      "name": "Word Game"
+    },
+    {
+      "id": 1065,
+      "name": "World War I"
+    },
+    {
+      "id": 1049,
+      "name": "World War II"
+    },
+    {
+      "id": 2481,
+      "name": "Zombies"
+    }
+  ],
+  "mechanics": [
+    {
+      "id": 2073,
+      "name": "Acting"
+    },
+    {
+      "id": 2840,
+      "name": "Action / Event"
+    },
+    {
+      "id": 2838,
+      "name": "Action Drafting"
+    },
+    {
+      "id": 2001,
+      "name": "Action Points"
+    },
+    {
+      "id": 2689,
+      "name": "Action Queue"
+    },
+    {
+      "id": 2839,
+      "name": "Action Retrieval"
+    },
+    {
+      "id": 2834,
+      "name": "Action Timer"
+    },
+    {
+      "id": 2847,
+      "name": "Advantage Token"
+    },
+    {
+      "id": 2916,
+      "name": "Alliances"
+    },
+    {
+      "id": 2080,
+      "name": "Area Majority / Influence"
+    },
+    {
+      "id": 2046,
+      "name": "Area Movement"
+    },
+    {
+      "id": 2021,
+      "name": "Area-Impulse"
+    },
+    {
+      "id": 2012,
+      "name": "Auction / Bidding"
+    },
+    {
+      "id": 3098,
+      "name": "Auction Compensation"
+    },
+    {
+      "id": 2930,
+      "name": "Auction: Dexterity"
+    },
+    {
+      "id": 2924,
+      "name": "Auction: Dutch"
+    },
+    {
+      "id": 2932,
+      "name": "Auction: Dutch Priority"
+    },
+    {
+      "id": 2918,
+      "name": "Auction: English"
+    },
+    {
+      "id": 2931,
+      "name": "Auction: Fixed Placement"
+    },
+    {
+      "id": 2927,
+      "name": "Auction: Multiple Lot"
+    },
+    {
+      "id": 2923,
+      "name": "Auction: Once Around"
+    },
+    {
+      "id": 2920,
+      "name": "Auction: Sealed Bid"
+    },
+    {
+      "id": 2919,
+      "name": "Auction: Turn Order Until Pass"
+    },
+    {
+      "id": 2903,
+      "name": "Automatic Resource Growth"
+    },
+    {
+      "id": 2014,
+      "name": "Betting and Bluffing"
+    },
+    {
+      "id": 2957,
+      "name": "Bias"
+    },
+    {
+      "id": 3097,
+      "name": "Bids As Wagers"
+    },
+    {
+      "id": 2999,
+      "name": "Bingo"
+    },
+    {
+      "id": 2913,
+      "name": "Bribery"
+    },
+    {
+      "id": 2018,
+      "name": "Campaign / Battle Card Driven"
+    },
+    {
+      "id": 2857,
+      "name": "Card Play Conflict Resolution"
+    },
+    {
+      "id": 2887,
+      "name": "Catch the Leader"
+    },
+    {
+      "id": 2956,
+      "name": "Chaining"
+    },
+    {
+      "id": 2057,
+      "name": "Chit-Pull System"
+    },
+    {
+      "id": 2984,
+      "name": "Closed Drafting"
+    },
+    {
+      "id": 2928,
+      "name": "Closed Economy Auction"
+    },
+    {
+      "id": 2841,
+      "name": "Command Cards"
+    },
+    {
+      "id": 2013,
+      "name": "Commodity Speculation"
+    },
+    {
+      "id": 2893,
+      "name": "Communication Limits"
+    },
+    {
+      "id": 2883,
+      "name": "Connections"
+    },
+    {
+      "id": 2922,
+      "name": "Constrained Bidding"
+    },
+    {
+      "id": 2912,
+      "name": "Contracts"
+    },
+    {
+      "id": 2023,
+      "name": "Cooperative Game"
+    },
+    {
+      "id": 2010,
+      "name": "Crayon Rail System"
+    },
+    {
+      "id": 2854,
+      "name": "Critical Hits and Failures"
+    },
+    {
+      "id": 2990,
+      "name": "Cube Tower"
+    },
+    {
+      "id": 3004,
+      "name": "Deck Construction"
+    },
+    {
+      "id": 2664,
+      "name": "Deck, Bag, and Pool Building"
+    },
+    {
+      "id": 3002,
+      "name": "Deduction"
+    },
+    {
+      "id": 2901,
+      "name": "Delayed Purchase"
+    },
+    {
+      "id": 2072,
+      "name": "Dice Rolling"
+    },
+    {
+      "id": 2856,
+      "name": "Die Icon Resolution"
+    },
+    {
+      "id": 2950,
+      "name": "Different Dice Movement"
+    },
+    {
+      "id": 3096,
+      "name": "Drawing"
+    },
+    {
+      "id": 2882,
+      "name": "Elapsed Real Time Ending"
+    },
+    {
+      "id": 2043,
+      "name": "Enclosure"
+    },
+    {
+      "id": 2875,
+      "name": "End Game Bonuses"
+    },
+    {
+      "id": 2850,
+      "name": "Events"
+    },
+    {
+      "id": 2885,
+      "name": "Finale Ending"
+    },
+    {
+      "id": 2860,
+      "name": "Flicking"
+    },
+    {
+      "id": 2843,
+      "name": "Follow"
+    },
+    {
+      "id": 2864,
+      "name": "Force Commitment"
+    },
+    {
+      "id": 2978,
+      "name": "Grid Coverage"
+    },
+    {
+      "id": 2676,
+      "name": "Grid Movement"
+    },
+    {
+      "id": 2040,
+      "name": "Hand Management"
+    },
+    {
+      "id": 2026,
+      "name": "Hexagon Grid"
+    },
+    {
+      "id": 2967,
+      "name": "Hidden Movement"
+    },
+    {
+      "id": 2891,
+      "name": "Hidden Roles"
+    },
+    {
+      "id": 2987,
+      "name": "Hidden Victory Points"
+    },
+    {
+      "id": 2889,
+      "name": "Highest-Lowest Scoring"
+    },
+    {
+      "id": 3000,
+      "name": "Hot Potato"
+    },
+    {
+      "id": 2906,
+      "name": "I Cut, You Choose"
+    },
+    {
+      "id": 2952,
+      "name": "Impulse Movement"
+    },
+    {
+      "id": 2902,
+      "name": "Income"
+    },
+    {
+      "id": 2914,
+      "name": "Increase Value of Unchosen Resources"
+    },
+    {
+      "id": 3003,
+      "name": "Induction"
+    },
+    {
+      "id": 2837,
+      "name": "Interrupts"
+    },
+    {
+      "id": 2910,
+      "name": "Investment"
+    },
+    {
+      "id": 2871,
+      "name": "Kill Steal"
+    },
+    {
+      "id": 2886,
+      "name": "King of the Hill"
+    },
+    {
+      "id": 2980,
+      "name": "Ladder Climbing"
+    },
+    {
+      "id": 3001,
+      "name": "Layering"
+    },
+    {
+      "id": 2824,
+      "name": "Legacy Game"
+    },
+    {
+      "id": 2039,
+      "name": "Line Drawing"
+    },
+    {
+      "id": 2975,
+      "name": "Line of Sight"
+    },
+    {
+      "id": 2904,
+      "name": "Loans"
+    },
+    {
+      "id": 2836,
+      "name": "Lose a Turn"
+    },
+    {
+      "id": 2955,
+      "name": "Mancala"
+    },
+    {
+      "id": 2959,
+      "name": "Map Addition"
+    },
+    {
+      "id": 2961,
+      "name": "Map Deformation"
+    },
+    {
+      "id": 2960,
+      "name": "Map Reduction"
+    },
+    {
+      "id": 2900,
+      "name": "Market"
+    },
+    {
+      "id": 3007,
+      "name": "Matching"
+    },
+    {
+      "id": 2949,
+      "name": "Measurement Movement"
+    },
+    {
+      "id": 2981,
+      "name": "Melding and Splaying"
+    },
+    {
+      "id": 2047,
+      "name": "Memory"
+    },
+    {
+      "id": 2863,
+      "name": "Minimap Resolution"
+    },
+    {
+      "id": 2011,
+      "name": "Modular Board"
+    },
+    {
+      "id": 2962,
+      "name": "Move Through Deck"
+    },
+    {
+      "id": 2947,
+      "name": "Movement Points"
+    },
+    {
+      "id": 2963,
+      "name": "Movement Template"
+    },
+    {
+      "id": 2958,
+      "name": "Moving Multiple Units"
+    },
+    {
+      "id": 3099,
+      "name": "Multi-Use Cards"
+    },
+    {
+      "id": 2965,
+      "name": "Multiple Maps"
+    },
+    {
+      "id": 2851,
+      "name": "Narrative Choice / Paragraph"
+    },
+    {
+      "id": 2915,
+      "name": "Negotiation"
+    },
+    {
+      "id": 3104,
+      "name": "Neighbor Scope"
+    },
+    {
+      "id": 2081,
+      "name": "Network and Route Building"
+    },
+    {
+      "id": 2846,
+      "name": "Once-Per-Game Abilities"
+    },
+    {
+      "id": 2041,
+      "name": "Open Drafting"
+    },
+    {
+      "id": 2844,
+      "name": "Order Counters"
+    },
+    {
+      "id": 3101,
+      "name": "Ordering"
+    },
+    {
+      "id": 2911,
+      "name": "Ownership"
+    },
+    {
+      "id": 2055,
+      "name": "Paper-and-Pencil"
+    },
+    {
+      "id": 2835,
+      "name": "Passed Action Token"
+    },
+    {
+      "id": 2048,
+      "name": "Pattern Building"
+    },
+    {
+      "id": 2946,
+      "name": "Pattern Movement"
+    },
+    {
+      "id": 2060,
+      "name": "Pattern Recognition"
+    },
+    {
+      "id": 2989,
+      "name": "Physical Removal"
+    },
+    {
+      "id": 2007,
+      "name": "Pick-up and Deliver"
+    },
+    {
+      "id": 2964,
+      "name": "Pieces as Map"
+    },
+    {
+      "id": 2685,
+      "name": "Player Elimination"
+    },
+    {
+      "id": 2865,
+      "name": "Player Judge"
+    },
+    {
+      "id": 2078,
+      "name": "Point to Point Movement"
+    },
+    {
+      "id": 3006,
+      "name": "Predictive Bid"
+    },
+    {
+      "id": 2858,
+      "name": "Prisoner's Dilemma"
+    },
+    {
+      "id": 2953,
+      "name": "Programmed Movement"
+    },
+    {
+      "id": 2661,
+      "name": "Push Your Luck"
+    },
+    {
+      "id": 3102,
+      "name": "Questions and Answers"
+    },
+    {
+      "id": 2876,
+      "name": "Race"
+    },
+    {
+      "id": 2909,
+      "name": "Random Production"
+    },
+    {
+      "id": 2855,
+      "name": "Ratio / Combat Results Table"
+    },
+    {
+      "id": 2870,
+      "name": "Re-rolling and Locking"
+    },
+    {
+      "id": 2831,
+      "name": "Real-Time"
+    },
+    {
+      "id": 2954,
+      "name": "Relative Movement"
+    },
+    {
+      "id": 3103,
+      "name": "Resource Queue"
+    },
+    {
+      "id": 2948,
+      "name": "Resource to Move"
+    },
+    {
+      "id": 2003,
+      "name": "Rock-Paper-Scissors"
+    },
+    {
+      "id": 2028,
+      "name": "Role Playing"
+    },
+    {
+      "id": 2892,
+      "name": "Roles with Asymmetric Information"
+    },
+    {
+      "id": 2035,
+      "name": "Roll / Spin and Move"
+    },
+    {
+      "id": 2813,
+      "name": "Rondel"
+    },
+    {
+      "id": 2822,
+      "name": "Scenario / Mission / Campaign Game"
+    },
+    {
+      "id": 2823,
+      "name": "Score-and-Reset Game"
+    },
+    {
+      "id": 2016,
+      "name": "Secret Unit Deployment"
+    },
+    {
+      "id": 2926,
+      "name": "Selection Order Bid"
+    },
+    {
+      "id": 2820,
+      "name": "Semi-Cooperative Game"
+    },
+    {
+      "id": 2004,
+      "name": "Set Collection"
+    },
+    {
+      "id": 2070,
+      "name": "Simulation"
+    },
+    {
+      "id": 2020,
+      "name": "Simultaneous Action Selection"
+    },
+    {
+      "id": 2038,
+      "name": "Singing"
+    },
+    {
+      "id": 2821,
+      "name": "Single Loser Game"
+    },
+    {
+      "id": 3005,
+      "name": "Slide / Push"
+    },
+    {
+      "id": 2819,
+      "name": "Solo / Solitaire Game"
+    },
+    {
+      "id": 2991,
+      "name": "Speed Matching"
+    },
+    {
+      "id": 3113,
+      "name": "Spelling"
+    },
+    {
+      "id": 2940,
+      "name": "Square Grid"
+    },
+    {
+      "id": 2988,
+      "name": "Stacking and Balancing"
+    },
+    {
+      "id": 2853,
+      "name": "Stat Check Resolution"
+    },
+    {
+      "id": 2861,
+      "name": "Static Capture"
+    },
+    {
+      "id": 2005,
+      "name": "Stock Holding"
+    },
+    {
+      "id": 2027,
+      "name": "Storytelling"
+    },
+    {
+      "id": 2884,
+      "name": "Sudden Death Ending"
+    },
+    {
+      "id": 3100,
+      "name": "Tags"
+    },
+    {
+      "id": 2686,
+      "name": "Take That"
+    },
+    {
+      "id": 2866,
+      "name": "Targeted Clues"
+    },
+    {
+      "id": 2019,
+      "name": "Team-Based Game"
+    },
+    {
+      "id": 2849,
+      "name": "Tech Trees / Tech Tracks"
+    },
+    {
+      "id": 2944,
+      "name": "Three Dimensional Movement"
+    },
+    {
+      "id": 2002,
+      "name": "Tile Placement"
+    },
+    {
+      "id": 2939,
+      "name": "Track Movement"
+    },
+    {
+      "id": 2008,
+      "name": "Trading"
+    },
+    {
+      "id": 2814,
+      "name": "Traitor Game"
+    },
+    {
+      "id": 2009,
+      "name": "Trick-taking"
+    },
+    {
+      "id": 2888,
+      "name": "Tug of War"
+    },
+    {
+      "id": 2827,
+      "name": "Turn Order: Auction"
+    },
+    {
+      "id": 2829,
+      "name": "Turn Order: Claim Action"
+    },
+    {
+      "id": 2830,
+      "name": "Turn Order: Pass Order"
+    },
+    {
+      "id": 2828,
+      "name": "Turn Order: Progressive"
+    },
+    {
+      "id": 2985,
+      "name": "Turn Order: Random"
+    },
+    {
+      "id": 2833,
+      "name": "Turn Order: Role Order"
+    },
+    {
+      "id": 2826,
+      "name": "Turn Order: Stat-Based"
+    },
+    {
+      "id": 2663,
+      "name": "Turn Order: Time Track"
+    },
+    {
+      "id": 2079,
+      "name": "Variable Phase Order"
+    },
+    {
+      "id": 2015,
+      "name": "Variable Player Powers"
+    },
+    {
+      "id": 2897,
+      "name": "Variable Set-up"
+    },
+    {
+      "id": 2874,
+      "name": "Victory Points as a Resource"
+    },
+    {
+      "id": 2017,
+      "name": "Voting"
+    },
+    {
+      "id": 2082,
+      "name": "Worker Placement"
+    },
+    {
+      "id": 2935,
+      "name": "Worker Placement with Dice Workers"
+    },
+    {
+      "id": 2933,
+      "name": "Worker Placement, Different Worker Types"
+    },
+    {
+      "id": 2974,
+      "name": "Zone of Control"
+    }
+  ]
+}

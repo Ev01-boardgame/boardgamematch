@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG 主題／機制 → 六軸對照表（v1）- MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .wrap { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+        .hero {
+            background: linear-gradient(135deg, #0d9488 0%, #4f46e5 100%);
+            color: #fff; padding: 1.5rem 1.25rem; border-radius: 1rem; margin-bottom: 1.25rem;
+        }
+        .hero h1 { margin: 0 0 0.5rem; font-size: 1.35rem; }
+        .hero p { margin: 0.35rem 0; font-size: 0.88rem; opacity: 0.95; line-height: 1.55; }
+        .card {
+            background: var(--card-bg); border-radius: 0.85rem; padding: 1.15rem 1.25rem;
+            margin-bottom: 1rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);
+        }
+        .card h2 { margin: 0 0 0.65rem; font-size: 1.05rem; }
+        .hint { font-size: 0.82rem; color: var(--text-light); line-height: 1.55; margin-bottom: 0.75rem; }
+        .meta-line { font-size: 0.78rem; color: var(--text-light); margin: 0 0 0.65rem; }
+        .filter-row { margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        .filter-row label { font-size: 0.86rem; color: var(--text-light); }
+        .filter-row input {
+            flex: 1; min-width: 12rem; max-width: 24rem; padding: 0.4rem 0.55rem;
+            border-radius: 0.4rem; border: 1px solid var(--border-color);
+        }
+        .axis-legend {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.45rem 1rem; font-size: 0.8rem; margin: 0.5rem 0 1rem;
+        }
+        .axis-legend code { font-size: 0.78rem; }
+        .table-wrap { overflow-x: auto; border-radius: 0.5rem; border: 1px solid var(--border-color); max-height: 70vh; }
+        table.axis-ref {
+            width: 100%; border-collapse: collapse; font-size: 0.78rem;
+        }
+        table.axis-ref th, table.axis-ref td {
+            padding: 0.4rem 0.45rem; text-align: left; border-bottom: 1px solid var(--border-color);
+        }
+        table.axis-ref th {
+            background: var(--bg-secondary, #f1f5f9); position: sticky; top: 0; z-index: 2;
+            white-space: nowrap;
+        }
+        table.axis-ref tbody tr:hover { background: rgba(13, 148, 136, 0.06); }
+        table.axis-ref .id { font-variant-numeric: tabular-nums; color: var(--text-light); width: 3.2rem; }
+        table.axis-ref .tag { font-weight: 600; color: var(--text-color); min-width: 8rem; max-width: 14rem; }
+        table.axis-ref .match { font-size: 0.72rem; max-width: 10rem; line-height: 1.35; }
+        table.axis-ref .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-light); }
+        table.axis-ref .num.nonzero { color: #0d9488; font-weight: 600; }
+        table.axis-ref .num.na { color: #94a3b8; }
+        table.axis-ref a.bgg-link { color: #4f46e5; text-decoration: none; font-weight: 600; }
+        table.axis-ref a.bgg-link:hover { text-decoration: underline; }
+        .badge { display: inline-block; font-size: 0.68rem; padding: 0.1rem 0.32rem; border-radius: 0.25rem; font-weight: 600; }
+        .badge-exact { background: #d1fae5; color: #065f46; }
+        .badge-fuzzy { background: #fef3c7; color: #92400e; }
+        .badge-none { background: #e2e8f0; color: #475569; }
+        .count { font-size: 0.82rem; color: var(--text-light); margin-top: 0.35rem; line-height: 1.45; }
+        .links { margin-top: 0.75rem; font-size: 0.88rem; }
+        .links a { color: #0d9488; font-weight: 600; }
+        .load-err { padding: 1rem; background: #fef2f2; color: #b91c1c; border-radius: 0.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo"><span class="navbar-logo-text">MBTI × 桌遊配對</span></a>
+            <div class="navbar-links">
+                <a href="admin.html">管理後台</a>
+                <a href="admin-bgg-axis-sync.html">六軸掃描</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrap">
+        <div class="hero">
+            <h1>BGG 官方主題／機制 → 六軸 delta（v1）</h1>
+            <p>左側為 BoardGameGeek <strong>browse 頁上的全部 Categories 與 Mechanics</strong>（站內快照：<code>public/data/bgg-taxonomy.json</code>）。右側六欄為 <code>bgg-axis-deltas-v1.js</code> 的<strong>加總修正量（delta）</strong>，與掃描頁 <code>applyDeltasForTags</code> 比對規則一致（先精確小寫名，僅一個命中時才用子字串近似）。</p>
+            <p>delta 會加在由 complexity 等算出的<strong>基底六軸</strong>上，再 clamp 到 0–12；未顯示數字表示 v1 尚未為該標籤設定 delta。</p>
+        </div>
+
+        <div id="taxonomy-error" class="load-err" style="display:none;"></div>
+        <p class="meta-line" id="taxonomy-meta"></p>
+
+        <div class="card">
+            <h2>六軸欄位說明</h2>
+            <div class="axis-legend" id="axis-legend"></div>
+        </div>
+
+        <div class="card">
+            <h2>BGG Categories（官方主題，全表）</h2>
+            <p class="hint">名稱與 BGG 官網一致；資料庫／Jina 常為小寫英文，比對時會正規化。若 BGG 新增分類，請更新快照並執行 <code>node scripts/build-bgg-taxonomy.mjs</code>。</p>
+            <div class="filter-row">
+                <label for="filter-cat">篩選</label>
+                <input type="search" id="filter-cat" placeholder="名稱或 BGG ID…" autocomplete="off">
+            </div>
+            <div class="table-wrap">
+                <table class="axis-ref" id="table-cat">
+                    <thead><tr id="thead-cat"></tr></thead>
+                    <tbody id="tbody-cat"></tbody>
+                </table>
+            </div>
+            <div class="count" id="count-cat"></div>
+        </div>
+
+        <div class="card">
+            <h2>BGG Mechanics（官方機制，全表）</h2>
+            <p class="hint">與遊戲 XML／頁面上的 Mechanic 名稱一致。v1 delta 鍵名多為小寫（例如 <code>deck building</code> 對應官網 “Deck, Bag, and Pool Building” 可能顯示「未設定」，需擴充 <code>bgg-axis-deltas-v1.js</code>）。</p>
+            <div class="filter-row">
+                <label for="filter-mech">篩選</label>
+                <input type="search" id="filter-mech" placeholder="名稱或 BGG ID…" autocomplete="off">
+            </div>
+            <div class="table-wrap">
+                <table class="axis-ref" id="table-mech">
+                    <thead><tr id="thead-mech"></tr></thead>
+                    <tbody id="tbody-mech"></tbody>
+                </table>
+            </div>
+            <div class="count" id="count-mech"></div>
+        </div>
+
+        <p class="links">
+            ← <a href="admin-bgg-axis-sync.html">回到 BGG ID 掃描 · 六軸補齊</a>
+            &nbsp;·&nbsp;
+            <a href="admin.html">管理後台</a>
+        </p>
+    </div>
+
+    <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script>
+    (function () {
+        const V = window.BGG_AXIS_V1;
+        if (!V) {
+            document.body.insertAdjacentHTML('afterbegin', '<p class="load-err" style="display:block">載入 bgg-axis-deltas-v1.js 失敗</p>');
+            return;
+        }
+        const { AXIS_KEYS, AXIS_LABELS_ZH, CATEGORY_AXIS_DELTAS, MECHANIC_AXIS_DELTAS } = V;
+
+        function normTag(s) {
+            return String(s || '').trim().toLowerCase().replace(/\u2019/g, "'");
+        }
+
+        /** 與 admin-bgg-axis-sync 的 applyDeltasForTags 一致：僅唯一子字串命中才用 fuzzy */
+        function lookupDelta(rawName, dict) {
+            const t = normTag(rawName);
+            if (!t) return { delta: null, kind: 'none', key: '' };
+            let d = dict[t];
+            if (d) return { delta: d, kind: 'exact', key: t };
+            const keys = Object.keys(dict);
+            const hits = keys.filter(k => t.includes(k) || k.includes(t));
+            if (hits.length === 1) return { delta: dict[hits[0]], kind: 'fuzzy', key: hits[0] };
+            return { delta: null, kind: 'none', key: '' };
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function cellClass(v) {
+            const n = Number(v);
+            if (v == null || v === '' || isNaN(n)) return 'num na';
+            if (n === 0) return 'num';
+            return 'num nonzero';
+        }
+
+        function buildHeader(theadTr) {
+            theadTr.innerHTML =
+                '<th class="id">ID</th>' +
+                '<th class="tag">官方名稱</th>' +
+                '<th class="match">v1 對照</th>' +
+                AXIS_KEYS.map(k => '<th class="num">' + escapeHtml(k) + '</th>').join('');
+        }
+
+        function renderRows(tbody, items, bggPathSeg, dict, filter) {
+            const q = (filter || '').trim().toLowerCase();
+            const filtered = !q ? items : items.filter(it => {
+                const idStr = String(it.id);
+                return normTag(it.name).includes(q) || idStr.includes(q);
+            });
+            tbody.innerHTML = filtered.map(it => {
+                const look = lookupDelta(it.name, dict);
+                const d = look.delta || {};
+                const cells = AXIS_KEYS.map(k => {
+                    const v = d[k];
+                    const show = v != null && v !== '' && !isNaN(Number(v)) ? v : '—';
+                    return '<td class="' + cellClass(v) + '">' + show + '</td>';
+                }).join('');
+                let badge = '<span class="badge badge-none">未設定</span>';
+                let sub = '';
+                if (look.kind === 'exact') {
+                    badge = '<span class="badge badge-exact">精確</span>';
+                } else if (look.kind === 'fuzzy') {
+                    badge = '<span class="badge badge-fuzzy">近似</span>';
+                    sub = '<div style="margin-top:0.2rem;opacity:0.85;">→ ' + escapeHtml(look.key) + '</div>';
+                }
+                const url = 'https://boardgamegeek.com/' + bggPathSeg + '/' + it.id;
+                return '<tr>' +
+                    '<td class="id">' + it.id + '</td>' +
+                    '<td class="tag"><a class="bgg-link" href="' + url + '" target="_blank" rel="noopener">' + escapeHtml(it.name) + '</a></td>' +
+                    '<td class="match">' + badge + sub + '</td>' +
+                    cells +
+                    '</tr>';
+            }).join('');
+            return { shown: filtered.length, total: items.length };
+        }
+
+        const legendEl = document.getElementById('axis-legend');
+        legendEl.innerHTML = AXIS_KEYS.map(k =>
+            '<div><code>' + k + '</code> — ' + escapeHtml(AXIS_LABELS_ZH[k] || '') + '</div>'
+        ).join('');
+
+        buildHeader(document.getElementById('thead-cat'));
+        buildHeader(document.getElementById('thead-mech'));
+
+        const tbodyCat = document.getElementById('tbody-cat');
+        const tbodyMech = document.getElementById('tbody-mech');
+        const filterCat = document.getElementById('filter-cat');
+        const filterMech = document.getElementById('filter-mech');
+        let taxonomy = { categories: [], mechanics: [], meta: {} };
+
+        function refreshCat() {
+            const r = renderRows(tbodyCat, taxonomy.categories, 'boardgamecategory', CATEGORY_AXIS_DELTAS, filterCat.value);
+            const covered = taxonomy.categories.filter(it => lookupDelta(it.name, CATEGORY_AXIS_DELTAS).delta).length;
+            document.getElementById('count-cat').innerHTML =
+                '顯示 <strong>' + r.shown + '</strong> / 共 <strong>' + r.total + '</strong> 筆（官方 browse 快照）<br>' +
+                'v1 有設定 delta（精確或唯一近似）：<strong>' + covered + '</strong> / ' + r.total;
+        }
+        function refreshMech() {
+            const r = renderRows(tbodyMech, taxonomy.mechanics, 'boardgamemechanic', MECHANIC_AXIS_DELTAS, filterMech.value);
+            const covered = taxonomy.mechanics.filter(it => lookupDelta(it.name, MECHANIC_AXIS_DELTAS).delta).length;
+            document.getElementById('count-mech').innerHTML =
+                '顯示 <strong>' + r.shown + '</strong> / 共 <strong>' + r.total + '</strong> 筆（官方 browse 快照）<br>' +
+                'v1 有設定 delta（精確或唯一近似）：<strong>' + covered + '</strong> / ' + r.total;
+        }
+
+        filterCat.addEventListener('input', refreshCat);
+        filterMech.addEventListener('input', refreshMech);
+
+        async function loadTaxonomyJson() {
+            if (window.location.protocol === 'file:') {
+                throw new Error('你是用「檔案總管雙擊」開這頁（網址列是 file://）。這種方式無法載入同資料夾的 JSON。請改用 VS Code 的 Live Server（網址要是 http://127.0.0.1:xxxx/...）。');
+            }
+            const tryUrls = [
+                new URL('data/bgg-taxonomy.json?v=1', window.location.href).href,
+                new URL('public/data/bgg-taxonomy.json?v=1', window.location.origin + '/').href
+            ];
+            const seen = new Set();
+            let lastErr = '';
+            for (const url of tryUrls) {
+                if (seen.has(url)) continue;
+                seen.add(url);
+                try {
+                    const r = await fetch(url);
+                    if (r.ok) return r.json();
+                    lastErr = 'HTTP ' + r.status + '：' + url;
+                } catch (err) {
+                    lastErr = (err && err.message) ? err.message : String(err);
+                }
+            }
+            throw new Error(lastErr || '無法載入資料');
+        }
+
+        loadTaxonomyJson()
+            .then(data => {
+                taxonomy = data;
+                const m = data.meta || {};
+                document.getElementById('taxonomy-meta').textContent =
+                    '資料快照：' + (m.generatedAt || '—') + ' · ' + (m.note || '');
+                refreshCat();
+                refreshMech();
+            })
+            .catch(e => {
+                const el = document.getElementById('taxonomy-error');
+                el.style.display = 'block';
+                el.innerHTML =
+                    '<strong>無法載入 <code>data/bgg-taxonomy.json</code></strong><br>' +
+                    escapeHtml(e.message) +
+                    '<br><br>' +
+                    '<strong>請這樣做：</strong><br>' +
+                    '1. 用 <strong>Live Server</strong>（或任何本機網頁伺服器）開站，網址要是 <code>http://...</code>，不要用 <code>file://</code>。<br>' +
+                    '2. 確認專案裡有檔案 <code>public/data/bgg-taxonomy.json</code>；若沒有，在專案根目錄執行：<code>node scripts/build-bgg-taxonomy.mjs</code><br>' +
+                    '3. 若 Live Server 根目錄設成「整個專案」，請開：<code>public/admin-bgg-axis-reference.html</code>（這樣才會讀到 <code>public/data/</code>）。';
+            });
+    })();
+    </script>
+</body>
+</html>
