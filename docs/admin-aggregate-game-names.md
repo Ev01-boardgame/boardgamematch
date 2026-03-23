@@ -9,7 +9,7 @@
 - **驗證**（與既有 Worker 一致）：
   - 若設定了 `API_SECRET`，需 `X-Api-Key`
   - 需 `Authorization: Bearer <Google JWT>`
-  - JWT 對應的 `sub` 須在 `admin_whitelist` 且 `is_active = 1`
+  - JWT 對應的 `sub` 須在 `admin_whitelist` 且 `is_active = 1`，**或**與 `public/js/admin-auth.js` 的 `SUPER_ADMIN_IDS` 相同（寫在 `worker.js` 的 `SUPER_ADMIN_GOOGLE_IDS`）
 
 ## 回應 JSON
 
