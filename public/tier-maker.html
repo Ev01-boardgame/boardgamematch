@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🥇 桌遊排名圖 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260322">
+    <link rel="stylesheet" href="css/styles.css?v=20260323">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         .tier-file-btn {
@@ -348,10 +348,10 @@
             border-radius: 6px 0 0 6px;
         }
         .tier-label:active { cursor: grabbing; }
-        /** 「很喜歡–或許適合你」預設：中英分行、字級較小（約小兩階） */
+        /** 「很喜歡–或許適合你」：中英分行、全部分級標籤統一字級（約比 1rem 小兩階；勿再逐列 fit 以免每列大小不一） */
         #tierRows.tier-preset-awesome .tier-label {
-            font-size: 0.75rem;
-            line-height: 1.08;
+            font-size: 0.65rem;
+            line-height: 1.12;
         }
         .tier-zone {
             flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
@@ -1301,6 +1301,8 @@
         function fitTierLabelFont(labelEl) {
             if (!labelEl) return;
             labelEl.style.fontSize = '';
+            /** awesome 預設已用 CSS 固定小字；若再跑逐列縮放，會變成「每列字級不一」像只有某幾列變小 */
+            if (rowsEl.classList.contains('tier-preset-awesome')) return;
             let fs = parseFloat(getComputedStyle(labelEl).fontSize) || 14;
             const maxFs = 18;
             const minFs = 5;
