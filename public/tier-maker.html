@@ -287,6 +287,8 @@
             --tier-cell: 72px;
             --tier-gap: 4px;
             --tier-label-w: 64px;
+            /* 分級字級滑條：1 = 100%，與封面邊長一併影響 awesome／一般預設 */
+            --tier-label-scale: 1;
         }
         .tier-layout-range {
             display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
@@ -329,7 +331,8 @@
         }
         .tier-row {
             display: flex; align-items: stretch;
-            min-height: calc(var(--tier-cell, 72px) + 12px);
+            /* 略貼齊封面高度，減少列底空白（+8 搭配 .tier-zone 內距） */
+            min-height: calc(var(--tier-cell, 72px) + 8px);
             margin-bottom: 4px; border-radius: 6px;
             /* 讓插入線可落在列與列之間的縫隙（export 底色上），勿裁切 */
             overflow: visible;
@@ -348,14 +351,23 @@
             border-radius: 6px 0 0 6px;
         }
         .tier-label:active { cursor: grabbing; }
-        /** 「很喜歡–或許適合你」：中英分行、全部分級標籤統一字級（約比 1rem 小兩階；勿再逐列 fit 以免每列大小不一） */
+        /**
+         * 「很喜歡–或許適合你」：中英分行、全列同一字級；隨封面邊長與 --tier-label-scale 自動放大縮小。
+         * 勿再逐列 fitTierLabelFont，以免每列大小不一。
+         */
         #tierRows.tier-preset-awesome .tier-label {
-            font-size: 0.65rem;
+            font-size: clamp(
+                9px,
+                calc(0.14 * var(--tier-cell, 72px) * var(--tier-label-scale, 1)),
+                min(22px, calc(0.26 * var(--tier-cell, 72px)))
+            );
             line-height: 1.12;
         }
         .tier-zone {
             flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
-            gap: var(--tier-gap, 4px); padding: 5px 6px;
+            gap: var(--tier-gap, 4px);
+            /* 上／左右略收、下緣更貼邊，封面看起來更大、更靠分級區底線 */
+            padding: 4px 5px 2px;
             min-height: var(--tier-cell, 72px);
             background: rgba(0,0,0,0.18);
             position: relative;
@@ -365,7 +377,7 @@
         }
         .tier-item {
             width: var(--tier-cell, 72px); height: var(--tier-cell, 72px); border-radius: 6px; overflow: hidden; cursor: grab;
-            border: 2px solid rgba(255,255,255,0.22); flex-shrink: 0; position: relative;
+            border: 1.5px solid rgba(255,255,255,0.24); flex-shrink: 0; position: relative;
             box-sizing: border-box;
         }
         .tier-item .tier-cell-inner { border-radius: 4px; overflow: hidden; width: 100%; height: 100%; }
@@ -635,6 +647,11 @@
                         <label for="tierCellRange">封面邊長</label>
                         <input type="range" id="tierCellRange" min="48" max="120" value="72" step="2">
                         <span class="tier-layout-val" id="tierCellVal">72px</span>
+                    </div>
+                    <div class="tier-layout-range">
+                        <label for="tierLabelScaleRange" title="與封面邊長連動；「很喜歡」預設也會跟著變">分級字級</label>
+                        <input type="range" id="tierLabelScaleRange" min="70" max="140" value="100" step="5" title="70%–140%">
+                        <span class="tier-layout-val" id="tierLabelScaleVal">100%</span>
                     </div>
                     <button type="button" class="btn-outline" id="btnAddTierRow" style="margin-top:0.55rem;">＋ 新增階層</button>
                 </section>
@@ -1301,12 +1318,17 @@
         function fitTierLabelFont(labelEl) {
             if (!labelEl) return;
             labelEl.style.fontSize = '';
-            /** awesome 預設已用 CSS 固定小字；若再跑逐列縮放，會變成「每列字級不一」像只有某幾列變小 */
+            /** awesome 預設用 CSS clamp（隨 --tier-cell／--tier-label-scale）；勿逐列 fit */
             if (rowsEl.classList.contains('tier-preset-awesome')) return;
-            let fs = parseFloat(getComputedStyle(labelEl).fontSize) || 14;
-            const maxFs = 18;
+            const rootStyle = getComputedStyle(document.documentElement);
+            const cell = parseFloat(rootStyle.getPropertyValue('--tier-cell')) || 72;
+            const scaleMul = parseFloat(rootStyle.getPropertyValue('--tier-label-scale')) || 1;
+            const ratio = (cell / 72) * scaleMul;
+            const basePx = parseFloat(getComputedStyle(labelEl).fontSize) || 16;
+            /** 封面邊長變大時提高字級上限，再依高度縮到不溢出 */
+            const maxFs = Math.min(28, 11 + cell * 0.22);
             const minFs = 5;
-            fs = Math.min(maxFs, fs);
+            let fs = Math.min(maxFs, basePx * ratio);
             labelEl.style.fontSize = fs + 'px';
             const maxH = labelEl.clientHeight;
             if (maxH < 8) return;
@@ -1547,11 +1569,13 @@
         function applyTierStylePreset(presetKey) {
             const p = TIER_STYLE_PRESETS[presetKey];
             if (!p) return;
-            TIERS = tiersFromPresetLabels(p.labels);
-            buildRows();
+            // 必須先更新 chip 的 .active，再 buildRows()，否則 syncTierRowsPresetClass()
+            // 會依「上一個預設」套 class（awesome 不會變小字、切走後仍卡 tier-preset-awesome）。
             document.querySelectorAll('#tierPresetChips .chip').forEach(c => {
                 c.classList.toggle('active', c.dataset.preset === presetKey);
             });
+            TIERS = tiersFromPresetLabels(p.labels);
+            buildRows();
         }
 
         let tierRowPopoverTargetId = null;
@@ -2499,16 +2523,21 @@
         function applyTierLayoutVars() {
             const gapEl = document.getElementById('tierGapRange');
             const cellEl = document.getElementById('tierCellRange');
+            const scaleEl = document.getElementById('tierLabelScaleRange');
             const gap = gapEl ? Math.max(0, parseInt(gapEl.value, 10) || 0) : 4;
             const cell = cellEl ? Math.max(40, parseInt(cellEl.value, 10) || 72) : 72;
+            const scalePct = scaleEl ? Math.max(70, Math.min(140, parseInt(scaleEl.value, 10) || 100)) : 100;
             document.documentElement.style.setProperty('--tier-gap', gap + 'px');
             document.documentElement.style.setProperty('--tier-cell', cell + 'px');
+            document.documentElement.style.setProperty('--tier-label-scale', String(scalePct / 100));
             const lw = Math.max(52, Math.min(100, Math.round(cell * 0.9)));
             document.documentElement.style.setProperty('--tier-label-w', lw + 'px');
             const gv = document.getElementById('tierGapVal');
             const cv = document.getElementById('tierCellVal');
+            const sv = document.getElementById('tierLabelScaleVal');
             if (gv) gv.textContent = gap + 'px';
             if (cv) cv.textContent = cell + 'px';
+            if (sv) sv.textContent = scalePct + '%';
             requestAnimationFrame(() => {
                 document.querySelectorAll('#tierRows .tier-label').forEach(fitTierLabelFont);
             });
@@ -2516,6 +2545,8 @@
 
         document.getElementById('tierGapRange').addEventListener('input', applyTierLayoutVars);
         document.getElementById('tierCellRange').addEventListener('input', applyTierLayoutVars);
+        const tierLabelScaleRange = document.getElementById('tierLabelScaleRange');
+        if (tierLabelScaleRange) tierLabelScaleRange.addEventListener('input', applyTierLayoutVars);
 
         buildRows();
         applyTierLayoutVars();
