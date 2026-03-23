@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🥇 桌遊排名圖 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260321">
+    <link rel="stylesheet" href="css/styles.css?v=20260322">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         .tier-file-btn {
@@ -348,6 +348,11 @@
             border-radius: 6px 0 0 6px;
         }
         .tier-label:active { cursor: grabbing; }
+        /** 「很喜歡–或許適合你」預設：中英分行、字級較小（約小兩階） */
+        #tierRows.tier-preset-awesome .tier-label {
+            font-size: 0.75rem;
+            line-height: 1.08;
+        }
         .tier-zone {
             flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start;
             gap: var(--tier-gap, 4px); padding: 5px 6px;
@@ -752,7 +757,7 @@
     <div id="tier-row-popover" aria-hidden="true">
         <h4 id="tier-row-pop-title">編輯此階層</h4>
         <div class="form-row">
-            <label>等級名稱（可換行；中英建議同一行用空白，例如「很喜歡 Awesome」）</label>
+            <label>等級名稱（可換行；中英分行請用 Enter，例如「很喜歡」換行後「Awesome」）</label>
             <textarea id="tier-row-pop-label" rows="4" maxlength="200"></textarea>
         </div>
         <div class="form-row">
@@ -795,11 +800,11 @@
             youwu: { labels: ['優', '甲', '乙', '丙', '丁', '戊'] },
             awesome: {
                 labels: [
-                    '很喜歡 Awesome',
-                    '喜歡 Great',
-                    '不錯 Good',
-                    '普通 Okay',
-                    '或許適合你 Not for me'
+                    '很喜歡\nAwesome',
+                    '喜歡\nGreat',
+                    '不錯\nGood',
+                    '普通\nOkay',
+                    '或許適合你\nNot for me'
                 ]
             },
             bopomofo: { labels: ['ㄅ', 'ㄆ', 'ㄇ', 'ㄈ', 'ㄦ'] },
@@ -1528,6 +1533,13 @@
                     rowsEl.querySelectorAll('.tier-label').forEach(fitTierLabelFont);
                 });
             });
+            syncTierRowsPresetClass();
+        }
+
+        function syncTierRowsPresetClass() {
+            const active = document.querySelector('#tierPresetChips .chip.active');
+            const key = active?.dataset.preset || '';
+            rowsEl.classList.toggle('tier-preset-awesome', key === 'awesome');
         }
 
         function applyTierStylePreset(presetKey) {
@@ -2083,6 +2095,86 @@
             }
         }
 
+        /** 匯出：單行依寬度強制斷行，避免分級標籤溢出（預覽有 CSS 裁切，Canvas 需 clip + 換行 + 縮字） */
+        function wrapExportLabelLineToMaxWidth(ctx, line, maxW) {
+            if (!line) return [];
+            if (ctx.measureText(line).width <= maxW) return [line];
+            const arr = [];
+            let cur = '';
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                const t = cur + ch;
+                if (cur && ctx.measureText(t).width > maxW) {
+                    arr.push(cur);
+                    cur = ch;
+                } else {
+                    cur = t;
+                }
+            }
+            if (cur) arr.push(cur);
+            return arr;
+        }
+
+        function buildExportTierLabelLines(ctx, rawText, maxW) {
+            const out = [];
+            for (const para of String(rawText || '').split(/\r?\n/)) {
+                if (para === '') {
+                    out.push('');
+                } else {
+                    out.push(...wrapExportLabelLineToMaxWidth(ctx, para, maxW));
+                }
+            }
+            return out.length ? out : [''];
+        }
+
+        function exportLabelLinesBlockHeight(lines, lineH) {
+            return lines.reduce((sum, l) => sum + (l === '' ? lineH * 0.35 : lineH), 0);
+        }
+
+        function drawExportTierLabelText(ctx, lr, labelEl, tc) {
+            const csL = getComputedStyle(labelEl);
+            const family = csL.fontFamily || 'system-ui, "Segoe UI", sans-serif';
+            const pad = 2;
+            const maxW = Math.max(4, lr.w - 2 * pad);
+            const maxH = Math.max(4, lr.h - 2 * pad);
+            let fs = parseFloat(csL.fontSize) || 14;
+            const minFs = 4;
+            let lines = [''];
+            for (let g = 0; g < 60; g++) {
+                ctx.font = `800 ${fs}px ${family}`;
+                lines = buildExportTierLabelLines(ctx, labelEl.textContent, maxW);
+                const lineH = fs * 1.15;
+                const totalH = exportLabelLinesBlockHeight(lines, lineH);
+                const tooWide = lines.some(l => l && ctx.measureText(l).width > maxW + 1);
+                if (totalH <= maxH && !tooWide) break;
+                fs -= 0.45;
+                if (fs < minFs) break;
+            }
+            ctx.save();
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(lr.x, lr.y, lr.w, lr.h, [6, 0, 0, 6]);
+            } else {
+                ctx.rect(lr.x, lr.y, lr.w, lr.h);
+            }
+            ctx.clip();
+            ctx.fillStyle = tc;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const lineH = fs * 1.15;
+            const blockH = exportLabelLinesBlockHeight(lines, lineH);
+            let y = lr.y + pad + Math.max(0, (maxH - blockH) / 2);
+            for (const line of lines) {
+                if (line === '') {
+                    y += lineH * 0.35;
+                    continue;
+                }
+                ctx.fillText(line, lr.x + lr.w / 2, y + lineH / 2);
+                y += lineH;
+            }
+            ctx.restore();
+        }
+
         async function renderTierListToCanvas() {
             const root = document.getElementById('export-root');
             if (typeof html2canvas !== 'function') {
@@ -2174,19 +2266,7 @@
                 }
 
                 const tc = textColorForBg(hx);
-                ctx.fillStyle = tc;
-                const csL = getComputedStyle(labelEl);
-                ctx.font = csL.font || `800 ${parseFloat(csL.fontSize) || 14}px ${csL.fontFamily || 'sans-serif'}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const lines = (labelEl.textContent || '').split(/\r?\n/);
-                const fs = parseFloat(csL.fontSize) || 14;
-                const lineH = fs * 1.15;
-                const totalH = lines.length * lineH;
-                let startY = lr.y + lr.h / 2 - totalH / 2 + lineH / 2;
-                lines.forEach((line, i) => {
-                    ctx.fillText(line, lr.x + lr.w / 2, startY + i * lineH);
-                });
+                drawExportTierLabelText(ctx, lr, labelEl, tc);
 
                 const zrRaw = rectRelativeToExportRoot(root, zone);
                 const zr = { ...zrRaw, y: zrRaw.y + yOff };
