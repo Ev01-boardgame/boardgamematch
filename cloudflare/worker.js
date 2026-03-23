@@ -3,6 +3,7 @@
  * 模擬 Genspark tables/xxx API 格式，對接 Cloudflare D1
  *
  * 路由：
+ *   GET    /admin/aggregate-game-names - 管理員：遊戲名稱次數聚合 + 遊戲庫名稱（別名後台）
  *   GET    /tables/{table}           - 列表（支援 page, limit, search, sort）
  *   GET    /tables/{table}/{id}      - 單筆
  *   POST   /tables/{table}           - 新增
@@ -290,6 +291,48 @@ export default {
     }
 
     // ── 大頭貼讀取（GET /avatars/:userId）：公開，從 R2 回傳圖片，其他玩家可載入 ──
+    // ── Admin：遊戲名稱聚合（別名整合後台） GET /admin/aggregate-game-names
+    // 需 X-Api-Key（若已設定）+ JWT + admin_whitelist；回傳參與人數、各字串次數、遊戲庫 name_zh/name_en
+    if (url.pathname === '/admin/aggregate-game-names' && method === 'GET') {
+      const db = env.DB;
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
+      if (!token) return errorResponse('Authentication required', 401, origin, env);
+      let jwtPayload;
+      try {
+        jwtPayload = await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+      } catch (err) {
+        return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+      }
+      const isAdmin = await checkAdmin(db, jwtPayload.sub);
+      if (!isAdmin) return errorResponse('Admin access required', 403, origin, env);
+      try {
+        const [agg, games] = await Promise.all([
+          aggregateGameNamesForAdmin(db),
+          fetchGameDatabaseRowsForAliases(db)
+        ]);
+        const headers = corsHeaders(origin, env);
+        headers['Cache-Control'] = 'no-store';
+        Object.keys(headers).forEach(k => headers[k] === undefined && delete headers[k]);
+        return new Response(
+          JSON.stringify({
+            participatingUsers: agg.participatingUsers,
+            nameCounts: agg.nameCounts,
+            games
+          }),
+          { status: 200, headers }
+        );
+      } catch (e) {
+        console.error('aggregate-game-names', e);
+        return errorResponse(
+          'Aggregation failed: ' + (e && e.message ? e.message : 'unknown'),
+          500,
+          origin,
+          env
+        );
+      }
+    }
+
     const avatarPathMatch = url.pathname.match(/^\/avatars\/([^\/]+)$/);
     if (avatarPathMatch && method === 'GET') {
       const userId = avatarPathMatch[1];
@@ -614,6 +657,51 @@ function parseJsonArray(str) {
     } catch (e) { return []; }
   }
   return Array.isArray(str) ? str : [];
+}
+
+/** 別名後台：掃 users 四個清單欄位，聚合字串 → 次數（D1 端分批，避免單次回傳過大） */
+async function aggregateGameNamesForAdmin(db) {
+  const counts = new Map();
+  let participatingUsers = 0;
+  let offset = 0;
+  const BATCH = 500;
+  for (;;) {
+    const r = await db.prepare(
+      'SELECT liked_games, neutral_games, disliked_games, wishlist FROM users LIMIT ? OFFSET ?'
+    ).bind(BATCH, offset).all();
+    const rows = r.results || [];
+    if (rows.length === 0) break;
+    for (const row of rows) {
+      const merged = [
+        ...parseJsonArray(row.liked_games),
+        ...parseJsonArray(row.neutral_games),
+        ...parseJsonArray(row.disliked_games),
+        ...parseJsonArray(row.wishlist)
+      ];
+      if (merged.length) participatingUsers++;
+      for (const g of merged) {
+        const name = typeof g === 'string' ? g.trim() : '';
+        if (!name) continue;
+        counts.set(name, (counts.get(name) || 0) + 1);
+      }
+    }
+    if (rows.length < BATCH) break;
+    offset += BATCH;
+  }
+  const nameCounts = Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
+  return { participatingUsers, nameCounts };
+}
+
+/** 別名後台：僅需比對／自動完成用的遊戲名稱 */
+async function fetchGameDatabaseRowsForAliases(db) {
+  const columns = await getTableColumns(db, 'game_database');
+  const hasDeletedAt = columns.includes('deleted_at');
+  const whereBase = hasDeletedAt ? ' WHERE (deleted_at IS NULL OR deleted_at = \'\')' : '';
+  const r = await db.prepare(`SELECT name_zh, name_en FROM game_database${whereBase}`).all();
+  return (r.results || []).map(row => ({
+    name_zh: row.name_zh != null ? String(row.name_zh) : '',
+    name_en: row.name_en != null ? String(row.name_en) : ''
+  }));
 }
 
 async function recalcGameAxes(db) {

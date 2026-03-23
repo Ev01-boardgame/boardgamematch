@@ -291,6 +291,31 @@
             cursor: pointer;
         }
 
+        .alias-pagination {
+            display: none;
+            margin: 0.75rem 0 1rem;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .alias-pagination.is-visible {
+            display: flex;
+        }
+        .alias-pagination button {
+            padding: 0.4rem 1rem;
+            border-radius: 0.5rem;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .alias-pagination button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .conflict-info {
             background: #fef2f2;
             border: 1px solid #fee2e2;
@@ -494,6 +519,12 @@
             </div>
         </div>
 
+        <div id="alias-pagination" class="alias-pagination" aria-label="清單分頁">
+            <button type="button" id="alias-page-prev" onclick="goAliasPage(-1)">上一頁</button>
+            <span id="alias-page-info" style="font-size:0.9rem;color:var(--text-light);"></span>
+            <button type="button" id="alias-page-next" onclick="goAliasPage(1)">下一頁</button>
+        </div>
+
         <!-- 待整合清單 -->
         <div class="tab-content active" id="content-unintegrated">
             <div class="game-alias-grid" id="unintegrated-list">
@@ -536,6 +567,12 @@
         let allAliases = [];
         let allGames = [];
         let currentTab = 'unintegrated';
+        /** 最近一次篩選後的完整清單（分頁切片用） */
+        let lastFilteredAliases = [];
+        const ALIAS_PAGE_SIZE = 20;
+        let aliasListPage = 1;
+        /** 至少有一筆喜歡／中立／不喜歡／願望清單資料的使用者數（載入時計算） */
+        let statParticipatingUsers = 0;
 
         function authHeaders() {
             const h = { 'Content-Type': 'application/json' };
@@ -549,63 +586,83 @@
             await loadData();
         });
 
+        /** Worker 聚合 API 失敗時，改為整表載入（舊行為） */
+        async function loadGameStatsLegacy() {
+            const gamesCountRes = await fetch('tables/game_database?limit=1');
+            const gamesCountData = await gamesCountRes.json();
+            const gamesTotal = gamesCountData.total || 0;
+            const gamesBatchSize = 100;
+            const gamesBatches = Math.ceil(gamesTotal / gamesBatchSize);
+            allGames = [];
+            for (let i = 1; i <= gamesBatches; i++) {
+                const res = await fetch(`tables/game_database?limit=${gamesBatchSize}&page=${i}`);
+                const data = await res.json();
+                allGames = allGames.concat(data.data || []);
+            }
+
+            const usersCountRes = await fetch('tables/users?limit=1');
+            const usersCountData = await usersCountRes.json();
+            const usersTotal = usersCountData.total || 0;
+            const usersBatches = Math.ceil(usersTotal / 500);
+            let users = [];
+            for (let i = 1; i <= usersBatches; i++) {
+                const res = await fetch(`tables/users?limit=500&page=${i}`);
+                const data = await res.json();
+                users = users.concat(data.data || []);
+            }
+
+            const gameStats = new Map();
+            statParticipatingUsers = 0;
+            users.forEach(user => {
+                const allUserGames = [
+                    ...(user.liked_games || []),
+                    ...(user.neutral_games || []),
+                    ...(user.disliked_games || []),
+                    ...(user.wishlist || [])
+                ];
+                if (allUserGames.length > 0) statParticipatingUsers++;
+                allUserGames.forEach(game => {
+                    if (!gameStats.has(game)) gameStats.set(game, 0);
+                    gameStats.set(game, gameStats.get(game) + 1);
+                });
+            });
+            return gameStats;
+        }
+
         // 載入所有資料
         async function loadData() {
             try {
-                // 載入遊戲資料庫（分批抓全部）
-                const gamesCountRes = await fetch('tables/game_database?limit=1');
-                const gamesCountData = await gamesCountRes.json();
-                const gamesTotal = gamesCountData.total || 0;
-                const gamesBatchSize = 100;
-                const gamesBatches = Math.ceil(gamesTotal / gamesBatchSize);
-                allGames = [];
-                for (let i = 1; i <= gamesBatches; i++) {
-                    const res = await fetch(`tables/game_database?limit=${gamesBatchSize}&page=${i}`);
-                    const data = await res.json();
-                    allGames = allGames.concat(data.data || []);
+                let gameStats = new Map();
+
+                const aggRes = await fetch('admin/aggregate-game-names', { headers: authHeaders() });
+                if (aggRes.ok) {
+                    const agg = await aggRes.json();
+                    statParticipatingUsers = Number(agg.participatingUsers) || 0;
+                    allGames = Array.isArray(agg.games) ? agg.games : [];
+                    for (const row of agg.nameCounts || []) {
+                        if (row && row.name != null && row.name !== '') {
+                            gameStats.set(row.name, Number(row.count) || 0);
+                        }
+                    }
+                } else {
+                    console.warn('admin/aggregate-game-names 不可用（', aggRes.status, '），改為整表載入');
+                    gameStats = await loadGameStatsLegacy();
                 }
 
-                // 載入所有使用者資料（分批）
-                const usersCountRes = await fetch('tables/users?limit=1');
-                const usersCountData = await usersCountRes.json();
-                const usersTotal = usersCountData.total || 0;
-                const usersBatches = Math.ceil(usersTotal / 500);
-                let users = [];
-                for (let i = 1; i <= usersBatches; i++) {
-                    const res = await fetch(`tables/users?limit=500&page=${i}`);
-                    const data = await res.json();
-                    users = users.concat(data.data || []);
+                // 載入別名對應資料（分頁取回，超過單頁 limit 也不漏）
+                const existingAliases = [];
+                {
+                    const aliasPageSize = 500;
+                    let ap = 1;
+                    while (true) {
+                        const aliasesResponse = await fetch(`tables/game_aliases?limit=${aliasPageSize}&page=${ap}`);
+                        const aliasesData = await aliasesResponse.json();
+                        const batch = aliasesData.data || [];
+                        existingAliases.push(...batch);
+                        if (batch.length < aliasPageSize) break;
+                        ap++;
+                    }
                 }
-
-                // 載入別名對應資料
-                const aliasesResponse = await fetch('tables/game_aliases?limit=1000');
-                const aliasesData = await aliasesResponse.json();
-                const existingAliases = aliasesData.data || [];
-
-                // 統計所有遊戲名稱（從 liked_games, neutral_games, disliked_games, wishlist）
-                const gameStats = new Map();
-                const playersByGame = new Map();
-
-                users.forEach(user => {
-                    const allUserGames = [
-                        ...(user.liked_games || []),
-                        ...(user.neutral_games || []),
-                        ...(user.disliked_games || []),
-                        ...(user.wishlist || [])
-                    ];
-
-                    allUserGames.forEach(game => {
-                        if (!gameStats.has(game)) {
-                            gameStats.set(game, 0);
-                            playersByGame.set(game, []);
-                        }
-                        gameStats.set(game, gameStats.get(game) + 1);
-                        const displayName = user.nickname || user.username || user.email || '匿名玩家';
-                        if (!playersByGame.get(game).includes(displayName)) {
-                            playersByGame.get(game).push(displayName);
-                        }
-                    });
-                });
 
                 // 建立別名對應表
                 // game_aliases 結構：{ id, primary_name, aliases (array) }
@@ -636,7 +693,6 @@
                     return {
                         name: name,
                         count: count,
-                        players: playersByGame.get(name) || [],
                         isIntegrated: !!aliasInfo,
                         standardName: aliasInfo?.standard_name || '',
                         aliasId: aliasInfo?.id || null,
@@ -666,8 +722,6 @@
             const integrated = allAliases.filter(a => a.isIntegrated).length;
             const unintegrated = allAliases.filter(a => !a.isIntegrated && !a.isInDatabase).length;
             const inDatabase = allAliases.filter(a => a.isInDatabase).length;
-            const totalPlayers = new Set(allAliases.flatMap(a => a.players)).size;
-
             document.getElementById('stats-grid').innerHTML = `
                 <div class="stat-card">
                     <div class="stat-value">${total}</div>
@@ -686,8 +740,8 @@
                     <div class="stat-label">🎮 已在資料庫</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${totalPlayers}</div>
-                    <div class="stat-label">👥 參與玩家數</div>
+                    <div class="stat-value">${statParticipatingUsers}</div>
+                    <div class="stat-label">👥 有填清單的使用者數</div>
                 </div>
             `;
 
@@ -749,8 +803,42 @@
                 }
             });
 
-            // 渲染
-            renderAliases(filtered, `${currentTab}-list`);
+            lastFilteredAliases = filtered;
+            aliasListPage = 1;
+            applyAliasListPagination();
+        }
+
+        function applyAliasListPagination() {
+            const filtered = lastFilteredAliases;
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / ALIAS_PAGE_SIZE));
+            if (aliasListPage > totalPages) aliasListPage = totalPages;
+            if (aliasListPage < 1) aliasListPage = 1;
+            const start = (aliasListPage - 1) * ALIAS_PAGE_SIZE;
+            const pageSlice = filtered.slice(start, start + ALIAS_PAGE_SIZE);
+            renderAliases(pageSlice, `${currentTab}-list`);
+
+            const pagEl = document.getElementById('alias-pagination');
+            const infoEl = document.getElementById('alias-page-info');
+            const prevBtn = document.getElementById('alias-page-prev');
+            const nextBtn = document.getElementById('alias-page-next');
+            if (pagEl && infoEl && prevBtn && nextBtn) {
+                if (totalPages > 1) {
+                    pagEl.classList.add('is-visible');
+                    infoEl.textContent = `第 ${aliasListPage} / ${totalPages} 頁（共 ${total} 筆，每頁 ${ALIAS_PAGE_SIZE} 筆）`;
+                    prevBtn.disabled = aliasListPage <= 1;
+                    nextBtn.disabled = aliasListPage >= totalPages;
+                } else {
+                    pagEl.classList.remove('is-visible');
+                    infoEl.textContent = '';
+                }
+            }
+        }
+
+        function goAliasPage(delta) {
+            const totalPages = Math.max(1, Math.ceil(lastFilteredAliases.length / ALIAS_PAGE_SIZE));
+            aliasListPage = Math.max(1, Math.min(totalPages, aliasListPage + delta));
+            applyAliasListPagination();
         }
 
         // 渲染別名清單
@@ -835,16 +923,6 @@
                                 ✨ 此名稱已在遊戲資料庫中，無需建立別名
                             </div>
                         `}
-
-                        ${alias.players.length > 0 ? `
-                            <div class="players-list">
-                                <div class="players-list-title">使用此名稱的玩家：</div>
-                                <div class="player-tags">
-                                    ${alias.players.slice(0, 10).map(p => `<span class="player-tag">${p}</span>`).join('')}
-                                    ${alias.players.length > 10 ? `<span class="player-tag">+${alias.players.length - 10} 位</span>` : ''}
-                                </div>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
             }).join('');

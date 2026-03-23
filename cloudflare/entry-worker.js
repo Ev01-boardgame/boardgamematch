@@ -1,6 +1,6 @@
 /**
  * 入口 Worker：boardgamematch.com.tw
- * - /tables/* → 轉發到 mbti-boardgame-api，並帶上 X-Api-Key
+ * - /tables/*、/admin/*、/api/、/avatars/ → 轉發到 mbti-boardgame-api，並帶上 X-Api-Key
  * - 其他路徑 → 從 boardgamematch.pages.dev 取回畫面後回傳
  *
  * 部署：在 cloudflare 目錄下執行
@@ -13,8 +13,13 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // 1. /tables/、/api/、/avatars/ → 轉發到 D1 API Worker（含 R2 大頭貼）
-    if (url.pathname.startsWith('/tables/') || url.pathname.startsWith('/api/') || url.pathname.startsWith('/avatars/')) {
+    // 1. /tables/、/admin/、/api/、/avatars/ → 轉發到 D1 API Worker（含 R2 大頭貼）
+    if (
+      url.pathname.startsWith('/tables/') ||
+      url.pathname.startsWith('/admin/') ||
+      url.pathname.startsWith('/api/') ||
+      url.pathname.startsWith('/avatars/')
+    ) {
       const apiUrl = new URL(
         'https://mbti-boardgame-api.emailev01.workers.dev' +
           url.pathname +
