@@ -439,51 +439,63 @@
                 </div>
                 
                 <div class="form-group" style="margin-top:1rem;">
-                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（桌遊偏好匹配用，可留空）</label>
-                    <div style="display:flex; flex-direction:column; gap:0.6rem;">
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>🌱 易學</span>
-                                <span>📚 複雜</span>
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（BGG 推論 + 審稿 Δ → 最終 0–12）</label>
+                    <p style="font-size:0.78rem;color:var(--text-light);line-height:1.5;margin:0 0 0.6rem;">
+                        <strong>BGG 推論</strong>依資料庫的 category／mechanics／complexity 計算（與掃描工具相同對照表）。<strong>審稿 Δ</strong>可 ±6；<strong>最終值 = BGG + Δ 再強制限制在 0～12</strong>，不會超範圍。儲存時會寫入 <code>axis_*</code> 與 <code>axis_*_reviewer_delta</code>。
+                    </p>
+                    <div id="six-axes-panel-error" style="display:none;font-size:0.8rem;color:#b45309;background:#fffbeb;padding:0.45rem 0.55rem;border-radius:0.4rem;margin-bottom:0.5rem;"></div>
+                    <div style="display:flex; flex-direction:column; gap:0.75rem;" id="six-axes-panel">
+                        <!-- entry -->
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">門檻：🌱 易學 ↔ 📚 複雜</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-entry-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-entry-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;vertical-align:middle;"></div>
+                                <div>最終 <strong id="game-axis-entry-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-entry" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>😂 歡樂</span>
-                                <span>🧠 燒腦</span>
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">氛圍：😂 歡樂 ↔ 🧠 燒腦</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-mood-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-mood-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
+                                <div>最終 <strong id="game-axis-mood-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-mood" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>🎲 運氣</span>
-                                <span>♟️ 策略</span>
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">勝負：🎲 運氣 ↔ ♟️ 策略</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-control-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-control-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
+                                <div>最終 <strong id="game-axis-control-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-control" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>🗣️ 社交</span>
-                                <span>🧘 沉浸</span>
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">互動：🗣️ 社交 ↔ 🧘 沉浸</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-sociality-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-sociality-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
+                                <div>最終 <strong id="game-axis-sociality-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-sociality" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>☀️ 磊落</span>
-                                <span>🎭 心機</span>
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">心態：☀️ 磊落 ↔ 🎭 心機</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-openness-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-openness-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
+                                <div>最終 <strong id="game-axis-openness-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-openness" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
-                        <div>
-                            <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-light);margin-bottom:0.15rem;">
-                                <span>🤝 合作</span>
-                                <span>⚔️ 對抗</span>
+                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
+                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">立場：🤝 合作 ↔ ⚔️ 對抗</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
+                                <div>BGG <strong id="game-axis-competition-bgg">—</strong></div>
+                                <div>審稿 Δ <input type="range" id="game-axis-competition-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
+                                <div>最終 <strong id="game-axis-competition-final">—</strong></div>
                             </div>
-                            <input type="range" id="game-axis-competition" min="0" max="12" step="0.5" value="6" style="width:100%;">
                         </div>
                     </div>
+                    <p id="six-axes-db-hint" style="font-size:0.72rem;color:var(--text-light);margin:0.45rem 0 0;display:none;"></p>
                 </div>
 
                 <input type="hidden" id="game-id">
@@ -565,6 +577,8 @@
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
     <script src="js/admin-navbar-cleanup.js"></script>
     <script src="js/app.js?v=20260320"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script src="js/bgg-six-axes-compute.js?v=1"></script>
     <script src="js/show-admin-link.js"></script>
     <script>
         // ══ 分頁狀態 ══
@@ -821,6 +835,99 @@
 
         // filterGames 已在上方定義（伺服器端分頁 + 前端來源篩選）
 
+        const ADMIN_SIX_AXIS_KEYS = ['entry', 'mood', 'control', 'openness', 'sociality', 'competition'];
+        window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null };
+        window.__adminLastLoadedGame = window.__adminLastLoadedGame || null;
+
+        /** BGG 推論 + 審稿 Δ → 顯示最終（已 clamp 0–12） */
+        function refreshAdminSixAxesPanel() {
+            const err = document.getElementById('six-axes-panel-error');
+            const hint = document.getElementById('six-axes-db-hint');
+            if (err) err.style.display = 'none';
+            if (!window.BggSixAxesCompute) {
+                if (err) {
+                    err.textContent = '無法載入 bgg-six-axes-compute.js（請確認與 bgg-axis-deltas-v1.js 已載入）。';
+                    err.style.display = 'block';
+                }
+                return;
+            }
+            const meta = window.__adminGameEditMeta || { category: null, mechanics: null };
+            const cxEl = document.getElementById('game-complexity');
+            const cx = cxEl ? parseFloat(cxEl.value) : NaN;
+            const row = {
+                category: meta.category,
+                mechanics: meta.mechanics,
+                complexity: !isNaN(cx) ? cx : null
+            };
+            let bgg;
+            try {
+                bgg = window.BggSixAxesCompute.computeSixAxesFromRow(row);
+            } catch (e) {
+                if (err) {
+                    err.textContent = 'BGG 六軸計算失敗：' + (e && e.message ? e.message : e);
+                    err.style.display = 'block';
+                }
+                return;
+            }
+            const deltas = {};
+            ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const deltaEl = document.getElementById('game-axis-' + k + '-delta');
+                deltas[k] = deltaEl ? parseFloat(deltaEl.value) || 0 : 0;
+            });
+            const finalAxes = window.BggSixAxesCompute.mergeBggWithReviewerDelta(bgg, deltas);
+            ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const bEl = document.getElementById('game-axis-' + k + '-bgg');
+                const fEl = document.getElementById('game-axis-' + k + '-final');
+                if (bEl) bEl.textContent = bgg['axis_' + k] != null ? String(bgg['axis_' + k]) : '—';
+                if (fEl) fEl.textContent = finalAxes['axis_' + k] != null ? String(finalAxes['axis_' + k]) : '—';
+            });
+            if (hint) {
+                const gid = document.getElementById('game-id') && document.getElementById('game-id').value;
+                const sg = window.__adminLastLoadedGame;
+                const canHint = gid && sg && sg.id === gid;
+                if (canHint) {
+                    let mismatch = false;
+                    for (const k of ADMIN_SIX_AXIS_KEYS) {
+                        const db = Number(sg['axis_' + k]);
+                        const fn = Number(finalAxes['axis_' + k]);
+                        if (!isNaN(db) && !isNaN(fn) && Math.abs(db - fn) > 0.05) {
+                            mismatch = true;
+                            break;
+                        }
+                    }
+                    if (mismatch) {
+                        hint.style.display = 'block';
+                        hint.textContent = '提示：資料庫內既有 axis_* 與下方「BGG+審稿Δ」預覽不一致（可能為舊手動值或尚未執行 D1 migration）。儲存後將以預覽最終值覆寫 axis_*。';
+                    } else {
+                        hint.style.display = 'none';
+                    }
+                } else {
+                    hint.style.display = 'none';
+                }
+            }
+        }
+
+        function resetAdminSixAxesForNewGame() {
+            window.__adminGameEditMeta = { category: null, mechanics: null };
+            window.__adminLastLoadedGame = null;
+            ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const d = document.getElementById('game-axis-' + k + '-delta');
+                if (d) d.value = 0;
+            });
+            const h = document.getElementById('six-axes-db-hint');
+            if (h) h.style.display = 'none';
+            refreshAdminSixAxesPanel();
+        }
+
+        function initAdminSixAxesListeners() {
+            const cx = document.getElementById('game-complexity');
+            if (cx) cx.addEventListener('input', refreshAdminSixAxesPanel);
+            ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const d = document.getElementById('game-axis-' + k + '-delta');
+                if (d) d.addEventListener('input', refreshAdminSixAxesPanel);
+            });
+        }
+
         // 開啟彈窗
         function openModal(gameId = null) {
             document.getElementById('modal-title').textContent = gameId ? '編輯遊戲' : '新增遊戲';
@@ -832,6 +939,7 @@
                 document.getElementById('game-id').value = '';
                 document.getElementById('image-preview').innerHTML = '🎲';
                 setFetchStatus('', '');
+                resetAdminSixAxesForNewGame();
             }
             
             document.getElementById('game-modal').classList.add('active');
@@ -864,16 +972,22 @@
             document.getElementById('game-max-players').value = game.max_players || '';
             document.getElementById('game-playing-time').value = game.playing_time || '';
             document.getElementById('game-complexity').value = game.complexity || '';
-            // 新版 6 維度：若尚未設定則預設在中間值 6
-            const sixKeys = ['entry','mood','control','openness','sociality','competition'];
-            sixKeys.forEach(k => {
-                const el = document.getElementById('game-axis-' + k);
-                if (!el) return;
-                const v = game['axis_' + k];
-                el.value = (v != null && v !== '') ? v : 6;
+            window.__adminGameEditMeta = {
+                category: game.category,
+                mechanics: game.mechanics
+            };
+            window.__adminLastLoadedGame = game;
+            ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const deltaEl = document.getElementById('game-axis-' + k + '-delta');
+                if (!deltaEl) return;
+                const col = 'axis_' + k + '_reviewer_delta';
+                let dv = game[col];
+                if (dv == null || dv === '') dv = 0;
+                deltaEl.value = Number(dv);
             });
             document.getElementById('game-bgg-id').value = game.bgg_id || '';
             updateImagePreview();
+            refreshAdminSixAxesPanel();
         }
 
         // 編輯遊戲
@@ -921,13 +1035,31 @@
                 })(),
                 bgg_id:       document.getElementById('game-bgg-id').value.trim()
             };
-            const sixKeys = ['entry','mood','control','openness','sociality','competition'];
-            sixKeys.forEach(k => {
-                const el = document.getElementById('game-axis-' + k);
-                if (!el) return;
-                const v = parseFloat(el.value);
-                gameData['axis_' + k] = (!isNaN(v)) ? v : 6; // 一律存實際 slider 值，預設即為 6
-            });
+            if (window.BggSixAxesCompute) {
+                const meta = window.__adminGameEditMeta || { category: null, mechanics: null };
+                const cxRaw = parseFloat(document.getElementById('game-complexity').value);
+                const bgg = window.BggSixAxesCompute.computeSixAxesFromRow({
+                    category: meta.category,
+                    mechanics: meta.mechanics,
+                    complexity: !isNaN(cxRaw) ? cxRaw : null
+                });
+                const deltas = {};
+                ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                    const deltaEl = document.getElementById('game-axis-' + k + '-delta');
+                    const dv = deltaEl ? parseFloat(deltaEl.value) : 0;
+                    deltas[k] = !isNaN(dv) ? dv : 0;
+                    gameData['axis_' + k + '_reviewer_delta'] = deltas[k];
+                });
+                const finalAxes = window.BggSixAxesCompute.mergeBggWithReviewerDelta(bgg, deltas);
+                ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                    gameData['axis_' + k] = finalAxes['axis_' + k];
+                });
+            } else {
+                ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                    gameData['axis_' + k] = 6;
+                    gameData['axis_' + k + '_reviewer_delta'] = 0;
+                });
+            }
             
             // ── 新增前做重複把關 ──
             if (!gameId) {
@@ -1416,6 +1548,7 @@
         });
 
         // 初始化
+        initAdminSixAxesListeners();
         loadGames(1);
 
         // ════════════════════════════════════════════

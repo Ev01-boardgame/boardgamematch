@@ -90,6 +90,13 @@ CREATE TABLE IF NOT EXISTS game_database (
   axis_sociality REAL,
   -- 6) 競爭關係：合作 ↔ 對抗
   axis_competition REAL,
+  -- 審稿人對該軸的加減（與 BGG 推論相加後 clamp 0–12 寫入 axis_*）
+  axis_entry_reviewer_delta REAL DEFAULT 0,
+  axis_mood_reviewer_delta REAL DEFAULT 0,
+  axis_control_reviewer_delta REAL DEFAULT 0,
+  axis_openness_reviewer_delta REAL DEFAULT 0,
+  axis_sociality_reviewer_delta REAL DEFAULT 0,
+  axis_competition_reviewer_delta REAL DEFAULT 0,
   created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
   updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
 );
