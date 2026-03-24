@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
   wishlist TEXT DEFAULT '[]',
   owned_games TEXT DEFAULT '[]',
   to_buy_games TEXT DEFAULT '[]',
+  owned_games_bgg_pending TEXT DEFAULT '[]',
+  to_buy_games_bgg_pending TEXT DEFAULT '[]',
   pinned_games TEXT,
   daily_question_count INTEGER DEFAULT 0,
   last_question_date INTEGER,

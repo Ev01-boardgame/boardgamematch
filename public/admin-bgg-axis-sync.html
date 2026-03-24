@@ -222,6 +222,30 @@
             return c.length === 0 || m.length === 0;
         }
 
+        /** BGG XML 的數值欄在資料列是否缺漏（空字串視同缺） */
+        function numericMetaMissing(row) {
+            const n = (v) => v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
+            return n(row.year) || n(row.min_players) || n(row.max_players) || n(row.playing_time) || n(row.complexity);
+        }
+
+        /**
+         * 已存在列：把 xmlapi2/thing 的數值寫入 patch（先前完全沒寫，導致年份／人數／時間／複雜度永不更新）
+         * @param {boolean} force 對應「強制重抓 Jina」時一併覆寫 BGG 官方數值
+         */
+        function assignXmlBasicsToPatch(patch, row, xmlBasics, force) {
+            if (!xmlBasics) return;
+            const fill = force || numericMetaMissing(row);
+            if (!fill) return;
+            const fields = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'];
+            for (const f of fields) {
+                const v = xmlBasics[f];
+                if (v == null || v === '') continue;
+                if (force || row[f] == null || row[f] === '') {
+                    patch[f] = v;
+                }
+            }
+        }
+
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
         // ── 以下 Jina／解析：對齊 admin-bgg-import（不重複修改該檔）──
@@ -489,14 +513,23 @@
                     if (jina.mechanics.length) patch.mechanics = JSON.stringify(jina.mechanics);
                     if (jina.bggType) patch.bgg_type = jina.bggType;
                 }
+                assignXmlBasicsToPatch(patch, row, xmlBasics, forceMeta);
+
                 const effCat = parseJsonArrayField(patch.category !== undefined ? patch.category : row.category);
                 const effMech = parseJsonArrayField(patch.mechanics !== undefined ? patch.mechanics : row.mechanics);
-                const cx = row.complexity != null && row.complexity !== '' ? Number(row.complexity)
-                    : (xmlBasics && xmlBasics.complexity != null ? xmlBasics.complexity : null);
+                const cx = patch.complexity !== undefined && patch.complexity !== ''
+                    ? Number(patch.complexity)
+                    : (row.complexity != null && row.complexity !== '' ? Number(row.complexity)
+                        : (xmlBasics && xmlBasics.complexity != null ? xmlBasics.complexity : null));
                 const axes = computeSixAxes(effCat, effMech, cx);
+                const tagOrComplexityChanged = patch.category !== undefined || patch.mechanics !== undefined
+                    || patch.complexity !== undefined;
                 if (forceAxes || axesMissing(row)) {
                     Object.assign(patch, axes);
                 } else if (forceMeta && (effCat.length || effMech.length)) {
+                    Object.assign(patch, axes);
+                } else if (tagOrComplexityChanged) {
+                    // 僅補了 BGG 數值或日後單獨改 complexity 時，也要重算六軸（entry 依 complexity）
                     Object.assign(patch, axes);
                 }
 
