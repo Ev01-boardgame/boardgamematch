@@ -14,8 +14,31 @@
         }
         .hero h1 { margin: 0 0 0.4rem; font-size: 1.25rem; }
         .hero p { margin: 0.3rem 0; font-size: 0.85rem; opacity: 0.95; line-height: 1.5; }
+        .toolbar-wrap {
+            display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 0.75rem;
+        }
+        .toolbar-section {
+            border-radius: 0.55rem; padding: 0.65rem 0.75rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary, #f8fafc);
+        }
+        .toolbar-section--online {
+            border-color: rgba(13, 148, 136, 0.35);
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.06) 0%, rgba(91, 33, 182, 0.04) 100%);
+        }
+        .toolbar-section--offline {
+            border-color: rgba(100, 116, 139, 0.35);
+        }
+        .toolbar-label {
+            display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+            color: var(--text-light); margin-bottom: 0.45rem;
+        }
+        .toolbar-section--online .toolbar-label { color: #0f766e; }
+        .toolbar-section--offline .toolbar-label { color: #475569; }
+        .toolbar-section--filter { background: var(--card-bg); }
+        .toolbar-section--filter .toolbar-label { color: var(--text-light); margin-bottom: 0.35rem; }
         .toolbar {
-            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;
+            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
         }
         .toolbar button, .toolbar label.file-btn {
             padding: 0.45rem 0.85rem; border-radius: 0.45rem; border: none; font-weight: 600;
@@ -102,18 +125,33 @@
             </div>
         </div>
 
-        <div class="toolbar">
-            <button type="button" class="btn-emerald" id="btn-save-server" title="需管理員 JWT + API Key">☁️ 儲存到線上（D1）</button>
-            <button type="button" class="btn-teal" id="btn-load-server">🔄 從線上載入</button>
-            <button type="button" class="btn-emerald" id="btn-save-as-file" title="Chrome／Edge 建議使用">💾 覆寫專案檔…</button>
-            <button type="button" class="btn-teal" id="btn-download">⬇ 下載到「下載」資料夾</button>
-            <button type="button" class="btn-violet" id="btn-copy">📋 複製 JS 到剪貼簿</button>
-            <button type="button" class="btn-slate" id="btn-reload">↻ 從檔案重載</button>
-            <button type="button" class="btn-amber" id="btn-clear-draft">清除草稿</button>
-            <label class="file-btn">匯入 JSON<input type="file" id="import-json" accept=".json,application/json"></label>
-            <button type="button" class="btn-slate" id="btn-export-json">匯出 JSON 草稿</button>
-            <div class="filter-wrap">
-                <input type="search" id="filter" placeholder="篩選：鍵名或顯示名稱…" autocomplete="off">
+        <div class="toolbar-wrap">
+            <div class="toolbar-section toolbar-section--online">
+                <span class="toolbar-label">線上（D1）— 正式站改完按這裡</span>
+                <div class="toolbar">
+                    <button type="button" class="btn-emerald" id="btn-save-server" title="需管理員 JWT + API Key">☁️ 儲存到線上（D1）</button>
+                    <button type="button" class="btn-teal" id="btn-load-server">🔄 從線上載入</button>
+                </div>
+            </div>
+            <div class="toolbar-section toolbar-section--offline">
+                <span class="toolbar-label">本機／備援 — 下載 JS、草稿、匯入匯出（給 repo 或離線用）</span>
+                <div class="toolbar">
+                    <button type="button" class="btn-emerald" id="btn-save-as-file" title="Chrome／Edge 建議使用">💾 覆寫專案檔…</button>
+                    <button type="button" class="btn-teal" id="btn-download">⬇ 下載到「下載」資料夾</button>
+                    <button type="button" class="btn-violet" id="btn-copy">📋 複製 JS 到剪貼簿</button>
+                    <button type="button" class="btn-slate" id="btn-reload">↻ 從檔案重載</button>
+                    <button type="button" class="btn-amber" id="btn-clear-draft">清除草稿</button>
+                    <label class="file-btn">匯入 JSON<input type="file" id="import-json" accept=".json,application/json"></label>
+                    <button type="button" class="btn-slate" id="btn-export-json">匯出 JSON 草稿</button>
+                </div>
+            </div>
+            <div class="toolbar-section toolbar-section--filter">
+                <span class="toolbar-label">篩選表格（不影響儲存內容）</span>
+                <div class="toolbar" style="width:100%;">
+                    <div class="filter-wrap" style="flex:1;max-width:22rem;">
+                        <input type="search" id="filter" placeholder="鍵名或顯示名稱…" autocomplete="off">
+                    </div>
+                </div>
             </div>
         </div>
         <div id="status"></div>
