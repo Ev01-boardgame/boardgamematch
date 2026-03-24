@@ -578,6 +578,7 @@
     <script src="js/admin-navbar-cleanup.js"></script>
     <script src="js/app.js?v=20260320"></script>
     <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
     <script src="js/bgg-six-axes-compute.js?v=1"></script>
     <script src="js/show-admin-link.js"></script>
     <script>
@@ -1547,9 +1548,18 @@
             }
         });
 
-        // 初始化
-        initAdminSixAxesListeners();
-        loadGames(1);
+        // 初始化（先嘗試線上 delta，失敗則用靜態 bgg-axis-deltas-v1.js）
+        (async function adminGamesInit() {
+            if (typeof window.loadBggAxisV1FromApi === 'function') {
+                try {
+                    await window.loadBggAxisV1FromApi({});
+                } catch (e) {
+                    console.warn('BGG axis deltas API 載入失敗，使用靜態檔', e);
+                }
+            }
+            initAdminSixAxesListeners();
+            loadGames(1);
+        })();
 
         // ════════════════════════════════════════════
         // ── 重複遊戲偵測與處理 ──

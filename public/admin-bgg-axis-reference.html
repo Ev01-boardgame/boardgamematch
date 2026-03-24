@@ -68,6 +68,7 @@
             <a href="index.html" class="navbar-logo"><span class="navbar-logo-text">MBTI × 桌遊配對</span></a>
             <div class="navbar-links">
                 <a href="admin.html">管理後台</a>
+                <a href="admin-bgg-axis-delta-editor.html">Delta 編輯</a>
                 <a href="admin-bgg-axis-sync.html">六軸掃描</a>
             </div>
         </div>
@@ -76,7 +77,7 @@
     <div class="wrap">
         <div class="hero">
             <h1>BGG 官方主題／機制 → 六軸 delta（v1）</h1>
-            <p>左側為 BoardGameGeek <strong>browse 頁上的全部 Categories 與 Mechanics</strong>（站內快照：<code>public/data/bgg-taxonomy.json</code>）。右側六欄為 <code>bgg-axis-deltas-v1.js</code> 的<strong>加總修正量（delta）</strong>，與掃描頁 <code>applyDeltasForTags</code> 比對規則一致（先精確小寫名，僅一個命中時才用子字串近似）。</p>
+            <p>左側為 BoardGameGeek <strong>browse 頁上的全部 Categories 與 Mechanics</strong>（站內快照：<code>public/data/bgg-taxonomy.json</code>）。右側六欄為<strong>加總修正量（delta）</strong>（優先 <code>GET /api/bgg-axis-deltas</code>，否則 <code>bgg-axis-deltas-v1.js</code>），與掃描頁 <code>applyDeltasForTags</code> 比對規則一致（先精確小寫名，僅一個命中時才用子字串近似）。</p>
             <p>delta 會加在由 complexity 等算出的<strong>基底六軸</strong>上，再 clamp 到 0–12；未顯示數字表示 v1 尚未為該標籤設定 delta。</p>
         </div>
 
@@ -106,7 +107,7 @@
 
         <div class="card">
             <h2>BGG Mechanics（官方機制，全表）</h2>
-            <p class="hint">與遊戲 XML／頁面上的 Mechanic 名稱一致。v1 delta 鍵名多為小寫（例如 <code>deck building</code> 對應官網 “Deck, Bag, and Pool Building” 可能顯示「未設定」，需擴充 <code>bgg-axis-deltas-v1.js</code>）。</p>
+            <p class="hint">與遊戲 XML／頁面上的 Mechanic 名稱一致。delta 鍵名多為小寫（例如 <code>deck building</code> 對應官網 “Deck, Bag, and Pool Building” 可能顯示「未設定」，請至 <a href="admin-bgg-axis-delta-editor.html">delta 編輯器</a> 線上新增或改靜態檔）。</p>
             <div class="filter-row">
                 <label for="filter-mech">篩選</label>
                 <input type="search" id="filter-mech" placeholder="名稱或 BGG ID…" autocomplete="off">
@@ -128,14 +129,23 @@
     </div>
 
     <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
     <script>
     (function () {
-        const V = window.BGG_AXIS_V1;
-        if (!V) {
+        async function main() {
+            if (typeof window.loadBggAxisV1FromApi === 'function') {
+                try {
+                    await window.loadBggAxisV1FromApi({});
+                } catch (e) {
+                    console.warn('loadBggAxisV1FromApi', e);
+                }
+            }
+        if (!window.BGG_AXIS_V1) {
             document.body.insertAdjacentHTML('afterbegin', '<p class="load-err" style="display:block">載入 bgg-axis-deltas-v1.js 失敗</p>');
             return;
         }
-        const { AXIS_KEYS, AXIS_LABELS_ZH, CATEGORY_AXIS_DELTAS, MECHANIC_AXIS_DELTAS } = V;
+        let AXIS_KEYS = window.BGG_AXIS_V1.AXIS_KEYS;
+        let AXIS_LABELS_ZH = window.BGG_AXIS_V1.AXIS_LABELS_ZH;
 
         function normTag(s) {
             return String(s || '').trim().toLowerCase().replace(/\u2019/g, "'");
@@ -222,15 +232,17 @@
         let taxonomy = { categories: [], mechanics: [], meta: {} };
 
         function refreshCat() {
-            const r = renderRows(tbodyCat, taxonomy.categories, 'boardgamecategory', CATEGORY_AXIS_DELTAS, filterCat.value);
-            const covered = taxonomy.categories.filter(it => lookupDelta(it.name, CATEGORY_AXIS_DELTAS).delta).length;
+            const catDict = window.BGG_AXIS_V1.CATEGORY_AXIS_DELTAS;
+            const r = renderRows(tbodyCat, taxonomy.categories, 'boardgamecategory', catDict, filterCat.value);
+            const covered = taxonomy.categories.filter(it => lookupDelta(it.name, catDict).delta).length;
             document.getElementById('count-cat').innerHTML =
                 '顯示 <strong>' + r.shown + '</strong> / 共 <strong>' + r.total + '</strong> 筆（官方 browse 快照）<br>' +
                 'v1 有設定 delta（精確或唯一近似）：<strong>' + covered + '</strong> / ' + r.total;
         }
         function refreshMech() {
-            const r = renderRows(tbodyMech, taxonomy.mechanics, 'boardgamemechanic', MECHANIC_AXIS_DELTAS, filterMech.value);
-            const covered = taxonomy.mechanics.filter(it => lookupDelta(it.name, MECHANIC_AXIS_DELTAS).delta).length;
+            const mechDict = window.BGG_AXIS_V1.MECHANIC_AXIS_DELTAS;
+            const r = renderRows(tbodyMech, taxonomy.mechanics, 'boardgamemechanic', mechDict, filterMech.value);
+            const covered = taxonomy.mechanics.filter(it => lookupDelta(it.name, mechDict).delta).length;
             document.getElementById('count-mech').innerHTML =
                 '顯示 <strong>' + r.shown + '</strong> / 共 <strong>' + r.total + '</strong> 筆（官方 browse 快照）<br>' +
                 'v1 有設定 delta（精確或唯一近似）：<strong>' + covered + '</strong> / ' + r.total;
@@ -284,6 +296,11 @@
                     '2. 確認專案裡有檔案 <code>public/data/bgg-taxonomy.json</code>；若沒有，在專案根目錄執行：<code>node scripts/build-bgg-taxonomy.mjs</code><br>' +
                     '3. 若 Live Server 根目錄設成「整個專案」，請開：<code>public/admin-bgg-axis-reference.html</code>（這樣才會讀到 <code>public/data/</code>）。';
             });
+        }
+
+        main().catch(function (e) {
+            console.error(e);
+        });
     })();
     </script>
 </body>

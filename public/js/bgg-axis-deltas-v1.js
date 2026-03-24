@@ -1,7 +1,10 @@
 /**
  * BGG Category（主題）／Mechanic（機制）→ 六軸「加總修正量」（delta）
- * 與 admin-bgg-axis-sync 的 computeSixAxes 一致；修改此檔後掃描頁與參考頁會同步。
+ * 與 admin-bgg-axis-sync 的 computeSixAxes 一致。
+ * 正式環境：後台頁會先請求 GET /api/bgg-axis-deltas（公開）覆寫 window.BGG_AXIS_V1；
+ * 此檔為離線／API 失敗時的後備，且應與 cloudflare/bgg-axis-defaults.js 預設值同步。
  * 官方「全部」主題／機制清單見 public/data/bgg-taxonomy.json（由 scripts/build-bgg-taxonomy.mjs 產生）。
+ * 線上編輯：admin-bgg-axis-delta-editor.html（PUT /api/admin/bgg-axis-deltas，需管理員 JWT）。
  * 數值會加在「基底六軸」上再 clamp 到 0–12；未列出的 BGG 標籤不套用此表。
  */
 (function (global) {

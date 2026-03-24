@@ -1,6 +1,6 @@
 /**
  * 由 BGG category / mechanics / complexity 計算六軸（與 admin-bgg-axis-sync 相同邏輯）
- * 依賴：先載入 bgg-axis-deltas-v1.js（window.BGG_AXIS_V1）
+ * 依賴：先載入 bgg-axis-deltas-v1.js，並可選 await loadBggAxisV1FromApi() 覆寫為線上 delta
  */
 (function (g) {
     'use strict';
