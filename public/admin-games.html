@@ -499,6 +499,14 @@
                         <input type="number" id="game-complexity" min="1" max="5" step="0.01">
                     </div>
                 </div>
+
+                <div class="form-group" id="admin-bgg-meta-panel" style="background:var(--bg-color);border:1px solid var(--border-color);border-radius:0.65rem;padding:0.75rem 1rem;margin-top:0.5rem;">
+                    <label style="display:block;margin-bottom:0.45rem;font-weight:600;font-size:0.9rem;">📚 資料庫內 BGG 標籤（只讀）</label>
+                    <p style="font-size:0.76rem;color:var(--text-light);margin:0 0 0.5rem;line-height:1.45;">由 <code>admin-bgg-axis-sync</code> 等工具寫入的 <code>category</code>／<code>mechanics</code>／<code>bgg_type</code>。每次開啟編輯會<strong>重新向 API 取單筆</strong>，避免與列表快取不同步。</p>
+                    <div id="game-bgg-type-display" style="font-size:0.88rem;margin-bottom:0.35rem;"><strong>類型</strong>：<span>—</span></div>
+                    <div id="game-category-display" style="font-size:0.82rem;color:var(--text-light);line-height:1.45;margin-bottom:0.35rem;">—</div>
+                    <div id="game-mechanics-display" style="font-size:0.82rem;color:var(--text-light);line-height:1.45;">—</div>
+                </div>
                 
                 <div class="form-group" style="margin-top:1rem;">
                     <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（BGG 推論 + 審稿 Δ → 最終 0–12）</label>
@@ -999,9 +1007,42 @@
             }
         }
 
+        function clearAdminBggMetaDisplay() {
+            const t = document.querySelector('#game-bgg-type-display span');
+            if (t) t.textContent = '—';
+            const c = document.getElementById('game-category-display');
+            const m = document.getElementById('game-mechanics-display');
+            if (c) c.textContent = '—';
+            if (m) m.textContent = '—';
+        }
+
+        function formatAdminJsonListForDisplay(v) {
+            if (v == null || v === '') return '—';
+            if (Array.isArray(v)) return v.length ? v.join('、') : '—';
+            if (typeof v === 'string') {
+                try {
+                    const j = JSON.parse(v);
+                    return Array.isArray(j) && j.length ? j.join('、') : (typeof j === 'string' ? j : '—');
+                } catch (e) {
+                    return v;
+                }
+            }
+            return String(v);
+        }
+
+        function setAdminBggMetaFromGame(game) {
+            const t = document.querySelector('#game-bgg-type-display span');
+            if (t) t.textContent = game && game.bgg_type ? String(game.bgg_type) : '—';
+            const c = document.getElementById('game-category-display');
+            const m = document.getElementById('game-mechanics-display');
+            if (c) c.textContent = '分類：' + formatAdminJsonListForDisplay(game && game.category);
+            if (m) m.textContent = '機制：' + formatAdminJsonListForDisplay(game && game.mechanics);
+        }
+
         function resetAdminSixAxesForNewGame() {
             window.__adminGameEditMeta = { category: null, mechanics: null };
             window.__adminLastLoadedGame = null;
+            clearAdminBggMetaDisplay();
             ADMIN_SIX_AXIS_KEYS.forEach(k => {
                 const d = document.getElementById('game-axis-' + k + '-delta');
                 if (d) d.value = 0;
@@ -1042,16 +1083,14 @@
             document.getElementById('game-modal').classList.remove('active');
         }
 
-        // 載入遊戲資料（由 API 拿）
+        // 載入遊戲資料：一律先 GET 單筆（避免 allGames 全量快取過舊；與 axis-sync 寫入不同步）
         async function loadGameData(gameId) {
             let game = null;
-            if (allGamesLoaded) game = allGames.find(g => g.id === gameId);
-            if (!game) {
-                try {
-                    const r = await fetch(`tables/game_database/${gameId}`);
-                    if (r.ok) game = await r.json();
-                } catch(e) {}
-            }
+            try {
+                const r = await fetch(`tables/game_database/${encodeURIComponent(gameId)}`);
+                if (r.ok) game = await r.json();
+            } catch (e) {}
+            if (!game && allGamesLoaded) game = allGames.find(g => g.id === gameId);
             if (!game) return;
             
             document.getElementById('game-id').value = game.id;
@@ -1078,6 +1117,7 @@
                 deltaEl.value = Number(dv);
             });
             document.getElementById('game-bgg-id').value = game.bgg_id || '';
+            setAdminBggMetaFromGame(game);
             updateImagePreview();
             refreshAdminSixAxesPanel();
         }
