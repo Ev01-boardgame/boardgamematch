@@ -428,13 +428,13 @@
             { id: 'S5', axis: 'sociality', text: '對你來說，桌遊比較像是？', choices: { left: '社交活動：人好玩就好玩', right: '腦內活動：局好玩就好玩' }, weights: { sociality: { left: -2, right: 2 } } },
             { id: 'S6', axis: 'sociality', text: '聚會上如果大家一直聊天導致遊戲進度變慢，你會？', choices: { left: '沒差啦，開心就好', right: '會想拉回來：先玩完再聊' }, weights: { sociality: { left: -2, right: 2 } } },
 
-            // axis_openness（心態：磊落↔心機）
-            { id: 'O1', axis: 'openness', text: '你對「隱藏身份、說謊、騙人」這類機制的感覺？', choices: { left: '很OK，這就是遊戲的一部分', right: '不太愛，覺得太心機' }, weights: { openness: { left: -2, right: 2 } } },
-            { id: 'O2', axis: 'openness', text: '玩狼人／阿瓦隆這種遊戲時，你最在意的是？', choices: { left: '看穿誰在演、抓到破綻', right: '大家玩得舒服，不要翻臉' }, weights: { openness: { left: -2, right: 2 } } },
-            { id: 'O3', axis: 'openness', text: '在遊戲中，你會不會刻意「演得很無辜／裝傻」來取得優勢？', choices: { left: '會啊，能贏就好', right: '不會，我不想靠演' }, weights: { openness: { left: -2, right: 2 } } },
-            { id: 'O4', axis: 'openness', text: '如果一款遊戲幾乎沒有資訊隱藏，全部公開，你的感覺是？', choices: { left: '太直白了…我想要一些心理戰', right: '舒服！公平又不用猜來猜去' }, weights: { openness: { left: -2, right: 2 } } },
-            { id: 'O5', axis: 'openness', text: '你能接受朋友在遊戲中「為了贏而騙你」到什麼程度？', choices: { left: '都可以，局內騙局外還是朋友', right: '少來，我會很介意' }, weights: { openness: { left: -2, right: 2 } } },
-            { id: 'O6', axis: 'openness', text: '對你來說，「讀空氣、猜別人下一步」的重要性？', choices: { left: '很重要，這就是樂趣', right: '普通，別搞心機比較好玩' }, weights: { openness: { left: -2, right: 2 } } },
+            // axis_openness（心態：磊落↔心機）— 分數愈高愈偏「心機」（與結果條右端一致）。選項 left 多為心機向、right 多為磊落向，故 left:+2、right:-2。
+            { id: 'O1', axis: 'openness', text: '你對「隱藏身份、說謊、騙人」這類機制的感覺？', choices: { left: '很OK，這就是遊戲的一部分', right: '不太愛，覺得太心機' }, weights: { openness: { left: 2, right: -2 } } },
+            { id: 'O2', axis: 'openness', text: '玩狼人／阿瓦隆這種遊戲時，你最在意的是？', choices: { left: '看穿誰在演、抓到破綻', right: '大家玩得舒服，不要翻臉' }, weights: { openness: { left: 2, right: -2 } } },
+            { id: 'O3', axis: 'openness', text: '在遊戲中，你會不會刻意「演得很無辜／裝傻」來取得優勢？', choices: { left: '會啊，能贏就好', right: '不會，我不想靠演' }, weights: { openness: { left: 2, right: -2 } } },
+            { id: 'O4', axis: 'openness', text: '如果一款遊戲幾乎沒有資訊隱藏，全部公開，你的感覺是？', choices: { left: '太直白了…我想要一些心理戰', right: '舒服！公平又不用猜來猜去' }, weights: { openness: { left: 2, right: -2 } } },
+            { id: 'O5', axis: 'openness', text: '你能接受朋友在遊戲中「為了贏而騙你」到什麼程度？', choices: { left: '都可以，局內騙局外還是朋友', right: '少來，我會很介意' }, weights: { openness: { left: 2, right: -2 } } },
+            { id: 'O6', axis: 'openness', text: '對你來說，「讀空氣、猜別人下一步」的重要性？', choices: { left: '很重要，這就是樂趣', right: '普通，別搞心機比較好玩' }, weights: { openness: { left: 2, right: -2 } } },
 
             // axis_competition（立場：合作↔對抗）
             { id: 'P1', axis: 'competition', text: '你比較常主動提議哪種遊戲？', choices: { left: '合作類：一起解題/打王', right: '對抗類：拼到最後一刻' }, weights: { competition: { left: -2, right: 2 } } },

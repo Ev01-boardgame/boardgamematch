@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六軸審稿 UI — 多方案離線範例（選版用）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { padding: 1rem; max-width: 960px; margin: 0 auto; }
+        .top-note {
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #134e4a;
+        }
+        .top-note strong { color: #0f766e; }
+        .toc {
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.88rem;
+        }
+        .toc a { color: var(--primary-color); font-weight: 600; margin-right: 1rem; }
+        section.variant {
+            margin-bottom: 2.5rem;
+            padding: 1rem 1.1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.65rem;
+        }
+        section.variant h2 {
+            margin: 0 0 0.35rem;
+            font-size: 1.05rem;
+            color: var(--text-color);
+        }
+        section.variant .desc {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin: 0 0 1rem;
+            line-height: 1.45;
+        }
+        .clamp-note { font-size: 0.72rem; color: var(--text-light); margin-top: 0.5rem; }
+
+        /* 共用：數字列 */
+        .num-row {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+        }
+        .num-row .blk { text-align: center; min-width: 4.5rem; }
+        .num-row .blk .lbl { display: block; font-size: 0.68rem; color: var(--text-light); margin-bottom: 0.15rem; }
+        .num-row .blk .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .delta-val.pos { color: #059669; }
+        .delta-val.neg { color: #b45309; }
+        .delta-val.zero { color: var(--text-light); }
+        .final-val { color: var(--primary-color); font-size: 1.05rem; }
+
+        /* 滑桿列：兩端語意 */
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .pole {
+            flex: 0 0 auto;
+            max-width: 5.5rem;
+            font-size: 0.72rem;
+            line-height: 1.25;
+            color: var(--text-light);
+            text-align: center;
+        }
+        .pole.left { text-align: left; }
+        .pole.right { text-align: right; }
+        .slider-row input[type="range"] {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .axis-block {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .axis-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .axis-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.45rem; color: var(--text-color); }
+
+        /* 方案 B：桌機用 inline-nums；窄屏用三數字列 */
+        .v-b .inline-nums {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+        .v-b .inline-nums .mini {
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .v-b .mobile-only { display: flex; }
+        @media (min-width: 700px) {
+            .v-b .inline-nums { display: flex; }
+            .v-b .mobile-only { display: none !important; }
+        }
+
+        /* 方案 C：極緊湊單欄 */
+        .v-c .axis-block { margin-bottom: 0.65rem; padding-bottom: 0.65rem; }
+
+        /* 方案 D：兩欄 grid */
+        .v-d .grid-axes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 1rem;
+        }
+        @media (max-width: 640px) {
+            .v-d .grid-axes { grid-template-columns: 1fr; }
+        }
+        .v-d .axis-block {
+            margin: 0;
+            padding: 0.6rem 0.65rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.45rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <h1 style="font-size:1.15rem;margin-bottom:0.5rem;">六軸審稿 UI — 離線多方案</h1>
+
+    <div class="top-note">
+        <strong>正式站公式（後台這條線）</strong>：<code>最終 = clamp(BGG推論 + 審稿Δ, 0, 12)</code>。
+        <strong>BGG 推論</strong>只用到遊戲的 <strong>category／mechanics／complexity</strong> 與站內對照表（<code>bgg-six-axes-compute.js</code>），
+        <strong>沒有</strong>把「玩家喜歡／不喜歡」或評分加進這條公式。
+        玩家喜好是在<strong>別的流程</strong>（例如推薦匹配 <code>match-score.js</code> 用不同軸、或 like 統計），與後台審稿六軸分開。
+    </div>
+
+    <nav class="toc">
+        快速跳轉：
+        <a href="#v-a">方案 A</a>
+        <a href="#v-b">方案 B</a>
+        <a href="#v-c">方案 C</a>
+        <a href="#v-d">方案 D</a>
+        · <a href="demo-admin-six-axes-modal-compact.html">舊：表格式</a>
+    </nav>
+
+    <!-- 方案 A：數字列在上，滑桿下、兩端語意（與你描述最接近） -->
+    <section class="variant" id="v-a">
+        <h2>方案 A：數字列（BGG｜Δ｜最終）+ 滑桿兩端語意</h2>
+        <p class="desc">上面一排對齊數字，下面滑桿左右放「易學／複雜」等兩極文字，語意跟軌道對齊。</p>
+        <div id="mount-a"></div>
+        <p class="clamp-note">離線假資料；Δ 與正式站同為 ±6、步進 0.5。</p>
+    </section>
+
+    <!-- 方案 B：同一條「帶狀」內塞數字（寬螢幕） -->
+    <section class="variant v-b" id="v-b">
+        <h2>方案 B：寬螢幕時數字與滑桿同一視覺帶</h2>
+        <p class="desc">桌機：左 BGG、中間滑桿、右最終，Δ 顯示在滑桿上方正中。窄螢幕退回與方案 A 類似的三數字列。</p>
+        <div id="mount-b"></div>
+    </section>
+
+    <!-- 方案 C：極省高度 -->
+    <section class="variant v-c" id="v-c">
+        <h2>方案 C：極緊湊（少留白）</h2>
+        <p class="desc">標題列 + 小字數字 + 滑桿兩端語意，適合長表單。</p>
+        <div id="mount-c"></div>
+    </section>
+
+    <!-- 方案 D：2×3 grid -->
+    <section class="variant v-d" id="v-d">
+        <h2>方案 D：兩欄網格（桌機一屏多看幾軸）</h2>
+        <p class="desc">寬螢幕並排；手機變單欄。每格內仍為「數字 + 兩端語意滑桿」。</p>
+        <div class="grid-axes" id="mount-d"></div>
+    </section>
+
+    <script>
+(function () {
+    const AXES = [
+        { key: 'entry', left: '🌱 易學', right: '📚 複雜', short: '門檻' },
+        { key: 'mood', left: '😂 歡樂', right: '🧠 燒腦', short: '氛圍' },
+        { key: 'control', left: '🎲 運氣', right: '♟️ 策略', short: '勝負' },
+        { key: 'sociality', left: '🗣️ 社交', right: '🧘 沉浸', short: '互動' },
+        { key: 'openness', left: '☀️ 磊落', right: '🎭 心機', short: '心態' },
+        { key: 'competition', left: '🤝 合作', right: '⚔️ 對抗', short: '立場' }
+    ];
+    const MOCK_BGG = { entry: 2.4, mood: 6, control: 6, sociality: 6, openness: 6, competition: 6 };
+
+    function clampAxis(v) {
+        const n = Number(v);
+        if (isNaN(n)) return 6;
+        return Math.round(Math.max(0, Math.min(12, n)) * 10) / 10;
+    }
+
+    function fmtDelta(d) {
+        if (d === 0) return { text: '0', cls: 'zero' };
+        return { text: (d > 0 ? '+' : '') + d, cls: d > 0 ? 'pos' : 'neg' };
+    }
+
+    function wireRange(rng, bgg, dEl, fEl) {
+        function go() {
+            const d = parseFloat(rng.value, 10) || 0;
+            const fd = fmtDelta(d);
+            dEl.textContent = fd.text;
+            dEl.className = 'val delta-val ' + fd.cls;
+            fEl.textContent = String(clampAxis(bgg + d));
+        }
+        rng.addEventListener('input', go);
+        go();
+    }
+
+    function buildA(mount) {
+        AXES.forEach(function (ax) {
+            const bgg = MOCK_BGG[ax.key];
+            const wrap = document.createElement('div');
+            wrap.className = 'axis-block';
+            const rid = 'a-r-' + ax.key;
+            wrap.innerHTML =
+                '<div class="axis-title">' + ax.short + '</div>' +
+                '<div class="num-row">' +
+                '  <div class="blk"><span class="lbl">BGG</span><span class="val" id="a-bgg-' + ax.key + '">' + bgg + '</span></div>' +
+                '  <div class="blk"><span class="lbl">審稿 Δ</span><span class="val delta-val zero" id="a-d-' + ax.key + '">0</span></div>' +
+                '  <div class="blk"><span class="lbl">最終</span><span class="val final-val" id="a-f-' + ax.key + '">' + clampAxis(bgg) + '</span></div>' +
+                '</div>' +
+                '<div class="slider-row">' +
+                '  <div class="pole left">' + ax.left + '</div>' +
+                '  <input type="range" id="' + rid + '" min="-6" max="6" step="0.5" value="0">' +
+                '  <div class="pole right">' + ax.right + '</div>' +
+                '</div>';
+            mount.appendChild(wrap);
+            wireRange(
+                document.getElementById(rid),
+                bgg,
+                document.getElementById('a-d-' + ax.key),
+                document.getElementById('a-f-' + ax.key)
+            );
+        });
+    }
+
+    function buildB(mount) {
+        AXES.forEach(function (ax) {
+            const bgg = MOCK_BGG[ax.key];
+            const wrap = document.createElement('div');
+            wrap.className = 'axis-block';
+            const rid = 'b-r-' + ax.key;
+            wrap.innerHTML =
+                '<div class="axis-title">' + ax.short + '</div>' +
+                '<div class="inline-nums">' +
+                '  <span class="mini">BGG <strong id="b-bgg-' + ax.key + '">' + bgg + '</strong></span>' +
+                '  <span class="mini" style="flex:1;text-align:center;">Δ <strong class="delta-val zero" id="b-d-' + ax.key + '">0</strong></span>' +
+                '  <span class="mini">最終 <strong class="final-val" id="b-f-' + ax.key + '">' + clampAxis(bgg) + '</strong></span>' +
+                '</div>' +
+                '<div class="num-row mobile-only">' +
+                '  <div class="blk"><span class="lbl">BGG</span><span class="val">' + bgg + '</span></div>' +
+                '  <div class="blk"><span class="lbl">Δ</span><span class="val delta-val zero" id="b-dm-' + ax.key + '">0</span></div>' +
+                '  <div class="blk"><span class="lbl">最終</span><span class="val final-val" id="b-fm-' + ax.key + '">' + clampAxis(bgg) + '</span></div>' +
+                '</div>' +
+                '<div class="slider-row">' +
+                '  <div class="pole left">' + ax.left + '</div>' +
+                '  <input type="range" id="' + rid + '" min="-6" max="6" step="0.5" value="0">' +
+                '  <div class="pole right">' + ax.right + '</div>' +
+                '</div>';
+            mount.appendChild(wrap);
+            const rng = document.getElementById(rid);
+            const dEl = document.getElementById('b-d-' + ax.key);
+            const fEl = document.getElementById('b-f-' + ax.key);
+            const dm = document.getElementById('b-dm-' + ax.key);
+            const fm = document.getElementById('b-fm-' + ax.key);
+            function go() {
+                const d = parseFloat(rng.value, 10) || 0;
+                const fd = fmtDelta(d);
+                dEl.textContent = fd.text;
+                dEl.className = 'delta-val ' + fd.cls;
+                dm.textContent = fd.text;
+                dm.className = 'val delta-val ' + fd.cls;
+                const fv = String(clampAxis(bgg + d));
+                fEl.textContent = fv;
+                fm.textContent = fv;
+            }
+            rng.addEventListener('input', go);
+            go();
+        });
+    }
+
+    function buildC(mount) {
+        AXES.forEach(function (ax) {
+            const bgg = MOCK_BGG[ax.key];
+            const wrap = document.createElement('div');
+            wrap.className = 'axis-block';
+            const rid = 'c-r-' + ax.key;
+            wrap.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;">' +
+                '  <span style="font-weight:600;font-size:0.8rem;">' + ax.short + '</span>' +
+                '  <span style="font-size:0.72rem;font-variant-numeric: tabular-nums;">' +
+                '    BGG <strong>' + bgg + '</strong> · Δ <strong class="delta-val zero" id="c-d-' + ax.key + '">0</strong> · 最終 <strong class="final-val" id="c-f-' + ax.key + '">' + clampAxis(bgg) + '</strong>' +
+                '  </span>' +
+                '</div>' +
+                '<div class="slider-row" style="margin-top:0.25rem;">' +
+                '  <div class="pole left">' + ax.left + '</div>' +
+                '  <input type="range" id="' + rid + '" min="-6" max="6" step="0.5" value="0">' +
+                '  <div class="pole right">' + ax.right + '</div>' +
+                '</div>';
+            mount.appendChild(wrap);
+            wireRange(
+                document.getElementById(rid),
+                bgg,
+                document.getElementById('c-d-' + ax.key),
+                document.getElementById('c-f-' + ax.key)
+            );
+        });
+    }
+
+    function buildD(mount) {
+        AXES.forEach(function (ax) {
+            const bgg = MOCK_BGG[ax.key];
+            const wrap = document.createElement('div');
+            wrap.className = 'axis-block';
+            const rid = 'd-r-' + ax.key;
+            wrap.innerHTML =
+                '<div class="axis-title">' + ax.short + '</div>' +
+                '<div class="num-row" style="margin-bottom:0.25rem;">' +
+                '  <div class="blk"><span class="lbl">BGG</span><span class="val">' + bgg + '</span></div>' +
+                '  <div class="blk"><span class="lbl">Δ</span><span class="val delta-val zero" id="d-d-' + ax.key + '">0</span></div>' +
+                '  <div class="blk"><span class="lbl">最終</span><span class="val final-val" id="d-f-' + ax.key + '">' + clampAxis(bgg) + '</span></div>' +
+                '</div>' +
+                '<div class="slider-row">' +
+                '  <div class="pole left">' + ax.left + '</div>' +
+                '  <input type="range" id="' + rid + '" min="-6" max="6" step="0.5" value="0">' +
+                '  <div class="pole right">' + ax.right + '</div>' +
+                '</div>';
+            mount.appendChild(wrap);
+            wireRange(
+                document.getElementById(rid),
+                bgg,
+                document.getElementById('d-d-' + ax.key),
+                document.getElementById('d-f-' + ax.key)
+            );
+        });
+    }
+
+    buildA(document.getElementById('mount-a'));
+    buildB(document.getElementById('mount-b'));
+    buildC(document.getElementById('mount-c'));
+    buildD(document.getElementById('mount-d'));
+})();
+    </script>
+</body>
+</html>
