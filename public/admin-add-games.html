@@ -466,24 +466,60 @@
         return await resp.text();
     }
 
-    // ── BGG XML API：直接取得結構化資料（年份、名稱、玩家數、時間、複雜度、描述）──
-    // 透過 allorigins CORS proxy 繞過瀏覽器同源限制
+    // ── BGG XML API（thing）：優先 Jina 包一層（與下方搜尋 XML 相同），allorigins 僅作後備（較易 500／逾時）──
     async function fetchBGGXmlApi(bggId) {
         const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
-        // 使用 allorigins proxy（回傳 JSON，contents 裡是原始 XML）
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-        const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(20000) });
-        if (!resp.ok) throw new Error(`allorigins HTTP ${resp.status}`);
-        const json = await resp.json();
-        const xmlText = json.contents;
-        if (!xmlText) throw new Error('allorigins 回傳空內容');
-        const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
-        const item = xml.querySelector('item');
-        if (!item) throw new Error('XML 中找不到 item 元素');
-        return item;
+
+        function parseThingXmlText(text) {
+            try {
+                const xml = new DOMParser().parseFromString(text, 'text/xml');
+                const item = xml.querySelector('item');
+                if (item) return item;
+            } catch (e) { /* continue */ }
+            const xmlMatch = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
+            if (xmlMatch) {
+                const xml = new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
+                const item = xml.querySelector('item');
+                if (item) return item;
+            }
+            throw new Error('無法解析 thing XML');
+        }
+
+        async function viaJina() {
+            const proxyUrl = `https://r.jina.ai/${apiUrl}`;
+            const resp = await fetch(proxyUrl, {
+                headers: { 'X-No-Cache': 'true' },
+                signal: AbortSignal.timeout(28000)
+            });
+            if (!resp.ok) throw new Error(`Jina HTTP ${resp.status}`);
+            return parseThingXmlText(await resp.text());
+        }
+
+        async function viaAllorigins() {
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
+            if (!resp.ok) throw new Error(`allorigins HTTP ${resp.status}`);
+            const json = await resp.json();
+            const xmlText = json.contents;
+            if (!xmlText) throw new Error('allorigins 回傳空內容');
+            return parseThingXmlText(xmlText);
+        }
+
+        let jErr = '';
+        try {
+            return await viaJina();
+        } catch (e) {
+            jErr = e && e.message ? e.message : String(e);
+        }
+        try {
+            return await viaAllorigins();
+        } catch (e2) {
+            const a = e2 && e2.message ? e2.message : String(e2);
+            throw new Error(`Jina：${jErr}；allorigins：${a}`);
+        }
     }
 
-    // ── Jina proxy：搜尋 BGG（用 allorigins 讀 BGG XML search API）──
+    // ── Jina proxy：搜尋 BGG（讀 BGG XML Search API）──
     async function fetchBGGSearchXML(url) {
         const proxyUrl = `https://r.jina.ai/${url}`;
         const resp = await fetch(proxyUrl, {

@@ -58,7 +58,7 @@
     <div class="wrap">
         <div class="hero">
             <h1>BGG ID 掃描 · Category／Mechanic → 六軸補齊</h1>
-            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。</p>
+            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）與 <a href="admin-add-games.html" style="color:#a5f3fc;">admin-add-games</a> 搜尋相同：<strong>Jina 優先</strong>、allorigins 後備。</p>
             <p>未收錄則以 Jina + BGG XML API 建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
         </div>
 
@@ -222,27 +222,34 @@
             return c.length === 0 || m.length === 0;
         }
 
-        /** BGG XML 的數值欄在資料列是否缺漏（空字串視同缺） */
+        /** BGG XML 的數值欄在資料列是否缺漏（空字串／0 年視同缺） */
         function numericMetaMissing(row) {
             const n = (v) => v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
-            return n(row.year) || n(row.min_players) || n(row.max_players) || n(row.playing_time) || n(row.complexity);
+            const yearBad = n(row.year) || Number(row.year) === 0;
+            return yearBad || n(row.min_players) || n(row.max_players) || n(row.playing_time) || n(row.complexity);
         }
 
         /**
-         * 已存在列：把 xmlapi2/thing 的數值寫入 patch（先前完全沒寫，導致年份／人數／時間／複雜度永不更新）
-         * @param {boolean} force 對應「強制重抓 Jina」時一併覆寫 BGG 官方數值
+         * 已存在列：把 xmlapi2/thing 的數值寫入 patch。
+         * @param {boolean} forceMeta 對應「強制重抓 Jina」時一併覆寫 BGG 官方數值
          */
-        function assignXmlBasicsToPatch(patch, row, xmlBasics, force) {
+        function assignXmlBasicsToPatch(patch, row, xmlBasics, forceMeta) {
             if (!xmlBasics) return;
-            const fill = force || numericMetaMissing(row);
+            const fill = forceMeta || numericMetaMissing(row);
             if (!fill) return;
             const fields = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'];
             for (const f of fields) {
                 const v = xmlBasics[f];
                 if (v == null || v === '') continue;
-                if (force || row[f] == null || row[f] === '') {
+                if (forceMeta || row[f] == null || row[f] === '') {
                     patch[f] = v;
                 }
+            }
+            if (xmlBasics.name_en && (forceMeta || !row.name_en)) {
+                patch.name_en = xmlBasics.name_en;
+            }
+            if (xmlBasics.image_url && (forceMeta || !row.image_url)) {
+                patch.image_url = xmlBasics.image_url;
             }
         }
 
@@ -345,18 +352,58 @@
                 || l.includes('the item you requested is not in the database');
         }
 
+        // ── BGG xmlapi2/thing：與 admin-add-games 的「搜尋 XML」相同，優先走 Jina（allorigins 常 500／CORS／逾時）──
         async function fetchBGGXmlItem(bggId) {
             const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(20000) });
-            if (!resp.ok) throw new Error('allorigins ' + resp.status);
-            const json = await resp.json();
-            const xmlText = json.contents;
-            if (!xmlText) throw new Error('empty xml');
-            const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
-            const item = xml.querySelector('item');
-            if (!item) throw new Error('no item');
-            return item;
+
+            async function parseThingXmlText(text) {
+                try {
+                    const xml = new DOMParser().parseFromString(text, 'text/xml');
+                    const item = xml.querySelector('item');
+                    if (item) return item;
+                } catch (e) { /* continue */ }
+                const xmlMatch = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
+                if (xmlMatch) {
+                    const xml = new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
+                    const item = xml.querySelector('item');
+                    if (item) return item;
+                }
+                throw new Error('無法解析 thing XML');
+            }
+
+            async function viaJina() {
+                const proxyUrl = `https://r.jina.ai/${apiUrl}`;
+                const resp = await fetch(proxyUrl, {
+                    headers: { 'X-No-Cache': 'true' },
+                    signal: AbortSignal.timeout(28000)
+                });
+                if (!resp.ok) throw new Error(`Jina HTTP ${resp.status}`);
+                const text = await resp.text();
+                return parseThingXmlText(text);
+            }
+
+            async function viaAllorigins() {
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+                const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
+                if (!resp.ok) throw new Error('allorigins ' + resp.status);
+                const json = await resp.json();
+                const xmlText = json.contents;
+                if (!xmlText) throw new Error('allorigins 空內容');
+                return parseThingXmlText(xmlText);
+            }
+
+            let jErr = '';
+            try {
+                return await viaJina();
+            } catch (e) {
+                jErr = e && e.message ? e.message : String(e);
+            }
+            try {
+                return await viaAllorigins();
+            } catch (e2) {
+                const a = e2 && e2.message ? e2.message : String(e2);
+                throw new Error(`Jina：${jErr}；allorigins：${a}`);
+            }
         }
 
         function xmlToBasics(xmlItem, bggId) {
@@ -517,8 +564,10 @@
 
                 const effCat = parseJsonArrayField(patch.category !== undefined ? patch.category : row.category);
                 const effMech = parseJsonArrayField(patch.mechanics !== undefined ? patch.mechanics : row.mechanics);
-                const cx = patch.complexity !== undefined && patch.complexity !== ''
-                    ? Number(patch.complexity)
+                const cxFromPatch = patch.complexity !== undefined && patch.complexity !== ''
+                    ? Number(patch.complexity) : null;
+                const cx = (cxFromPatch != null && !Number.isNaN(cxFromPatch))
+                    ? cxFromPatch
                     : (row.complexity != null && row.complexity !== '' ? Number(row.complexity)
                         : (xmlBasics && xmlBasics.complexity != null ? xmlBasics.complexity : null));
                 const axes = computeSixAxes(effCat, effMech, cx);
@@ -529,7 +578,6 @@
                 } else if (forceMeta && (effCat.length || effMech.length)) {
                     Object.assign(patch, axes);
                 } else if (tagOrComplexityChanged) {
-                    // 僅補了 BGG 數值或日後單獨改 complexity 時，也要重算六軸（entry 依 complexity）
                     Object.assign(patch, axes);
                 }
 
