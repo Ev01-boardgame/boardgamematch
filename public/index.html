@@ -114,18 +114,18 @@
             <div class="hero-welcome">
                 <h1 class="hero-title">歡迎回來，<span id="home-welcome-name" class="hero-highlight">玩家</span><br>繼續你的桌遊旅程</h1>
                 <p class="hero-subtitle" style="margin-bottom:0.6rem;">點擊下方名片可前往「我的檔案」編輯資料。</p>
-                <div class="hero-actions">
-                    <button type="button" class="btn-ghost" onclick="logout()">🚪 登出</button>
-                </div>
             </div>
             <div class="hero-card-wrap">
                 <div class="hero-card js-tilt cursor-pointer" title="前往我的檔案">
                     <div class="hero-card-inner">
                         <div class="card-top">
                             <div id="home-card-avatar" class="card-avatar">🎲</div>
-                            <div>
+                            <div class="card-identity" style="min-width:0;">
                                 <div id="home-card-name" class="card-name">玩家</div>
                                 <div id="home-card-sub" class="card-sub">— · 桌遊收藏 0 款</div>
+                            </div>
+                            <div class="home-card-actions">
+                                <button type="button" class="btn-ghost home-card-act-btn" onclick="event.stopPropagation(); logout();">🚪 登出</button>
                             </div>
                         </div>
                         <div id="home-card-bio" class="card-bio" style="display:none;"></div>

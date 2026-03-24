@@ -140,6 +140,15 @@
     align-items: center;
     margin-bottom: 9px;
 }
+.home-dash-wrap .home-card-actions {
+    align-self: start;
+    justify-self: end;
+}
+.home-dash-wrap .home-card-act-btn {
+    padding: 0.42rem 0.85rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
 .home-dash-wrap .card-avatar {
     width: 72px;
     height: 72px;
@@ -335,4 +344,24 @@
 @media (max-width: 768px) {
     .home-dash-wrap { padding-inline: 1rem; }
     .home-dash-wrap .card-info-list { grid-template-columns: 1fr; }
+}
+/* 登入首頁名片：窄螢幕與檔案頁版型 B 一致（右上窄欄、按鈕可折行、字級與 profile 對齊） */
+@media (max-width: 640px) {
+    #home-mode-logged .card-top {
+        grid-template-columns: auto minmax(0, 1fr) minmax(0, 118px);
+        gap: 6px 6px;
+        align-items: start;
+    }
+    #home-mode-logged .home-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-content: flex-start;
+        gap: 4px;
+        max-width: 118px;
+    }
+    #home-mode-logged .home-card-act-btn {
+        font-size: 0.62rem;
+        padding: 0.24rem 0.42rem;
+    }
 }
