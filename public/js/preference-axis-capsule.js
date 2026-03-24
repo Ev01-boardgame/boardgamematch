@@ -56,10 +56,25 @@
         );
     }
 
+    /**
+     * 已含 .card-capsule / .card-capsule-inner 的列（首頁／檔案名片軌）
+     */
+    function applyToHomeCardRow(rowEl, value) {
+        var inner = rowEl.querySelector('.card-capsule-inner');
+        var capsule = rowEl.querySelector('.card-capsule');
+        if (!inner || !capsule) return;
+        var v = clampV(value);
+        var pos = capsulePositionPercent(v);
+        capsule.style.left = pos.leftPct + '%';
+        capsule.style.width = pos.widthPct + '%';
+        inner.style.background = capsuleGradientHomeCard(v);
+    }
+
     global.PreferenceAxisCapsule = {
         capsulePositionPercent: capsulePositionPercent,
         capsuleGradientHomeCard: capsuleGradientHomeCard,
         capsuleGradientPreferenceBar: capsuleGradientPreferenceBar,
-        clampV: clampV
+        clampV: clampV,
+        applyToHomeCardRow: applyToHomeCardRow
     };
 })(typeof window !== 'undefined' ? window : this);
