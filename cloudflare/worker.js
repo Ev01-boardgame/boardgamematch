@@ -28,6 +28,9 @@
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
  *   — 代理 BGG xmlapi2/collection（含 202 輪詢）、對照 game_database.bgg_id
  *
+ * 選用 Secret（改善直連 BGG 被 401/403 擋的機率，見 boardgamegeek.com/using_the_xml_api）：
+ *   BGG_XML_API_BEARER — BGG Application Token，直連 xmlapi2 時附加 Authorization: Bearer …
+ *
  * 管理端（需 X-Api-Key + JWT + admin／超管）：
  *   PUT /api/admin/bgg-axis-deltas — 寫入整包 category／mechanic delta 至 D1
  */
@@ -388,14 +391,18 @@ async function fetchBggCollectionXmlViaJina(bggUrl) {
  * BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
  * 直連若 401/403（隱私或阻擋 Worker IP），再試 Jina 備援。
  */
-async function fetchBggCollectionXml(username, includeExpansions) {
+async function fetchBggCollectionXml(username, includeExpansions, env) {
   const bggUrl = buildBggCollectionApiUrl(username, includeExpansions);
+  const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
+  const bearer =
+    env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
+  if (bearer) directHeaders['Authorization'] = `Bearer ${bearer}`;
 
   let lastStatus = 0;
   let directAuthFail = false;
   for (let attempt = 0; attempt < 28; attempt++) {
     const res = await fetch(bggUrl, {
-      headers: BGG_COLLECTION_BROWSER_HEADERS,
+      headers: directHeaders,
       redirect: 'follow',
       signal: AbortSignal.timeout(25000),
     });
@@ -508,7 +515,7 @@ async function handleGetBggCollectionPreview(request, env, origin, db) {
 
   let xml;
   try {
-    xml = await fetchBggCollectionXml(username, includeExpansions);
+    xml = await fetchBggCollectionXml(username, includeExpansions, env);
   } catch (e) {
     console.error('bgg collection-preview fetch', e && e.message, e && e.bggBodySnippet);
     const st = e && e.bggStatus;
