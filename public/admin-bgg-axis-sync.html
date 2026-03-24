@@ -109,7 +109,7 @@
                 六軸語意與站內一致：<strong>entry</strong> 進入門檻（高＝複雜）、<strong>mood</strong> 歡樂↔燒腦、<strong>control</strong> 運氣↔策略、
                 <strong>openness</strong> 磊落↔心機、<strong>sociality</strong> 社交↔沉浸、<strong>competition</strong> 合作↔對抗。
                 先以 <strong>complexity（weight）</strong> 估 entry，再將各 Category／Mechanic 的<strong>加總修正</strong>到 0–12。
-                <strong><a href="admin-bgg-axis-reference.html">完整表：BGG 官方全部主題／機制</a></strong>（<code>data/bgg-taxonomy.json</code>）併列 v1 各軸 delta（<code>js/bgg-axis-deltas-v1.js</code>）。未在 v1 設定的標籤不套用 delta。
+                <strong><a href="admin-bgg-axis-reference.html">完整表：BGG 官方全部主題／機制</a></strong>（<code>data/bgg-taxonomy.json</code>）併列 delta（優先 <code>GET /api/bgg-axis-deltas</code>，失敗則 <code>js/bgg-axis-deltas-v1.js</code>）。未設定的標籤不套用 delta。
             </p>
         </section>
 
@@ -124,6 +124,7 @@
     <script src="js/admin-auth.js?v=20260319-localdev"></script>
     <script src="js/app.js?v=20260320"></script>
     <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
     <script src="js/bgg-six-axes-compute.js?v=1"></script>
     <script>
     (function () {
@@ -173,6 +174,18 @@
             if (base && key && !h['X-Api-Key']) h['X-Api-Key'] = key;
             return h;
         }
+
+        async function main() {
+            if (typeof window.loadBggAxisV1FromApi === 'function') {
+                try {
+                    await window.loadBggAxisV1FromApi({
+                        apiBase: readApiBase() || undefined,
+                        apiKey: (elApiKey && elApiKey.value ? elApiKey.value : '').trim() || undefined
+                    });
+                } catch (e) {
+                    console.warn('loadBggAxisV1FromApi', e);
+                }
+            }
 
         const V = window.BGG_AXIS_V1;
         if (!V) {
@@ -574,6 +587,12 @@
 
         document.addEventListener('adminAuthenticated', () => {
             log('[ok] 管理員已驗證', 'ok');
+        });
+        }
+
+        main().catch(function (e) {
+            const logEl = document.getElementById('log');
+            if (logEl) logEl.innerHTML = '<div class="err">初始化失敗：' + (e && e.message ? e.message : e) + '</div>';
         });
     })();
     </script>

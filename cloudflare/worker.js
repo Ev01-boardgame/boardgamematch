@@ -12,7 +12,7 @@
  *   DELETE /tables/{table}/{id}      - 刪除
  *
  * 安全機制：
- *   1. API Secret — 所有請求需帶 X-Api-Key header（由 Nginx 注入）
+ *   1. API Secret — 多數請求需帶 X-Api-Key header（由 Nginx 注入）；GET /api/bgg-axis-deltas 除外
  *   2. JWT 驗證  — 寫入操作需帶 Authorization: Bearer <Google JWT>
  *   3. RBAC      — 敏感 table 和 DELETE 需 admin 角色
  *
@@ -20,7 +20,15 @@
  *   API_SECRET       — Nginx 注入的 secret key
  *   GOOGLE_CLIENT_ID — Google OAuth Client ID（JWT aud 驗證）
  *   ALLOWED_ORIGINS  — 允許的 CORS origins（逗號分隔，如 "https://example.com,https://dev.example.com"）
+ *
+ * 例外（不需 X-Api-Key）：
+ *   GET /api/bgg-axis-deltas — 公開讀取 BGG→六軸 delta（與靜態 bgg-axis-deltas-v1.js 後備一致）
+ *
+ * 管理端（需 X-Api-Key + JWT + admin／超管）：
+ *   PUT /api/admin/bgg-axis-deltas — 寫入整包 category／mechanic delta 至 D1
  */
+
+import { BGG_AXIS_DEFAULTS } from './bgg-axis-defaults.js';
 
 const ALLOWED_TABLES = [
   'users', 'user_stats', 'game_database', 'game_aliases', 'game_votes',
@@ -61,6 +69,88 @@ const USER_PREFERENCE_PROFILES_DDL = `CREATE TABLE IF NOT EXISTS user_preference
 )`;
 async function ensureUserPreferenceProfilesTable(db) {
   await db.prepare(USER_PREFERENCE_PROFILES_DDL).run();
+}
+
+// BGG 主題／機制 → 六軸 delta（線上覆寫；無資料列時回傳與 bgg-axis-defaults.js 相同預設）
+const BGG_AXIS_DELTAS_DDL = `CREATE TABLE IF NOT EXISTS bgg_axis_deltas (
+  id TEXT PRIMARY KEY,
+  category_deltas TEXT NOT NULL DEFAULT '{}',
+  mechanic_deltas TEXT NOT NULL DEFAULT '{}',
+  updated_at INTEGER NOT NULL
+)`;
+
+async function ensureBggAxisDeltasTable(db) {
+  await db.prepare(BGG_AXIS_DELTAS_DDL).run();
+}
+
+function validateBggAxisDeltaMaps(cat, mech) {
+  const axes = new Set(BGG_AXIS_DEFAULTS.AXIS_KEYS);
+  if (!cat || typeof cat !== 'object' || Array.isArray(cat)) return 'category_deltas 必須為物件';
+  if (!mech || typeof mech !== 'object' || Array.isArray(mech)) return 'mechanic_deltas 必須為物件';
+  for (const [label, map] of [['category_deltas', cat], ['mechanic_deltas', mech]]) {
+    for (const [tag, deltas] of Object.entries(map)) {
+      if (typeof tag !== 'string' || !tag.trim()) return `${label} 含無效鍵`;
+      if (!deltas || typeof deltas !== 'object' || Array.isArray(deltas)) {
+        return `${label} 的「${tag}」值必須為物件`;
+      }
+      for (const [ax, val] of Object.entries(deltas)) {
+        if (!axes.has(ax)) return `未知軸：${ax}`;
+        const n = typeof val === 'number' ? val : parseFloat(val);
+        if (Number.isNaN(n)) return `「${tag}」的 ${ax} 必須為數字`;
+      }
+    }
+  }
+  return null;
+}
+
+async function handleGetBggAxisDeltas(db, origin, env) {
+  const def = BGG_AXIS_DEFAULTS;
+  let cat = { ...def.CATEGORY_AXIS_DELTAS };
+  let mech = { ...def.MECHANIC_AXIS_DELTAS };
+  let source = 'defaults';
+
+  if (db) {
+    try {
+      await ensureBggAxisDeltasTable(db);
+      const row = await db.prepare(
+        'SELECT category_deltas, mechanic_deltas FROM bgg_axis_deltas WHERE id = ?'
+      ).bind('v1').first();
+      if (row) {
+        let fromDb = false;
+        try {
+          const c = JSON.parse(row.category_deltas || '{}');
+          if (c && typeof c === 'object' && !Array.isArray(c) && Object.keys(c).length) {
+            cat = c;
+            fromDb = true;
+          }
+        } catch (e) { /* ignore */ }
+        try {
+          const m = JSON.parse(row.mechanic_deltas || '{}');
+          if (m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length) {
+            mech = m;
+            fromDb = true;
+          }
+        } catch (e) { /* ignore */ }
+        if (fromDb) source = 'database';
+      }
+    } catch (e) {
+      console.warn('handleGetBggAxisDeltas', e);
+    }
+  }
+
+  const headers = { ...corsHeaders(origin, env), 'Cache-Control': 'no-store' };
+  Object.keys(headers).forEach(k => headers[k] === undefined && delete headers[k]);
+  return new Response(
+    JSON.stringify({
+      version: def.version,
+      AXIS_KEYS: def.AXIS_KEYS,
+      AXIS_LABELS_ZH: def.AXIS_LABELS_ZH,
+      CATEGORY_AXIS_DELTAS: cat,
+      MECHANIC_AXIS_DELTAS: mech,
+      source
+    }),
+    { status: 200, headers }
+  );
 }
 
 // ══ 權限矩陣 ══
@@ -242,6 +332,16 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // ── 公開：GET /api/bgg-axis-deltas（不需 X-Api-Key；供前端覆寫 window.BGG_AXIS_V1）──
+    if (url.pathname === '/api/bgg-axis-deltas' && method === 'GET') {
+      try {
+        return await handleGetBggAxisDeltas(env.DB, origin, env);
+      } catch (e) {
+        console.error('bgg-axis-deltas GET', e);
+        return errorResponse('Failed to load BGG axis deltas', 500, origin, env);
+      }
+    }
+
     // ── 1. API Secret 驗證（所有請求） ──
     const apiSecret = env.API_SECRET;
     if (apiSecret) {
@@ -344,6 +444,49 @@ export default {
           origin,
           env
         );
+      }
+    }
+
+    // ── Admin：BGG 六軸 delta 寫入 D1 PUT /api/admin/bgg-axis-deltas
+    if (url.pathname === '/api/admin/bgg-axis-deltas' && method === 'PUT') {
+      const db = env.DB;
+      if (!db) return errorResponse('Database not configured', 503, origin, env);
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
+      if (!token) return errorResponse('Authentication required', 401, origin, env);
+      let jwtPayload;
+      try {
+        jwtPayload = await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+      } catch (err) {
+        return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+      }
+      const isAdmin = await checkAdminOrSuper(db, jwtPayload.sub);
+      if (!isAdmin) return errorResponse('Admin access required', 403, origin, env);
+      let body;
+      try {
+        body = await request.json();
+      } catch (e) {
+        return errorResponse('Invalid JSON', 400, origin, env);
+      }
+      const cat = body && body.category_deltas;
+      const mech = body && body.mechanic_deltas;
+      const vErr = validateBggAxisDeltaMaps(cat, mech);
+      if (vErr) return errorResponse(vErr, 400, origin, env);
+      try {
+        await ensureBggAxisDeltasTable(db);
+        const now = Date.now();
+        await db.prepare(`
+          INSERT INTO bgg_axis_deltas (id, category_deltas, mechanic_deltas, updated_at)
+          VALUES ('v1', ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            category_deltas = excluded.category_deltas,
+            mechanic_deltas = excluded.mechanic_deltas,
+            updated_at = excluded.updated_at
+        `).bind(JSON.stringify(cat), JSON.stringify(mech), now).run();
+        return jsonResponse({ ok: true, updated_at: now }, 200, origin, env);
+      } catch (e) {
+        console.error('bgg-axis-deltas PUT', e);
+        return errorResponse('Save failed: ' + (e && e.message ? e.message : 'unknown'), 500, origin, env);
       }
     }
 

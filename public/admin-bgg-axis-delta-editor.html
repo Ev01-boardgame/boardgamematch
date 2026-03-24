@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGG 六軸 Delta 編輯器 - MBTI × 桌遊配對</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <style>
+        .wrap { max-width: 1400px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+        .hero {
+            background: linear-gradient(135deg, #0f766e 0%, #5b21b6 100%);
+            color: #fff; padding: 1.25rem 1.1rem; border-radius: 0.85rem; margin-bottom: 1rem;
+        }
+        .hero h1 { margin: 0 0 0.4rem; font-size: 1.25rem; }
+        .hero p { margin: 0.3rem 0; font-size: 0.85rem; opacity: 0.95; line-height: 1.5; }
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;
+        }
+        .toolbar button, .toolbar label.file-btn {
+            padding: 0.45rem 0.85rem; border-radius: 0.45rem; border: none; font-weight: 600;
+            font-size: 0.86rem; cursor: pointer;
+        }
+        .btn-teal { background: #0d9488; color: #fff; }
+        .btn-violet { background: #7c3aed; color: #fff; }
+        .btn-slate { background: #64748b; color: #fff; }
+        .btn-amber { background: #d97706; color: #fff; }
+        .btn-emerald { background: #059669; color: #fff; font-size: 0.9rem !important; }
+        .file-btn { display: inline-block; background: #475569; color: #fff; }
+        .file-btn input { display: none; }
+        .filter-wrap { flex: 1; min-width: 12rem; }
+        .filter-wrap input {
+            width: 100%; max-width: 22rem; padding: 0.45rem 0.55rem; border-radius: 0.4rem;
+            border: 1px solid var(--border-color);
+        }
+        .card {
+            background: var(--card-bg); border-radius: 0.75rem; padding: 1rem;
+            margin-bottom: 1rem; border: 1px solid var(--border-color);
+        }
+        .card h2 { margin: 0 0 0.5rem; font-size: 1.02rem; }
+        .hint { font-size: 0.78rem; color: var(--text-light); line-height: 1.45; margin-bottom: 0.5rem; }
+        .table-scroll { overflow: auto; max-height: 62vh; border: 1px solid var(--border-color); border-radius: 0.45rem; }
+        table.delta-edit {
+            width: 100%; border-collapse: collapse; font-size: 0.72rem;
+        }
+        table.delta-edit th, table.delta-edit td {
+            border-bottom: 1px solid var(--border-color); padding: 0.25rem 0.35rem;
+            vertical-align: middle;
+        }
+        table.delta-edit th {
+            position: sticky; top: 0; background: var(--bg-secondary, #f1f5f9); z-index: 2;
+            white-space: nowrap;
+        }
+        table.delta-edit .col-name { min-width: 9rem; max-width: 14rem; font-weight: 600; }
+        table.delta-edit .col-key { font-size: 0.65rem; color: var(--text-light); word-break: break-all; max-width: 10rem; }
+        table.delta-edit input.num {
+            width: 3.1rem; padding: 0.2rem; border-radius: 0.25rem; border: 1px solid var(--border-color);
+            font-size: 0.72rem; text-align: center;
+        }
+        table.delta-edit tr.orphan td.col-name { color: #b45309; }
+        table.delta-edit .btn-row-clear {
+            font-size: 0.65rem; padding: 0.15rem 0.35rem; border: none; border-radius: 0.25rem;
+            background: #fee2e2; color: #991b1b; cursor: pointer;
+        }
+        #status { font-size: 0.8rem; color: var(--text-light); margin-top: 0.5rem; }
+        .links a { color: #0d9488; font-weight: 600; margin-right: 0.75rem; }
+        textarea#preview-js {
+            width: 100%; min-height: 180px; font-family: ui-monospace, monospace; font-size: 0.7rem;
+            border-radius: 0.4rem; border: 1px solid var(--border-color); padding: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo"><span class="navbar-logo-text">MBTI × 桌遊配對</span></a>
+            <div class="navbar-links">
+                <a href="admin.html">管理後台</a>
+                <a href="admin-bgg-axis-reference.html">對照表</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrap">
+        <div class="hero">
+            <h1>BGG 主題／機制 → 六軸 Delta 編輯器</h1>
+            <p>列與 <strong>data/bgg-taxonomy.json</strong> 官方清單對齊；鍵名為 <strong>小寫正規化</strong>（與掃描頁比對標籤相同）。空白欄位表示該軸不套用 delta。</p>
+            <p><strong>主要流程（正式站）</strong>：① 下方填 API 基底／Key（本機 Live Server 連 Worker 時需要，與「BGG 掃描」頁<strong>共用</strong> localStorage）② <strong>儲存到線上</strong> 寫入 D1（需 <code>X-Api-Key</code> + 管理員 Google JWT；請先在 <a href="admin.html" style="color:#a5f3fc;">管理後台</a> 登入）③ 全站讀取優先 <code>GET /api/bgg-axis-deltas</code>（公開），失敗才用靜態 <code>bgg-axis-deltas-v1.js</code>。</p>
+            <p><strong>備援</strong>：覆寫專案檔／下載 JS（PR 同步 repo）。編輯會自動存<strong>草稿</strong>在瀏覽器（localStorage）。</p>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem;">
+            <h2>API（本機連正式 Worker 時）</h2>
+            <p class="hint">與 <code>admin-bgg-axis-sync.html</code> 相同鍵名：<code>admin_bgg_axis_sync_api_base</code>／<code>admin_bgg_axis_sync_api_key</code>。同源正式站可留空。</p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                <label style="font-size:0.85rem;color:var(--text-light);min-width:6rem;">API 基底</label>
+                <input type="url" id="api-base" class="input-flex" placeholder="https://boardgamematch.com.tw" style="flex:1;min-width:14rem;max-width:28rem;padding:0.4rem;border-radius:0.4rem;border:1px solid var(--border-color);">
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+                <label style="font-size:0.85rem;color:var(--text-light);min-width:6rem;">X-Api-Key</label>
+                <input type="password" id="api-key" class="input-flex" placeholder="連 Worker 時通常必填" style="flex:1;min-width:14rem;max-width:28rem;padding:0.4rem;border-radius:0.4rem;border:1px solid var(--border-color);">
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button type="button" class="btn-emerald" id="btn-save-server" title="需管理員 JWT + API Key">☁️ 儲存到線上（D1）</button>
+            <button type="button" class="btn-teal" id="btn-load-server">🔄 從線上載入</button>
+            <button type="button" class="btn-emerald" id="btn-save-as-file" title="Chrome／Edge 建議使用">💾 覆寫專案檔…</button>
+            <button type="button" class="btn-teal" id="btn-download">⬇ 下載到「下載」資料夾</button>
+            <button type="button" class="btn-violet" id="btn-copy">📋 複製 JS 到剪貼簿</button>
+            <button type="button" class="btn-slate" id="btn-reload">↻ 從檔案重載</button>
+            <button type="button" class="btn-amber" id="btn-clear-draft">清除草稿</button>
+            <label class="file-btn">匯入 JSON<input type="file" id="import-json" accept=".json,application/json"></label>
+            <button type="button" class="btn-slate" id="btn-export-json">匯出 JSON 草稿</button>
+            <div class="filter-wrap">
+                <input type="search" id="filter" placeholder="篩選：鍵名或顯示名稱…" autocomplete="off">
+            </div>
+        </div>
+        <div id="status"></div>
+
+        <div class="card">
+            <h2>Categories（主題）</h2>
+            <p class="hint">列來自 taxonomy；橘色列 = 有 delta 但不在官方清單（仍會匯出）。</p>
+            <div class="table-scroll">
+                <table class="delta-edit" id="table-cat"><thead id="thead-cat"></thead><tbody id="tbody-cat"></tbody></table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Mechanics（機制）</h2>
+            <div class="table-scroll">
+                <table class="delta-edit" id="table-mech"><thead id="thead-mech"></thead><tbody id="tbody-mech"></tbody></table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>預覽（節錄）</h2>
+            <p class="hint">完整內容請用下載或複製；此處僅顯示前 3500 字。</p>
+            <textarea id="preview-js" readonly></textarea>
+        </div>
+
+        <p class="links">
+            <a href="admin-bgg-axis-reference.html">唯讀對照表</a>
+            <a href="admin-bgg-axis-sync.html">BGG 掃描</a>
+            <a href="admin.html">管理後台</a>
+        </p>
+    </div>
+
+    <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
+    <script src="js/app.js?v=20260320"></script>
+    <script>
+    (function () {
+        const LS_DRAFT = 'admin_bgg_delta_editor_draft_v1';
+        const LS_API_BASE = 'admin_bgg_axis_sync_api_base';
+        const LS_API_KEY = 'admin_bgg_axis_sync_api_key';
+
+        const elApiBase = document.getElementById('api-base');
+        const elApiKey = document.getElementById('api-key');
+        try {
+            const b = localStorage.getItem(LS_API_BASE);
+            if (b != null && elApiBase) elApiBase.value = b;
+            const k = localStorage.getItem(LS_API_KEY);
+            if (k != null && elApiKey) elApiKey.value = k;
+        } catch (e) { /* ignore */ }
+        function persistApiSettings() {
+            try {
+                if (elApiBase) localStorage.setItem(LS_API_BASE, elApiBase.value.trim());
+                if (elApiKey) localStorage.setItem(LS_API_KEY, elApiKey.value.trim());
+            } catch (e) { /* ignore */ }
+        }
+        if (elApiBase) {
+            elApiBase.addEventListener('change', persistApiSettings);
+            elApiBase.addEventListener('blur', persistApiSettings);
+        }
+        if (elApiKey) {
+            elApiKey.addEventListener('change', persistApiSettings);
+            elApiKey.addEventListener('blur', persistApiSettings);
+        }
+        function readApiBase() {
+            const raw = (elApiBase && elApiBase.value ? elApiBase.value : '').trim();
+            return raw.replace(/\/+$/, '');
+        }
+        function readApiKey() {
+            return (elApiKey && elApiKey.value ? elApiKey.value : '').trim();
+        }
+
+        if (!window.BGG_AXIS_V1) {
+            document.getElementById('status').textContent = '無法載入 bgg-axis-deltas-v1.js';
+            return;
+        }
+        let AXIS_KEYS = window.BGG_AXIS_V1.AXIS_KEYS;
+        let AXIS_LABELS_ZH = window.BGG_AXIS_V1.AXIS_LABELS_ZH;
+
+        function normTag(s) {
+            return String(s || '').trim().toLowerCase().replace(/\u2019/g, "'");
+        }
+
+        function escapeJsKey(key) {
+            return String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        /** @type {Record<string, Record<string, number>>} */
+        let catMap = {};
+        /** @type {Record<string, Record<string, number>>} */
+        let mechMap = {};
+
+        function cloneDeltas(obj) {
+            const o = {};
+            Object.keys(obj || {}).forEach(k => {
+                o[k] = { ...obj[k] };
+            });
+            return o;
+        }
+
+        function deepMergeDraft(loaded) {
+            if (!loaded || typeof loaded !== 'object') return;
+            if (loaded.categories && typeof loaded.categories === 'object') {
+                Object.keys(loaded.categories).forEach(k => {
+                    catMap[k] = { ...(catMap[k] || {}), ...loaded.categories[k] };
+                });
+            }
+            if (loaded.mechanics && typeof loaded.mechanics === 'object') {
+                Object.keys(loaded.mechanics).forEach(k => {
+                    mechMap[k] = { ...(mechMap[k] || {}), ...loaded.mechanics[k] };
+                });
+            }
+        }
+
+        function initMapsFromV1() {
+            const vb = window.BGG_AXIS_V1;
+            if (!vb) return;
+            catMap = cloneDeltas(vb.CATEGORY_AXIS_DELTAS);
+            mechMap = cloneDeltas(vb.MECHANIC_AXIS_DELTAS);
+            AXIS_KEYS = vb.AXIS_KEYS;
+            AXIS_LABELS_ZH = vb.AXIS_LABELS_ZH;
+        }
+
+        function saveDraftDebounced() {
+            clearTimeout(saveDraftDebounced._t);
+            saveDraftDebounced._t = setTimeout(() => {
+                try {
+                    const payload = { savedAt: Date.now(), categories: readMapsFromDom('cat'), mechanics: readMapsFromDom('mech') };
+                    localStorage.setItem(LS_DRAFT, JSON.stringify(payload));
+                    setStatus('已自動儲存草稿 ' + new Date().toLocaleTimeString());
+                    updatePreview();
+                } catch (e) {
+                    setStatus('草稿儲存失敗：' + e.message);
+                }
+            }, 400);
+        }
+
+        function readMapsFromDom(kind) {
+            const tbody = document.getElementById(kind === 'cat' ? 'tbody-cat' : 'tbody-mech');
+            const out = {};
+            tbody.querySelectorAll('tr[data-key]').forEach(tr => {
+                const key = tr.getAttribute('data-key');
+                const o = {};
+                AXIS_KEYS.forEach(ax => {
+                    const inp = tr.querySelector('input[data-axis="' + ax + '"]');
+                    if (!inp) return;
+                    const raw = inp.value.trim();
+                    if (raw === '') return;
+                    const n = Number(raw);
+                    if (isNaN(n)) return;
+                    o[ax] = n;
+                });
+                if (Object.keys(o).length) out[key] = o;
+            });
+            return out;
+        }
+
+        function formatInnerObject(deltaObj) {
+            const parts = [];
+            AXIS_KEYS.forEach(k => {
+                const v = deltaObj[k];
+                if (v == null || v === '' || isNaN(Number(v))) return;
+                const n = Number(v);
+                parts.push(k + ': ' + n);
+            });
+            if (!parts.length) return null;
+            return '{ ' + parts.join(', ') + ' }';
+        }
+
+        function buildObjectLiteralBlock(map) {
+            const keys = Object.keys(map).filter(k => formatInnerObject(map[k])).sort((a, b) => a.localeCompare(b));
+            const lines = keys.map(key => {
+                const inner = formatInnerObject(map[key]);
+                return "        '" + escapeJsKey(key) + "': " + inner + ',';
+            });
+            return lines.join('\n');
+        }
+
+        function generateFullJsFile() {
+            const catBlock = buildObjectLiteralBlock(readMapsFromDom('cat'));
+            const mechBlock = buildObjectLiteralBlock(readMapsFromDom('mech'));
+            const labelsStr = JSON.stringify(AXIS_LABELS_ZH, null, 4)
+                .replace(/^/gm, '    ')
+                .replace(/"([^"]+)":/g, '$1:');
+
+            return `/**
+ * BGG Category（主題）／Mechanic（機制）→ 六軸「加總修正量」（delta）
+ * 與 admin-bgg-axis-sync 的 computeSixAxes 一致；修改此檔後掃描頁與參考頁會同步。
+ * 官方「全部」主題／機制清單見 public/data/bgg-taxonomy.json（由 scripts/build-bgg-taxonomy.mjs 產生）。
+ * 數值會加在「基底六軸」上再 clamp 到 0–12；未列出的 BGG 標籤不套用此表。
+ */
+(function (global) {
+    'use strict';
+
+    const AXIS_KEYS = ${JSON.stringify(AXIS_KEYS)};
+
+    const AXIS_LABELS_ZH = ${labelsStr.trim()};
+
+    /** BGG Category（themes）→ 各軸加總修正，可為負 */
+    const CATEGORY_AXIS_DELTAS = {
+${catBlock || '        '}
+    };
+
+    /** BGG Mechanic → 各軸加總修正 */
+    const MECHANIC_AXIS_DELTAS = {
+${mechBlock || '        '}
+    };
+
+    global.BGG_AXIS_V1 = {
+        version: 1,
+        AXIS_KEYS,
+        AXIS_LABELS_ZH,
+        CATEGORY_AXIS_DELTAS,
+        MECHANIC_AXIS_DELTAS
+    };
+})(typeof window !== 'undefined' ? window : globalThis);
+`;
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        function buildThead(thead) {
+            thead.innerHTML = '<tr><th class="col-name">官方名稱</th><th class="col-key">鍵（小寫）</th>' +
+                AXIS_KEYS.map(k => '<th title="' + (AXIS_LABELS_ZH[k] || '') + '">' + k + '</th>').join('') +
+                '<th></th></tr>';
+        }
+
+        function renderTable(tbodyId, items, map, taxonomyKeys, kind) {
+            const tbody = document.getElementById(tbodyId);
+            const keySetTax = new Set(taxonomyKeys);
+            const rows = [];
+
+            items.forEach(it => {
+                const key = normTag(it.name);
+                if (!key) return;
+                const d = map[key] || {};
+                rows.push({ key, display: it.name, id: it.id, orphan: false, d });
+            });
+
+            const orphanKeys = Object.keys(map).filter(k => !keySetTax.has(k)).sort();
+            orphanKeys.forEach(key => {
+                rows.push({ key, display: '(僅在 v1，不在 taxonomy) ' + key, id: '', orphan: true, d: map[key] || {} });
+            });
+
+            tbody.innerHTML = rows.map(r => {
+                const inputs = AXIS_KEYS.map(ax => {
+                    const v = r.d[ax];
+                    const show = v != null && !isNaN(Number(v)) ? String(v) : '';
+                    return '<td><input type="number" step="any" class="num" data-axis="' + ax + '" value="' + show + '" placeholder="—"></td>';
+                }).join('');
+                const trc = r.orphan ? ' orphan' : '';
+                return '<tr class="' + trc + '" data-key="' + escapeHtml(r.key) + '">' +
+                    '<td class="col-name">' + escapeHtml(r.display) + '</td>' +
+                    '<td class="col-key">' + escapeHtml(r.key) + '</td>' +
+                    inputs +
+                    '<td><button type="button" class="btn-row-clear" title="清空此列">清空</button></td></tr>';
+            }).join('');
+
+            tbody.querySelectorAll('input.num').forEach(inp => {
+                inp.addEventListener('input', saveDraftDebounced);
+            });
+            tbody.querySelectorAll('.btn-row-clear').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const tr = this.closest('tr');
+                    tr.querySelectorAll('input.num').forEach(i => { i.value = ''; });
+                    saveDraftDebounced();
+                    updatePreview();
+                });
+            });
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function applyFilter() {
+            const q = document.getElementById('filter').value.trim().toLowerCase();
+            ['tbody-cat', 'tbody-mech'].forEach(id => {
+                document.getElementById(id).querySelectorAll('tr[data-key]').forEach(tr => {
+                    const key = (tr.getAttribute('data-key') || '').toLowerCase();
+                    const name = (tr.querySelector('.col-name') && tr.querySelector('.col-name').textContent || '').toLowerCase();
+                    tr.style.display = !q || key.includes(q) || name.includes(q) ? '' : 'none';
+                });
+            });
+        }
+
+        function updatePreview() {
+            const full = generateFullJsFile();
+            document.getElementById('preview-js').value = full.length > 3500 ? full.slice(0, 3500) + '\n\n/* … 其餘請用下載 … */' : full;
+        }
+
+        function syncMapsFromDomToInternal() {
+            catMap = readMapsFromDom('cat');
+            mechMap = readMapsFromDom('mech');
+        }
+
+        async function reloadTablesFromCurrentMaps() {
+            let tax = { categories: [], mechanics: [] };
+            try {
+                const r = await fetch('data/bgg-taxonomy.json?v=1');
+                if (r.ok) tax = await r.json();
+            } catch (e) { /* ignore */ }
+            const catKeys = (tax.categories || []).map(it => normTag(it.name)).filter(Boolean);
+            const mechKeys = (tax.mechanics || []).map(it => normTag(it.name)).filter(Boolean);
+            buildThead(document.getElementById('thead-cat'));
+            buildThead(document.getElementById('thead-mech'));
+            renderTable('tbody-cat', tax.categories || [], catMap, catKeys, 'cat');
+            renderTable('tbody-mech', tax.mechanics || [], mechMap, mechKeys, 'mech');
+            applyFilter();
+        }
+
+        function putAxisDeltasUrl() {
+            const b = readApiBase();
+            if (b) return b + '/api/admin/bgg-axis-deltas';
+            return new URL('/api/admin/bgg-axis-deltas', location.href).href;
+        }
+
+        async function bootstrap() {
+            if (typeof window.loadBggAxisV1FromApi === 'function') {
+                try {
+                    await window.loadBggAxisV1FromApi({
+                        apiBase: readApiBase() || undefined,
+                        apiKey: readApiKey() || undefined
+                    });
+                    setStatus('已嘗試從 API 載入 delta（source: ' + (window.__BGG_AXIS_V1_SOURCE || '') + '）');
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+            initMapsFromV1();
+
+            try {
+                const raw = localStorage.getItem(LS_DRAFT);
+                if (raw) {
+                    const d = JSON.parse(raw);
+                    deepMergeDraft(d);
+                    setStatus('已載入本機草稿（可「從檔案重載」還原成目前 bgg-axis-deltas-v1.js）');
+                }
+            } catch (e) {}
+
+            await reloadTablesFromCurrentMaps();
+
+            document.getElementById('filter').addEventListener('input', applyFilter);
+
+            document.getElementById('btn-load-server').addEventListener('click', async function () {
+                setStatus('從線上載入中…');
+                try {
+                    if (typeof window.loadBggAxisV1FromApi === 'function') {
+                        await window.loadBggAxisV1FromApi({
+                            apiBase: readApiBase() || undefined,
+                            apiKey: readApiKey() || undefined
+                        });
+                    }
+                    initMapsFromV1();
+                    await reloadTablesFromCurrentMaps();
+                    updatePreview();
+                    setStatus('已從線上載入（source: ' + (window.__BGG_AXIS_V1_SOURCE || '') + '）');
+                } catch (e) {
+                    setStatus('載入失敗：' + (e && e.message ? e.message : e));
+                }
+            });
+
+            document.getElementById('btn-save-server').addEventListener('click', async function () {
+                const token = typeof localStorage !== 'undefined' ? localStorage.getItem('google_id_token') : null;
+                if (!token) {
+                    setStatus('請先到「管理後台」用 Google 登入管理員，再按儲存（需要 JWT）。');
+                    alert('需要管理員登入：請開 admin.html 完成登入後再回到此頁。');
+                    return;
+                }
+                syncMapsFromDomToInternal();
+                const body = {
+                    category_deltas: readMapsFromDom('cat'),
+                    mechanic_deltas: readMapsFromDom('mech')
+                };
+                const headers = typeof getAuthHeaders === 'function'
+                    ? getAuthHeaders({ 'Content-Type': 'application/json' })
+                    : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+                const k = readApiKey();
+                if (k) headers['X-Api-Key'] = k;
+                setStatus('儲存到線上…');
+                try {
+                    const r = await fetch(putAxisDeltasUrl(), {
+                        method: 'PUT',
+                        headers,
+                        body: JSON.stringify(body)
+                    });
+                    const text = await r.text();
+                    let j = null;
+                    try { j = JSON.parse(text); } catch (e) { /* ignore */ }
+                    if (!r.ok) {
+                        setStatus('儲存失敗 HTTP ' + r.status + '：' + (j && j.error ? j.error : text.slice(0, 200)));
+                        return;
+                    }
+                    setStatus('已儲存到 D1（updated_at: ' + (j && j.updated_at ? j.updated_at : 'ok') + '）');
+                } catch (e) {
+                    setStatus('儲存失敗：' + (e && e.message ? e.message : e));
+                }
+            });
+
+            function getFullJsText() {
+                syncMapsFromDomToInternal();
+                return generateFullJsFile();
+            }
+
+            document.getElementById('btn-save-as-file').addEventListener('click', async () => {
+                const text = getFullJsText();
+                if (typeof window.showSaveFilePicker === 'function' && window.isSecureContext) {
+                    try {
+                        const h = await window.showSaveFilePicker({
+                            suggestedName: 'bgg-axis-deltas-v1.js',
+                            types: [{
+                                description: 'JavaScript',
+                                accept: { 'text/javascript': ['.js'], 'application/javascript': ['.js'] }
+                            }]
+                        });
+                        const w = await h.createWritable();
+                        await w.write(text);
+                        await w.close();
+                        setStatus('已寫入檔案（' + (h.name || '完成') + '）。若選的是專案內 public/js/bgg-axis-deltas-v1.js，可直接 commit。');
+                    } catch (e) {
+                        if (e && e.name === 'AbortError') setStatus('已取消存檔');
+                        else setStatus('覆寫失敗：' + (e && e.message ? e.message : e) + ' — 請改用「下載」');
+                    }
+                    return;
+                }
+                setStatus('此環境不支援「覆寫專案檔」（需 Chrome／Edge 且網址為 http://localhost 或 https）。已改為下載…');
+                const blob = new Blob([text], { type: 'text/javascript;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'bgg-axis-deltas-v1.js';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            });
+
+            document.getElementById('btn-download').addEventListener('click', () => {
+                const blob = new Blob([getFullJsText()], { type: 'text/javascript;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'bgg-axis-deltas-v1.js';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                setStatus('已下載到系統的「下載」資料夾；請複製到 public/js/bgg-axis-deltas-v1.js');
+            });
+
+            document.getElementById('btn-copy').addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(getFullJsText());
+                    setStatus('已複製到剪貼簿');
+                } catch (e) {
+                    setStatus('複製失敗，請改用手動全選預覽或下載');
+                }
+            });
+
+            document.getElementById('btn-reload').addEventListener('click', () => {
+                localStorage.removeItem(LS_DRAFT);
+                location.reload();
+            });
+
+            document.getElementById('btn-clear-draft').addEventListener('click', () => {
+                localStorage.removeItem(LS_DRAFT);
+                setStatus('已清除草稿記錄（頁面未重載；可按「從檔案重載」還原）');
+            });
+
+            document.getElementById('btn-export-json').addEventListener('click', () => {
+                const payload = { categories: readMapsFromDom('cat'), mechanics: readMapsFromDom('mech'), exportedAt: new Date().toISOString() };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'bgg-axis-deltas-draft.json';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            });
+
+            document.getElementById('import-json').addEventListener('change', function () {
+                const f = this.files && this.files[0];
+                if (!f) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const j = JSON.parse(reader.result);
+                        deepMergeDraft(j);
+                        const tax2 = tax;
+                        const catKeys2 = (tax2.categories || []).map(it => normTag(it.name)).filter(Boolean);
+                        const mechKeys2 = (tax2.mechanics || []).map(it => normTag(it.name)).filter(Boolean);
+                        renderTable('tbody-cat', tax2.categories || [], catMap, catKeys2, 'cat');
+                        renderTable('tbody-mech', tax2.mechanics || [], mechMap, mechKeys2, 'mech');
+                        applyFilter();
+                        updatePreview();
+                        saveDraftDebounced();
+                        setStatus('已匯入 JSON 並合併至表單');
+                    } catch (e) {
+                        setStatus('JSON 解析失敗：' + e.message);
+                    }
+                };
+                reader.readAsText(f);
+                this.value = '';
+            });
+
+            updatePreview();
+        }
+
+        bootstrap().catch(function (e) {
+            console.error(e);
+            const st = document.getElementById('status');
+            if (st) st.textContent = '初始化失敗：' + (e && e.message ? e.message : e);
+        });
+    })();
+    </script>
+</body>
+</html>
