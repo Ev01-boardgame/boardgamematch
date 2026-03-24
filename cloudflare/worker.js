@@ -327,15 +327,16 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-const BGG_COLLECTION_HEADERS = {
-  Accept: 'application/xml, text/xml;q=0.9, */*;q=0.8',
-  'User-Agent': 'BoardGameMatch/1.0 (+https://boardgamematch.com.tw; collection-preview)',
+/** 直連 BGG 時用常見瀏覽器標頭，降低被 WAF／機器人規則回 401 的機率 */
+const BGG_COLLECTION_BROWSER_HEADERS = {
+  Accept: 'application/xml, application/xhtml+xml, text/xml;q=0.9, */*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8',
+  Referer: 'https://boardgamegeek.com/',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
 };
 
-/**
- * BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
- */
-async function fetchBggCollectionXml(username, includeExpansions) {
+function buildBggCollectionApiUrl(username, includeExpansions) {
   const params = new URLSearchParams({
     username: username.trim(),
     own: '1',
@@ -346,12 +347,55 @@ async function fetchBggCollectionXml(username, includeExpansions) {
     params.set('excludesubtype', 'boardgameexpansion');
     params.set('excludeexpansion', '1');
   }
-  const bggUrl = `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
+  return `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
+}
+
+/**
+ * 從 Jina 回傳的 Markdown／混雜文字中擷取 collection 的 <items>… XML。
+ */
+function extractCollectionXmlFromMixedText(text) {
+  if (!text || typeof text !== 'string') return null;
+  const m = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
+  return m ? m[0] : null;
+}
+
+/** 經 r.jina.ai 讀取 BGG XML（與站內 admin thing 相同思路），繞過部分對資料中心 IP 的 401/403 */
+async function fetchBggCollectionXmlViaJina(bggUrl) {
+  const jinaUrl = `https://r.jina.ai/${bggUrl}`;
+  const res = await fetch(jinaUrl, {
+    headers: {
+      'X-No-Cache': 'true',
+      'User-Agent': BGG_COLLECTION_BROWSER_HEADERS['User-Agent'],
+    },
+    signal: AbortSignal.timeout(90000),
+  });
+  if (!res.ok) {
+    const err = new Error(`Jina 備援 HTTP ${res.status}`);
+    err.bggStatus = res.status >= 400 && res.status < 600 ? res.status : 502;
+    throw err;
+  }
+  const text = await res.text();
+  const xml = extractCollectionXmlFromMixedText(text);
+  if (!xml) {
+    const err = new Error('Jina 備援：回傳內容無法解析為 BGG collection XML');
+    err.bggStatus = 502;
+    throw err;
+  }
+  return xml;
+}
+
+/**
+ * BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
+ * 直連若 401/403（隱私或阻擋 Worker IP），再試 Jina 備援。
+ */
+async function fetchBggCollectionXml(username, includeExpansions) {
+  const bggUrl = buildBggCollectionApiUrl(username, includeExpansions);
 
   let lastStatus = 0;
+  let directAuthFail = false;
   for (let attempt = 0; attempt < 28; attempt++) {
     const res = await fetch(bggUrl, {
-      headers: BGG_COLLECTION_HEADERS,
+      headers: BGG_COLLECTION_BROWSER_HEADERS,
       redirect: 'follow',
       signal: AbortSignal.timeout(25000),
     });
@@ -363,12 +407,32 @@ async function fetchBggCollectionXml(username, includeExpansions) {
       await sleep(2200);
       continue;
     }
+    if (res.status === 401 || res.status === 403) {
+      directAuthFail = true;
+      break;
+    }
     const body = await res.text().catch(() => '');
     const err = new Error(`BGG collection HTTP ${res.status}`);
     err.bggStatus = res.status;
     err.bggBodySnippet = body.slice(0, 400);
     throw err;
   }
+
+  if (directAuthFail) {
+    try {
+      console.warn('bgg collection: direct 401/403, trying Jina fallback', username);
+      return await fetchBggCollectionXmlViaJina(bggUrl);
+    } catch (e) {
+      const err = new Error(
+        'BGG 直連回傳 401/403，且 Jina 備援失敗。請在 BGG 帳號 Privacy 確認「Board Game Collection」對訪客可見（與網址能開啟不完全相同）；' +
+          '若已公開仍失敗，可能是 BGG 暫時阻擋伺服器 IP，請稍後再試。'
+      );
+      err.bggStatus = 502;
+      err.cause = e;
+      throw err;
+    }
+  }
+
   const err = new Error(`BGG collection 逾時（最後 HTTP ${lastStatus}）`);
   err.bggStatus = 503;
   throw err;
@@ -448,10 +512,11 @@ async function handleGetBggCollectionPreview(request, env, origin, db) {
   } catch (e) {
     console.error('bgg collection-preview fetch', e && e.message, e && e.bggBodySnippet);
     const st = e && e.bggStatus;
-    if (st === 401) {
+    if (st === 401 || st === 403) {
       return errorResponse(
-        'BGG 回傳 401：收藏可能為非公開，請在 BoardGameGeek 將「Collection」設為公開後再試。',
-        401,
+        'BGG 回傳 401/403：請至 BoardGameGeek → Profile → Privacy 確認「Board Game Collection」為訪客可見；' +
+          '僅能開啟 collection 網址不代表 XML API 已開。若已設公開仍錯誤，可能是 BGG 阻擋伺服器 IP（本站已嘗試備援）。',
+        st,
         origin,
         env
       );

@@ -470,15 +470,31 @@
     async function fetchBGGXmlApi(bggId) {
         const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
 
+        function unwrapJinaMarkdownMaybe(text) {
+            if (!text || typeof text !== 'string') return text;
+            let t = text;
+            const fence = t.match(/```(?:xml)?\s*([\s\S]*?)```/i);
+            if (fence) t = fence[1];
+            return t.trim();
+        }
+
         function parseThingXmlText(text) {
+            const raw = unwrapJinaMarkdownMaybe(text);
             try {
-                const xml = new DOMParser().parseFromString(text, 'text/xml');
+                const xml = new DOMParser().parseFromString(raw, 'text/xml');
                 const item = xml.querySelector('item');
                 if (item) return item;
             } catch (e) { /* continue */ }
-            const xmlMatch = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
+            const xmlMatch = raw.match(/<\?xml[\s\S]*?<\/items>/i) || raw.match(/<items[\s\S]*?<\/items>/i);
             if (xmlMatch) {
                 const xml = new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
+                const item = xml.querySelector('item');
+                if (item) return item;
+            }
+            const itemOnly = raw.match(/<item\b[^>]*>[\s\S]*?<\/item>/i);
+            if (itemOnly) {
+                const wrapped = `<items>${itemOnly[0]}</items>`;
+                const xml = new DOMParser().parseFromString(wrapped, 'text/xml');
                 const item = xml.querySelector('item');
                 if (item) return item;
             }
@@ -489,7 +505,7 @@
             const proxyUrl = `https://r.jina.ai/${apiUrl}`;
             const resp = await fetch(proxyUrl, {
                 headers: { 'X-No-Cache': 'true' },
-                signal: AbortSignal.timeout(28000)
+                signal: AbortSignal.timeout(45000)
             });
             if (!resp.ok) throw new Error(`Jina HTTP ${resp.status}`);
             return parseThingXmlText(await resp.text());

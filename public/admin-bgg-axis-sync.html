@@ -356,15 +356,31 @@
         async function fetchBGGXmlItem(bggId) {
             const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
 
+            function unwrapJinaMarkdownMaybe(text) {
+                if (!text || typeof text !== 'string') return text;
+                let t = text;
+                const fence = t.match(/```(?:xml)?\s*([\s\S]*?)```/i);
+                if (fence) t = fence[1];
+                return t.trim();
+            }
+
             async function parseThingXmlText(text) {
+                const raw = unwrapJinaMarkdownMaybe(text);
                 try {
-                    const xml = new DOMParser().parseFromString(text, 'text/xml');
+                    const xml = new DOMParser().parseFromString(raw, 'text/xml');
                     const item = xml.querySelector('item');
                     if (item) return item;
                 } catch (e) { /* continue */ }
-                const xmlMatch = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
+                const xmlMatch = raw.match(/<\?xml[\s\S]*?<\/items>/i) || raw.match(/<items[\s\S]*?<\/items>/i);
                 if (xmlMatch) {
                     const xml = new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
+                    const item = xml.querySelector('item');
+                    if (item) return item;
+                }
+                const itemOnly = raw.match(/<item\b[^>]*>[\s\S]*?<\/item>/i);
+                if (itemOnly) {
+                    const wrapped = `<items>${itemOnly[0]}</items>`;
+                    const xml = new DOMParser().parseFromString(wrapped, 'text/xml');
                     const item = xml.querySelector('item');
                     if (item) return item;
                 }
@@ -375,7 +391,7 @@
                 const proxyUrl = `https://r.jina.ai/${apiUrl}`;
                 const resp = await fetch(proxyUrl, {
                     headers: { 'X-No-Cache': 'true' },
-                    signal: AbortSignal.timeout(28000)
+                    signal: AbortSignal.timeout(45000)
                 });
                 if (!resp.ok) throw new Error(`Jina HTTP ${resp.status}`);
                 const text = await resp.text();
@@ -441,6 +457,33 @@
             div.textContent = line;
             el.appendChild(div);
             el.scrollTop = el.scrollHeight;
+        }
+
+        /** 執行紀錄：已存在列 PATCH 時顯示改前→改後（含六軸），方便對照是否真的寫入 */
+        function strForLogField(k, v) {
+            if (v === null || v === undefined || v === '') return '—';
+            if (typeof v === 'number' && Number.isNaN(v)) return '—';
+            if (typeof k === 'string' && k.indexOf('axis_') === 0) {
+                const n = Number(v);
+                if (!Number.isNaN(n)) return n.toFixed(2);
+            }
+            const long = k === 'category' || k === 'mechanics' || k === 'image_url';
+            const max = long ? 220 : 96;
+            let s = typeof v === 'string' ? v : String(v);
+            if (s.length > max) s = s.slice(0, max) + '…';
+            return s.replace(/\s+/g, ' ').trim();
+        }
+
+        function logPatchBeforeAfter(bggIdStr, dbRowId, beforeRow, patch) {
+            const keys = Object.keys(patch);
+            if (!keys.length) return;
+            log(`[${bggIdStr}] game_database id=${dbRowId}　改前 → 改後`, 'ok');
+            for (const k of keys) {
+                const a = strForLogField(k, beforeRow[k]);
+                const b = strForLogField(k, patch[k]);
+                const same = a === b;
+                log(`  · ${k}\n    前：${a}\n    後：${b}${same ? ' （相同）' : ''}`, same ? 'warn' : 'ok');
+            }
         }
 
         async function loadIndex() {
@@ -585,9 +628,12 @@
                     log(`[${idStr}] 已完整，無需更新`, 'ok');
                     return;
                 }
+                const beforeVals = {};
+                for (const k of Object.keys(patch)) beforeVals[k] = row[k];
                 await patchGame(row.id, patch);
+                log(`[${idStr}] 已更新（資料庫內）欄位：${Object.keys(patch).join(', ')}`, 'ok');
+                logPatchBeforeAfter(idStr, row.id, beforeVals, patch);
                 Object.assign(row, patch);
-                log(`[${idStr}] 已更新（資料庫內）：${Object.keys(patch).join(', ')}`, 'ok');
                 return;
             }
 
