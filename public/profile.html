@@ -114,6 +114,8 @@
             font-size: 0.68rem;
             padding: 0.28rem 0.5rem;
             border-radius: 999px;
+            /* 與 <a> 一致：<button> 預設字族/字重常不同，會看起來特別粗 */
+            font-family: inherit;
             font-weight: 600;
             text-decoration: none;
             border: 1px solid var(--border-color);
@@ -125,6 +127,10 @@
             cursor: pointer;
             line-height: 1.2;
             box-sizing: border-box;
+        }
+        .profile-page-hero button.profile-nc-btn {
+            -webkit-appearance: none;
+            appearance: none;
         }
         .profile-page-hero .profile-nc-btn:hover { filter: brightness(0.97); }
         .profile-page-hero .profile-nc-btn.profile-nc-logout {
