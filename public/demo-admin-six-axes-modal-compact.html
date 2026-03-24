@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線範例：六軸審稿 UI（緊湊版）— admin-games 提案</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { padding: 1rem; max-width: 920px; margin: 0 auto; }
+        .demo-banner {
+            background: linear-gradient(135deg, #0f766e, #5b21b6);
+            color: #fff;
+            padding: 0.85rem 1rem;
+            border-radius: 0.65rem;
+            margin-bottom: 1rem;
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
+        .demo-banner code { background: rgba(255,255,255,0.15); padding: 0.1rem 0.35rem; border-radius: 0.25rem; }
+        .modal-mock {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem 1.1rem 1.25rem;
+            box-shadow: var(--shadow-md);
+        }
+        .modal-mock h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+        .formula-bar {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            padding: 0.45rem 0.55rem;
+            background: var(--bg-secondary, #f1f5f9);
+            border-radius: 0.45rem;
+            border-left: 3px solid #0d9488;
+        }
+        /* 緊湊：表格式，一列一軸 */
+        .axes-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .axes-table th, .axes-table td {
+            padding: 0.35rem 0.45rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        .axes-table th {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.72rem;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .axes-table td.axis-name { font-weight: 600; font-size: 0.82rem; }
+        .axes-table td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+        .axes-table td.delta-cell { min-width: 7rem; }
+        .delta-num {
+            display: inline-block;
+            min-width: 3.2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .delta-num.pos { color: #059669; }
+        .delta-num.neg { color: #b45309; }
+        .delta-num.zero { color: var(--text-light); }
+        .axes-table input[type="range"] {
+            width: 100%;
+            min-width: 0;
+            vertical-align: middle;
+        }
+        .axes-table .final-val {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary-color);
+        }
+        @media (max-width: 640px) {
+            .axes-table thead { display: none; }
+            .axes-table tr {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 0.25rem 0.5rem;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .axes-table td { border: none; padding: 0.2rem 0; }
+            .axes-table td.axis-name { grid-column: 1 / -1; }
+            .axes-table td:nth-child(2)::before { content: 'BGG '; color: var(--text-light); font-size: 0.72rem; }
+            .axes-table td.delta-cell { grid-column: 1 / -1; }
+            .axes-table td:last-child::before { content: '最終 '; color: var(--text-light); font-size: 0.72rem; margin-right: 0.35rem; }
+        }
+        .footer-hint {
+            margin-top: 0.75rem;
+            font-size: 0.72rem;
+            color: var(--text-light);
+            line-height: 1.45;
+        }
+        .btn-row { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-mock {
+            padding: 0.5rem 1rem;
+            border-radius: 0.45rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #0d9488, #6366f1);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        <strong>離線範例頁</strong>（不接 API、不連 admin-games）— 展示「緊湊六軸審稿」提案：<strong>每軸一行</strong>、<strong>Δ 數字即時顯示</strong>、公式與正式站相同 <code>最終 = clamp(BGG + Δ, 0, 12)</code>。
+        <br>假資料 BGG 與截圖類似（門檻 2.4、其餘 6）；可拖滑桿試算。
+    </div>
+
+    <div class="modal-mock">
+        <h2>🎯 遊戲 6 維度（提案 UI · 緊湊表格式）</h2>
+        <div class="formula-bar">
+            <strong>BGG 推論</strong>：假資料。審稿 <strong>Δ</strong>：±6、步進 0.5。
+            <strong>最終</strong> = BGG + Δ 再限制在 0～12（與 <code>bgg-six-axes-compute.js</code> 一致）。
+        </div>
+
+        <table class="axes-table" id="axes-table">
+            <thead>
+                <tr>
+                    <th>維度</th>
+                    <th class="num">BGG</th>
+                    <th class="num">Δ</th>
+                    <th>調整</th>
+                    <th class="num">最終</th>
+                </tr>
+            </thead>
+            <tbody id="axes-tbody"></tbody>
+        </table>
+
+        <p class="footer-hint">
+            提示（可收合版可之後做）：若 DB 內 <code>axis_*</code> 與此預覽不一致，儲存時會以預覽最終值覆寫。
+        </p>
+        <div class="btn-row">
+            <button type="button" class="btn-mock" onclick="alert('離線範例：不會真的儲存。');">儲存遊戲（假）</button>
+        </div>
+    </div>
+
+    <script>
+(function () {
+    const AXIS = [
+        { key: 'entry', label: '門檻：🌱 易學 ↔ 📚 複雜' },
+        { key: 'mood', label: '氛圍：😂 歡樂 ↔ 🧠 燒腦' },
+        { key: 'control', label: '勝負：🎲 運氣 ↔ ♟️ 策略' },
+        { key: 'sociality', label: '互動：🗣️ 社交 ↔ 🧘 沉浸' },
+        { key: 'openness', label: '心態：☀️ 磊落 ↔ 🎭 心機' },
+        { key: 'competition', label: '立場：🤝 合作 ↔ ⚔️ 對抗' }
+    ];
+
+    /** 與 bgg-six-axes-compute clampAxis 一致 */
+    function clampAxis(v) {
+        const n = Number(v);
+        if (isNaN(n)) return 6;
+        return Math.round(Math.max(0, Math.min(12, n)) * 10) / 10;
+    }
+
+    /** 假 BGG 推論值（可改此陣列試不同情境） */
+    const MOCK_BGG = { entry: 2.4, mood: 6, control: 6, sociality: 6, openness: 6, competition: 6 };
+
+    const tbody = document.getElementById('axes-tbody');
+
+    AXIS.forEach(function (ax) {
+        const bgg = MOCK_BGG[ax.key];
+        const tr = document.createElement('tr');
+        const rid = 'rng-' + ax.key;
+        const did = 'dval-' + ax.key;
+        const fid = 'fval-' + ax.key;
+        tr.innerHTML =
+            '<td class="axis-name">' + ax.label + '</td>' +
+            '<td class="num">' + bgg + '</td>' +
+            '<td class="num delta-cell"><span class="delta-num zero" id="' + did + '">0</span></td>' +
+            '<td><input type="range" id="' + rid + '" min="-6" max="6" step="0.5" value="0"></td>' +
+            '<td class="num"><span class="final-val" id="' + fid + '">' + clampAxis(bgg) + '</span></td>';
+        tbody.appendChild(tr);
+
+        const rng = document.getElementById(rid);
+        const dEl = document.getElementById(did);
+        const fEl = document.getElementById(fid);
+
+        function refresh() {
+            const d = parseFloat(rng.value, 10) || 0;
+            dEl.textContent = (d > 0 ? '+' : '') + d;
+            dEl.className = 'delta-num ' + (d > 0 ? 'pos' : d < 0 ? 'neg' : 'zero');
+            fEl.textContent = String(clampAxis(bgg + d));
+        }
+        rng.addEventListener('input', refresh);
+        refresh();
+    });
+})();
+    </script>
+</body>
+</html>

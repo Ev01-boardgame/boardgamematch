@@ -249,6 +249,68 @@
             font-size: 1rem;
         }
         .required-star { color: #e74c3c; }
+
+        /* 六軸審稿：方案 D 兩欄 + C 式扁平（單行標題／數字 + 兩端語意滑桿） */
+        #game-modal .modal-content {
+            max-width: 52rem;
+        }
+        .six-axes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.45rem 0.65rem;
+        }
+        @media (max-width: 640px) {
+            .six-axes-grid { grid-template-columns: 1fr; }
+        }
+        .axis-admin-cell {
+            border: 1px solid var(--border-color);
+            border-radius: 0.4rem;
+            padding: 0.4rem 0.45rem 0.45rem;
+        }
+        .axis-admin-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.2rem;
+        }
+        .axis-admin-name {
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: var(--text-color);
+        }
+        .axis-admin-meta {
+            font-size: 0.68rem;
+            color: var(--text-light);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+            text-align: right;
+        }
+        .axis-admin-meta strong { color: var(--text-color); }
+        .axis-delta-disp.is-pos { color: #059669; }
+        .axis-delta-disp.is-neg { color: #b45309; }
+        .axis-delta-disp.is-zero { color: var(--text-light); }
+        .axis-admin-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            width: 100%;
+            margin-top: 0.1rem;
+        }
+        .axis-admin-slider-row input[type="range"] {
+            flex: 1;
+            min-width: 0;
+        }
+        .axis-pole {
+            flex: 0 0 auto;
+            max-width: 4.75rem;
+            font-size: 0.65rem;
+            line-height: 1.2;
+            color: var(--text-light);
+        }
+        .axis-pole.axis-pole-l { text-align: left; }
+        .axis-pole.axis-pole-r { text-align: right; }
     </style>
     <!-- Google Sign-In SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -444,54 +506,71 @@
                         <strong>BGG 推論</strong>依資料庫的 category／mechanics／complexity 計算（與掃描工具相同對照表）。<strong>審稿 Δ</strong>可 ±6；<strong>最終值 = BGG + Δ 再強制限制在 0～12</strong>，不會超範圍。儲存時會寫入 <code>axis_*</code> 與 <code>axis_*_reviewer_delta</code>。
                     </p>
                     <div id="six-axes-panel-error" style="display:none;font-size:0.8rem;color:#b45309;background:#fffbeb;padding:0.45rem 0.55rem;border-radius:0.4rem;margin-bottom:0.5rem;"></div>
-                    <div style="display:flex; flex-direction:column; gap:0.75rem;" id="six-axes-panel">
-                        <!-- entry -->
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">門檻：🌱 易學 ↔ 📚 複雜</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-entry-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-entry-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;vertical-align:middle;"></div>
-                                <div>最終 <strong id="game-axis-entry-final">—</strong></div>
+                    <div class="six-axes-grid" id="six-axes-panel">
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">門檻</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-entry-bgg">—</strong> · Δ <strong id="game-axis-entry-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-entry-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">🌱 易學</span>
+                                <input type="range" id="game-axis-entry-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">📚 複雜</span>
                             </div>
                         </div>
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">氛圍：😂 歡樂 ↔ 🧠 燒腦</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-mood-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-mood-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
-                                <div>最終 <strong id="game-axis-mood-final">—</strong></div>
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">氛圍</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-mood-bgg">—</strong> · Δ <strong id="game-axis-mood-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-mood-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">😂 歡樂</span>
+                                <input type="range" id="game-axis-mood-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">🧠 燒腦</span>
                             </div>
                         </div>
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">勝負：🎲 運氣 ↔ ♟️ 策略</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-control-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-control-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
-                                <div>最終 <strong id="game-axis-control-final">—</strong></div>
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">勝負</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-control-bgg">—</strong> · Δ <strong id="game-axis-control-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-control-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">🎲 運氣</span>
+                                <input type="range" id="game-axis-control-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">♟️ 策略</span>
                             </div>
                         </div>
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">互動：🗣️ 社交 ↔ 🧘 沉浸</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-sociality-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-sociality-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
-                                <div>最終 <strong id="game-axis-sociality-final">—</strong></div>
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">互動</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-sociality-bgg">—</strong> · Δ <strong id="game-axis-sociality-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-sociality-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">🗣️ 社交</span>
+                                <input type="range" id="game-axis-sociality-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">🧘 沉浸</span>
                             </div>
                         </div>
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">心態：☀️ 磊落 ↔ 🎭 心機</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-openness-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-openness-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
-                                <div>最終 <strong id="game-axis-openness-final">—</strong></div>
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">心態</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-openness-bgg">—</strong> · Δ <strong id="game-axis-openness-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-openness-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">☀️ 磊落</span>
+                                <input type="range" id="game-axis-openness-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">🎭 心機</span>
                             </div>
                         </div>
-                        <div class="axis-admin-row" style="border:1px solid var(--border-color);border-radius:0.5rem;padding:0.5rem 0.6rem;">
-                            <div style="font-size:0.82rem;font-weight:600;margin-bottom:0.35rem;">立場：🤝 合作 ↔ ⚔️ 對抗</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.35rem;align-items:center;font-size:0.78rem;">
-                                <div>BGG <strong id="game-axis-competition-bgg">—</strong></div>
-                                <div>審稿 Δ <input type="range" id="game-axis-competition-delta" min="-6" max="6" step="0.5" value="0" style="width:100%;"></div>
-                                <div>最終 <strong id="game-axis-competition-final">—</strong></div>
+                        <div class="axis-admin-cell">
+                            <div class="axis-admin-head">
+                                <span class="axis-admin-name">立場</span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-competition-bgg">—</strong> · Δ <strong id="game-axis-competition-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-competition-final">—</strong></span>
+                            </div>
+                            <div class="axis-admin-slider-row">
+                                <span class="axis-pole axis-pole-l">🤝 合作</span>
+                                <input type="range" id="game-axis-competition-delta" min="-6" max="6" step="0.5" value="0">
+                                <span class="axis-pole axis-pole-r">⚔️ 對抗</span>
                             </div>
                         </div>
                     </div>
@@ -840,6 +919,12 @@
         window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null };
         window.__adminLastLoadedGame = window.__adminLastLoadedGame || null;
 
+        function formatReviewerDeltaDisp(d) {
+            const n = Number(d);
+            if (isNaN(n) || n === 0) return '0';
+            return (n > 0 ? '+' : '') + n;
+        }
+
         /** BGG 推論 + 審稿 Δ → 顯示最終（已 clamp 0–12） */
         function refreshAdminSixAxesPanel() {
             const err = document.getElementById('six-axes-panel-error');
@@ -881,6 +966,12 @@
                 const fEl = document.getElementById('game-axis-' + k + '-final');
                 if (bEl) bEl.textContent = bgg['axis_' + k] != null ? String(bgg['axis_' + k]) : '—';
                 if (fEl) fEl.textContent = finalAxes['axis_' + k] != null ? String(finalAxes['axis_' + k]) : '—';
+                const disp = document.getElementById('game-axis-' + k + '-delta-disp');
+                if (disp) {
+                    const dv = deltas[k];
+                    disp.textContent = formatReviewerDeltaDisp(dv);
+                    disp.className = 'axis-delta-disp ' + (dv > 0 ? 'is-pos' : dv < 0 ? 'is-neg' : 'is-zero');
+                }
             });
             if (hint) {
                 const gid = document.getElementById('game-id') && document.getElementById('game-id').value;
