@@ -24,8 +24,9 @@
  * 例外（不需 X-Api-Key）：
  *   GET /api/bgg-axis-deltas — 公開讀取 BGG→六軸 delta（與靜態 bgg-axis-deltas-v1.js 後備一致）
  *
- * BGG 收藏預覽（需 X-Api-Key）：
+ * BGG 收藏預覽（需 X-Api-Key + Authorization Bearer Google JWT）：
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
+ *   — 代理 BGG xmlapi2/collection（含 202 輪詢）、對照 game_database.bgg_id
  *
  * 管理端（需 X-Api-Key + JWT + admin／超管）：
  *   PUT /api/admin/bgg-axis-deltas — 寫入整包 category／mechanic delta 至 D1
@@ -322,111 +323,205 @@ async function getTableColumns(db, tableName) {
   }
 }
 
-function sleepMs(ms) {
+function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** 解析 BGG xmlapi2 collection 回應 */
-function parseBggCollectionXml(xmlText) {
-  const items = [];
-  if (!xmlText || typeof xmlText !== 'string') return items;
-  const parts = xmlText.split('<item ');
-  for (let i = 1; i < parts.length; i++) {
-    const chunk = parts[i].split('</item>')[0];
-    const oid = /objectid="(\d+)"/.exec(chunk);
-    if (!oid) continue;
-    const objectid = oid[1];
-    const subMatch = /subtype="([^"]*)"/.exec(chunk);
-    const subtype = subMatch ? subMatch[1] : 'boardgame';
-    const nameMatch = /<name[^>]*>([^<]*)<\/name>/.exec(chunk);
-    const bggName = nameMatch ? nameMatch[1].trim() : '';
-    const statusM = chunk.match(/<status\s+([^>]+)\s*\/?>/);
-    const st = statusM ? statusM[1] : '';
-    const own = /\bown="1"/.test(st);
-    const wish = /\bwishlist="1"/.test(st);
-    if (!own && !wish) continue;
-    const list = own ? 'owned' : 'wishlist';
-    items.push({
-      objectid,
-      subtype,
-      bggName,
-      list,
-      isExpansion: subtype === 'boardgameexpansion'
-    });
-  }
-  return items;
-}
+const BGG_COLLECTION_HEADERS = {
+  Accept: 'application/xml, text/xml;q=0.9, */*;q=0.8',
+  'User-Agent': 'BoardGameMatch/1.0 (+https://boardgamematch.com.tw; collection-preview)',
+};
 
-async function fetchBggCollectionXmlRaw(username, includeExpansions) {
-  const qs = new URLSearchParams({
+/**
+ * BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
+ */
+async function fetchBggCollectionXml(username, includeExpansions) {
+  const params = new URLSearchParams({
     username: username.trim(),
     own: '1',
-    wishlist: '1'
+    wishlist: '1',
+    stats: '0',
   });
   if (!includeExpansions) {
-    qs.set('excludesubtype', 'boardgameexpansion');
+    params.set('excludesubtype', 'boardgameexpansion');
+    params.set('excludeexpansion', '1');
   }
-  const bggUrl = `https://boardgamegeek.com/xmlapi2/collection?${qs.toString()}`;
+  const bggUrl = `https://boardgamegeek.com/xmlapi2/collection?${params.toString()}`;
+
   let lastStatus = 0;
   for (let attempt = 0; attempt < 28; attempt++) {
-    const r = await fetch(bggUrl, { headers: { Accept: 'application/xml, text/xml' } });
-    lastStatus = r.status;
-    if (r.status === 202) {
-      await sleepMs(2200);
+    const res = await fetch(bggUrl, {
+      headers: BGG_COLLECTION_HEADERS,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(25000),
+    });
+    lastStatus = res.status;
+    if (res.status === 200) {
+      return await res.text();
+    }
+    if (res.status === 202) {
+      await sleep(2200);
       continue;
     }
-    if (!r.ok) {
-      throw new Error(`BGG collection HTTP ${r.status}`);
-    }
-    return await r.text();
+    const body = await res.text().catch(() => '');
+    const err = new Error(`BGG collection HTTP ${res.status}`);
+    err.bggStatus = res.status;
+    err.bggBodySnippet = body.slice(0, 400);
+    throw err;
   }
-  throw new Error(`BGG collection 逾時（最後 HTTP ${lastStatus}）`);
+  const err = new Error(`BGG collection 逾時（最後 HTTP ${lastStatus}）`);
+  err.bggStatus = 503;
+  throw err;
 }
 
-async function mapBggObjectIdsToDbNames(db, objectIds) {
+function parseBggCollectionMessage(xml) {
+  const m = /<message[^>]*>([\s\S]*?)<\/message>/i.exec(xml);
+  return m ? m[1].replace(/\s+/g, ' ').trim() : null;
+}
+
+function parseBggCollectionItems(xml) {
+  const owned = [];
+  const wishlist = [];
+  const re = /<item\s+([^>]+)>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const open = m[1];
+    const block = m[2];
+    const oidMatch = /objectid="(\d+)"/i.exec(open);
+    if (!oidMatch) continue;
+    const bggId = oidMatch[1];
+    const nameMatch = /<name\b[^>]*>([^<]*)<\/name>/i.exec(block);
+    const name = nameMatch ? nameMatch[1].trim() : '';
+    const statusMatch = block.match(/<status\s+([^>]+?)\s*\/>/i);
+    const st = statusMatch ? statusMatch[1] : '';
+    const isOwn = /\bown="1"/i.test(st);
+    const isWish = /\bwishlist="1"/i.test(st);
+    const entry = { bgg_id: bggId, name };
+    if (isOwn) owned.push(entry);
+    if (isWish) wishlist.push(entry);
+  }
+  return { owned, wishlist };
+}
+
+async function lookupGamesByBggIds(db, ids) {
   const map = new Map();
-  const ids = [...new Set(objectIds.map((x) => String(x).trim()).filter(Boolean))];
-  if (!ids.length || !db) return map;
-  const CHUNK = 80;
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const chunk = ids.slice(i, i + CHUNK);
-    const ph = chunk.map(() => '?').join(', ');
-    const r = await db
-      .prepare(`SELECT bgg_id, name_zh, name_en FROM game_database WHERE bgg_id IN (${ph})`)
-      .bind(...chunk)
-      .all();
-    for (const row of r.results || []) {
-      const id = String(row.bgg_id != null ? row.bgg_id : '').trim();
-      if (!id) continue;
-      const zh = (row.name_zh && String(row.name_zh).trim()) || '';
-      const en = (row.name_en && String(row.name_en).trim()) || '';
-      map.set(id, zh || en || null);
+  const unique = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+  if (!unique.length || !db) return map;
+  const chunkSize = 80;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const ph = chunk.map(() => '?').join(',');
+    const q = `SELECT bgg_id, name_zh, name_en, name_ja FROM game_database WHERE bgg_id IN (${ph})`;
+    const res = await db.prepare(q).bind(...chunk).all();
+    for (const row of res.results || []) {
+      if (row && row.bgg_id != null && row.bgg_id !== '') map.set(String(row.bgg_id), row);
     }
   }
   return map;
 }
 
-async function handleBggCollectionPreview(db, username, includeExpansions) {
-  const u = String(username || '').trim();
-  if (!u) throw new Error('請提供 BGG 使用者名稱');
-  if (u.length > 80) throw new Error('使用者名稱過長');
-  const xml = await fetchBggCollectionXmlRaw(u, !!includeExpansions);
-  if (/<error message=/.test(xml)) {
-    const em = /message="([^"]+)"/.exec(xml);
-    throw new Error(em ? em[1] : 'BGG 回傳錯誤');
+async function handleGetBggCollectionPreview(request, env, origin, db) {
+  const url = new URL(request.url);
+  const rawUser = url.searchParams.get('username') || '';
+  const username = rawUser.trim();
+  if (!username || username.length > 80) {
+    return errorResponse('Invalid or missing username', 400, origin, env);
   }
-  const rawItems = parseBggCollectionXml(xml);
-  const ids = rawItems.map((it) => it.objectid);
-  const nameMap = await mapBggObjectIdsToDbNames(db, ids);
-  const items = rawItems.map((it) => ({
-    objectid: it.objectid,
-    bggName: it.bggName,
-    subtype: it.subtype,
-    list: it.list,
-    isExpansion: it.isExpansion,
-    mappedName: nameMap.get(it.objectid) || null
-  }));
-  return { username: u, items, count: items.length };
+  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    return errorResponse('Invalid BGG username', 400, origin, env);
+  }
+  const incExp = url.searchParams.get('include_expansions');
+  const includeExpansions = incExp === '1' || incExp === 'true';
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return errorResponse('Authentication required', 401, origin, env);
+  try {
+    await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+  }
+
+  let xml;
+  try {
+    xml = await fetchBggCollectionXml(username, includeExpansions);
+  } catch (e) {
+    console.error('bgg collection-preview fetch', e && e.message, e && e.bggBodySnippet);
+    const st = e && e.bggStatus;
+    if (st === 401) {
+      return errorResponse(
+        'BGG 回傳 401：收藏可能為非公開，請在 BoardGameGeek 將「Collection」設為公開後再試。',
+        401,
+        origin,
+        env
+      );
+    }
+    if (st === 404) {
+      return errorResponse('找不到此 BGG 使用者或尚無可讀取的收藏。', 404, origin, env);
+    }
+    const clientStatus = st >= 400 && st < 600 ? st : 502;
+    return errorResponse(e.message || 'BGG collection request failed', clientStatus, origin, env);
+  }
+
+  if (/<error\s+message=/i.test(xml)) {
+    const em = /message="([^"]+)"/.exec(xml);
+    return errorResponse(em ? em[1] : 'BGG 回傳錯誤', 400, origin, env);
+  }
+
+  const msg = parseBggCollectionMessage(xml);
+  if (msg && (/invalid/i.test(msg) || /not found/i.test(msg))) {
+    return errorResponse(`BGG：${msg}`, 400, origin, env);
+  }
+
+  const { owned, wishlist } = parseBggCollectionItems(xml);
+  const allIds = [...owned, ...wishlist].map((x) => x.bgg_id);
+  const lookup = await lookupGamesByBggIds(db, allIds);
+
+  function enrich(list) {
+    const pending = [];
+    const rows = [];
+    for (const item of list) {
+      const row = lookup.get(String(item.bgg_id));
+      if (row) {
+        const dbName = row.name_zh || row.name_en || row.name_ja || '';
+        rows.push({
+          bgg_id: item.bgg_id,
+          bgg_name: item.name,
+          in_database: true,
+          name_zh: row.name_zh || null,
+          name_en: row.name_en || null,
+          display_name: dbName,
+        });
+      } else {
+        pending.push({ bgg_id: item.bgg_id, name: item.name });
+        rows.push({
+          bgg_id: item.bgg_id,
+          bgg_name: item.name,
+          in_database: false,
+          display_name: item.name,
+        });
+      }
+    }
+    return { rows, pending };
+  }
+
+  const o = enrich(owned);
+  const w = enrich(wishlist);
+
+  return jsonResponse(
+    {
+      ok: true,
+      username,
+      include_expansions: includeExpansions,
+      owned: o.rows,
+      wishlist: w.rows,
+      owned_pending: o.pending,
+      wishlist_pending: w.pending,
+    },
+    200,
+    origin,
+    env
+  );
 }
 
 export default {
@@ -461,17 +556,19 @@ export default {
       }
     }
 
-    // ── GET /api/bgg/collection-preview?username=&include_expansions=0|1（需 X-Api-Key；代理 BGG，對照 game_database.bgg_id）──
+    // ── GET /api/bgg/collection-preview（需 X-Api-Key + JWT）：BGG 收藏預覽 + 對照 game_database ──
     if (url.pathname === '/api/bgg/collection-preview' && method === 'GET') {
-      if (!env.DB) return errorResponse('DB not configured', 503, origin, env);
-      const username = url.searchParams.get('username') || '';
-      const includeExpansions = url.searchParams.get('include_expansions') === '1';
+      if (!env.DB) return errorResponse('Database not configured', 503, origin, env);
       try {
-        const payload = await handleBggCollectionPreview(env.DB, username, includeExpansions);
-        return jsonResponse(payload, 200, origin, env);
+        return await handleGetBggCollectionPreview(request, env, origin, env.DB);
       } catch (e) {
-        console.error('bgg collection-preview', e);
-        return errorResponse(e.message || 'BGG 讀取失敗', 502, origin, env);
+        console.error('collection-preview', e);
+        return errorResponse(
+          e && e.message ? e.message : 'collection-preview failed',
+          500,
+          origin,
+          env
+        );
       }
     }
 

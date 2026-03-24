@@ -254,11 +254,20 @@
             font-size: 0.8rem;
             margin-top: 0.65rem;
         }
-        .bgg-import-card { margin-bottom: 1.15rem; }
+        .bgg-import-card {
+            margin-bottom: 1.15rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            background: var(--card-bg);
+            box-shadow: var(--shadow-md);
+        }
         .bgg-import-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin-top: 0.5rem; }
         .bgg-import-row input[type="text"] {
+            flex: 1 1 180px;
+            min-width: 140px;
             padding: 0.35rem 0.55rem; border: 1px solid var(--border-color); border-radius: 0.45rem;
-            font-size: 0.88rem; min-width: 180px; background: var(--bg-color); color: var(--text-color);
+            font-size: 0.88rem; background: var(--bg-color); color: var(--text-color);
         }
         #bgg-modal { display: none; position: fixed; inset: 0; z-index: 10050; background: rgba(0,0,0,0.5); overflow-y: auto; padding: 1rem; }
         #bgg-modal .bgg-modal-inner {
@@ -307,7 +316,7 @@
                 </div>
                 <p class="hint" style="margin-bottom:0.5rem;">
                     僅讀取你在 BGG 上<strong>公開</strong>的「擁有」與「願望清單」。我們<strong>不會</strong>索取你的 BGG 密碼；若 collection 設為私密則無法讀取。
-                    匯入與現有清單為<strong>聯集</strong>（只新增、不刪除既有項目）。站內尚無對照者會記錄 BGG ID，供後台處理。
+                    匯入與現有清單為<strong>聯集</strong>（只新增、不刪除既有項目）。站內尚無對照者會記錄 BGG ID，供後台處理。預覽需<strong>已登入</strong>（帶 JWT）。
                 </p>
                 <div class="bgg-import-row">
                     <label style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
@@ -459,6 +468,33 @@
             document.querySelectorAll('.bgg-row-check').forEach((cb) => { cb.checked = checked; });
         }
 
+        function bggApiRowsFromPayload(data) {
+            const out = [];
+            if (data && data.ok) {
+                for (const row of data.owned || []) {
+                    out.push({
+                        objectid: row.bgg_id,
+                        bggName: row.bgg_name || row.display_name || '',
+                        list: 'owned',
+                        mappedName: row.in_database ? row.display_name : null,
+                        isExpansion: false
+                    });
+                }
+                for (const row of data.wishlist || []) {
+                    out.push({
+                        objectid: row.bgg_id,
+                        bggName: row.bgg_name || row.display_name || '',
+                        list: 'wishlist',
+                        mappedName: row.in_database ? row.display_name : null,
+                        isExpansion: false
+                    });
+                }
+                return out;
+            }
+            if (Array.isArray(data && data.items)) return data.items;
+            return [];
+        }
+
         async function fetchBggPreview() {
             const u = (document.getElementById('bgg-username') || {}).value;
             const username = (u || '').trim();
@@ -470,11 +506,12 @@
             const hint = document.getElementById('save-hint');
             if (hint) hint.textContent = '向 BGG 取得資料中（若資料量大可能需 10～60 秒）…';
             try {
-                const url = `api/bgg/collection-preview?username=${encodeURIComponent(username)}&include_expansions=${includeExp ? '1' : '0'}`;
-                const r = await fetch(url);
+                const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                const url = `/api/bgg/collection-preview?username=${encodeURIComponent(username)}&include_expansions=${includeExp ? '1' : '0'}`;
+                const r = await fetch(url, { headers, credentials: 'include' });
                 const data = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-                bggPreviewRows = Array.isArray(data.items) ? data.items : [];
+                bggPreviewRows = bggApiRowsFromPayload(data);
                 if (bggPreviewRows.length === 0) {
                     alert('查無可匯入項目（請確認 BGG 帳號正確、collection 為公開，且該帳有標記「擁有」或「願望」的遊戲）。');
                     if (hint) hint.textContent = '';
@@ -552,6 +589,20 @@
             return raw;
         }
 
+        function tryPrefillBggUsername() {
+            const el = document.getElementById('bgg-username');
+            if (!el || el.value.trim()) return;
+            try {
+                const raw = currentUser && (currentUser.social_links || currentUser.bio);
+                let sl = raw;
+                if (typeof raw === 'string' && raw.trim().startsWith('{')) sl = JSON.parse(raw);
+                if (sl && typeof sl === 'object' && sl.bgg) {
+                    const v = String(sl.bgg).replace(/^https?:\/\/(?:www\.)?boardgamegeek\.com\/(?:user|profile)\//i, '').replace(/\/$/, '').trim();
+                    if (v && !/[\/\s]/.test(v)) el.value = v;
+                }
+            } catch (e) {}
+        }
+
         async function loadPage() {
             try { await GameNames.load(); } catch (e) {}
             const localUser = GameMBTI.getCurrentUser();
@@ -576,6 +627,7 @@
 
             document.getElementById('loading-state').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
+            tryPrefillBggUsername();
             renderAll();
         }
 
