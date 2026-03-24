@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 快取 bust：修改此頁或依賴的 css/js 時，請把全頁 ?v= 數字一併改成新日期 -->
     <title>遊戲管理 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <link rel="stylesheet" href="css/styles.css?v=20260326">
+    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260326">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -316,7 +317,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <!-- 管理後台驗證 -->
-    <script src="js/admin-auth.js?v=20240222-fix"></script>
+    <script src="js/admin-auth.js?v=20260326"></script>
 </head>
 <body>
     <!-- 導覽列 -->
@@ -662,12 +663,12 @@
     <button class="add-game-btn" onclick="openModal()">完整新增</button>
 
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
-    <script src="js/admin-navbar-cleanup.js"></script>
-    <script src="js/app.js?v=20260320"></script>
-    <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
-    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
-    <script src="js/bgg-six-axes-compute.js?v=1"></script>
-    <script src="js/show-admin-link.js"></script>
+    <script src="js/admin-navbar-cleanup.js?v=20260326"></script>
+    <script src="js/app.js?v=20260326"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=20260326"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=20260326"></script>
+    <script src="js/bgg-six-axes-compute.js?v=20260326"></script>
+    <script src="js/show-admin-link.js?v=20260326"></script>
     <script>
         // ══ 分頁狀態 ══
         let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
