@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偏好軸：0–12 軌道 + 貼邊時另一端內縮（離線 demo）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { padding: 1rem; max-width: 720px; margin: 0 auto; }
+        .note {
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #1e3a5f;
+            margin-bottom: 1.25rem;
+        }
+        .note code { font-size: 0.8rem; background: rgba(255,255,255,0.85); padding: 0.1rem 0.25rem; border-radius: 0.25rem; }
+        h1 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+        .sub { font-size: 0.82rem; color: var(--text-light); margin-bottom: 1rem; }
+
+        /* 軌道 = 數值 0～12 同寬；色帶 = [max(0,v−3), min(12,v+3)] */
+        .band-axis {
+            position: relative;
+            width: 100%;
+            height: 24px;
+            border-radius: 999px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        .band-axis .mid6 {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background: rgba(148, 163, 184, 0.85);
+            transform: translateX(-1px);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .band-fill {
+            position: absolute;
+            top: 3px;
+            bottom: 3px;
+            border-radius: 999px;
+            z-index: 2;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+        }
+        .band-fill .inner {
+            width: 100%;
+            height: 100%;
+        }
+
+        .tick-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-light);
+            margin-top: 0.2rem;
+            padding: 0 0.1rem;
+        }
+
+        .controls {
+            margin: 1rem 0 1.25rem;
+            padding: 0.75rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+        .controls label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; }
+        .controls input[type="range"] { width: 100%; }
+        .meta {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.45rem;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.45;
+        }
+        .meta strong { color: var(--text-color); }
+    </style>
+</head>
+<body>
+    <h1>偏好軸：視覺 0–12，貼邊時另一端內縮</h1>
+    <p class="sub">色帶仍以「寬 6、中心在 v」為理想；畫面只顯示 0～12，超出部分裁掉，所以靠邊時會變短，看起來是另一端往內收。</p>
+
+    <div class="note">
+        <strong>規則</strong><br>
+        分數 <code>v ∈ [0, 12]</code>。理想區間 <code>[v−3, v+3]</code>（寬度 6、中心在 v）。<br>
+        實際畫在軌道上的是與 <code>[0, 12]</code> 的交集：<br>
+        <code>a = max(0, v−3)</code>，<code>b = min(12, v+3)</code>。<br>
+        <br>
+        · <code>v = 6</code> → <code>[3, 9]</code>，左右各留 3，最「對稱」。<br>
+        · <code>v = 0</code> → <code>[0, 3]</code>：左端貼 0，右端在 3（相當於理想左側 −3～0 被裁掉，右端往內收）。<br>
+        · <code>v = 12</code> → <code>[9, 12]</code>：右端貼 12，左端在 9。<br>
+        · <code>v = 8</code> → <code>[5, 11]</code>（與延伸軌道版同一區間，仍在中間，寬度仍為 6）。<br>
+        <br>
+        與「軌道畫成 −3～15、膠囊平移」數學上<strong>等價</strong>，差別只在<strong>座標系要不要畫出負數與 &gt;12</strong>。
+    </div>
+
+    <div class="controls">
+        <label for="v-range">分數 v（0～12）</label>
+        <input type="range" id="v-range" min="0" max="12" step="1" value="6">
+        <div class="tick-row"><span>0</span><span>6</span><span>12</span></div>
+        <p class="meta" id="explain"></p>
+    </div>
+
+    <div class="band-axis" id="axis">
+        <div class="mid6"></div>
+        <div class="band-fill" id="fill"><div class="inner" id="inner"></div></div>
+    </div>
+    <div class="tick-row"><span>0</span><span>6（中立參考）</span><span>12</span></div>
+
+    <script>
+(function () {
+    var W = 6;
+    var CENTER_REF = 6; // 畫面上「左語意／右語意」參考線（與 personality-test 一致）
+
+    function clampBand(v) {
+        var a = Math.max(0, v - W / 2);
+        var b = Math.min(12, v + W / 2);
+        return { a: a, b: b };
+    }
+
+    function splitAtRefInBand(a, b) {
+        if (b <= a) return 0.5;
+        var x = (CENTER_REF - a) / (b - a);
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        return x;
+    }
+
+    function apply(v) {
+        var band = clampBand(v);
+        var a = band.a;
+        var b = band.b;
+        var leftPct = (a / 12) * 100;
+        var widthPct = ((b - a) / 12) * 100;
+        var el = document.getElementById('fill');
+        el.style.left = leftPct + '%';
+        el.style.width = widthPct + '%';
+
+        var t = splitAtRefInBand(a, b);
+        var stop = Math.round(t * 1000) / 10;
+        document.getElementById('inner').style.background =
+            'linear-gradient(90deg, rgba(59,130,246,0.55) 0%, rgba(59,130,246,0.38) ' + stop + '%, rgba(236,72,153,0.38) ' + stop + '%, rgba(236,72,153,0.55) 100%)';
+
+        var idealL = v - W / 2;
+        var idealR = v + W / 2;
+        var lines = [
+            '理想區間 [' + idealL + ', ' + idealR + '] 與 [0,12] 交集 → <strong>[' + a + ', ' + b + ']</strong>（寬 ' + (b - a) + '）',
+            'v = ' + v + '：' + (a === 0 ? '左端貼 0，' : '') + (b === 12 ? '右端貼 12，' : '') +
+                (b - a < W ? '色帶比 6 短，代表「另一端內縮」。' : '色帶滿寬 6。')
+        ];
+        document.getElementById('explain').innerHTML = lines.join('<br>');
+    }
+
+    var rng = document.getElementById('v-range');
+    rng.addEventListener('input', function () { apply(parseInt(rng.value, 10)); });
+    apply(6);
+})();
+    </script>
+</body>
+</html>

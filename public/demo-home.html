@@ -307,22 +307,22 @@
             width: 3px;
             transform: translateX(-1px);
             background: rgba(100,116,139,0.75);
+            z-index: 2;
+            pointer-events: none;
         }
-        .card-fill-right,
-        .card-fill-left {
+        /* 滑動膠囊（−3～15 軌、寬 6）；漸層由 preference-axis-capsule.js 計算 */
+        .card-capsule {
             position: absolute;
             top: 0;
             bottom: 0;
+            border-radius: 999px;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
         }
-        .card-fill-right {
-            left: 50%;
-            background: linear-gradient(90deg, rgba(245,158,11,0.45), rgba(236,72,153,0.85));
-            border-radius: 0 999px 999px 0;
-        }
-        .card-fill-left {
-            right: 50%;
-            background: linear-gradient(90deg, rgba(59,130,246,0.85), rgba(59,130,246,0.45));
-            border-radius: 999px 0 0 999px;
+        .card-capsule-inner {
+            width: 100%;
+            height: 100%;
         }
 
         /* 功能捷徑 */
@@ -531,12 +531,12 @@
                             <span>🙋 開放被揪</span><span>📷 alex.boardgame</span><span>📘 alex.tabletop</span><span>💬 alex-table</span>
                         </div>
                         <div class="card-axes">
-                            <div class="card-ax-row" data-axis-key="axis_entry"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">📚 複雜</span></div>
-                            <div class="card-ax-row" data-axis-key="axis_mood"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🧠 燒腦</span></div>
-                            <div class="card-ax-row" data-axis-key="axis_control"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">♟️ 策略</span></div>
-                            <div class="card-ax-row" data-axis-key="axis_sociality"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🧘 自我</span></div>
-                            <div class="card-ax-row" data-axis-key="axis_openness"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">🎭 心機</span></div>
-                            <div class="card-ax-row" data-axis-key="axis_competition"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-fill-left" style="width:0"></div><div class="card-fill-right" style="width:0"></div></div><span class="card-ax-r">⚔️ 對抗</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_entry"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">📚 複雜</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_mood"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_control"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_sociality"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧘 自我</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_openness"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🎭 心機</span></div>
+                            <div class="card-ax-row" data-axis-key="axis_competition"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">⚔️ 對抗</span></div>
                         </div>
                     </div>
                 </div>
@@ -626,6 +626,7 @@
 <script src="js/api-base.js?v=20260321"></script>
 <script src="js/app.js?v=20260321"></script>
 <script src="js/game-names.js"></script>
+<script src="js/preference-axis-capsule.js?v=3"></script>
 <script>
     (function () {
         const cards = document.querySelectorAll('.js-tilt');
@@ -848,16 +849,17 @@
     }
 
     function renderAxisRow(row, value) {
-        const left = row.querySelector('.card-fill-left');
-        const right = row.querySelector('.card-fill-right');
-        if (!left || !right) return;
+        const inner = row.querySelector('.card-capsule-inner');
+        const capsule = row.querySelector('.card-capsule');
+        const P = window.PreferenceAxisCapsule;
+        if (!inner || !capsule || !P) return;
         let v = Number(value);
         if (Number.isNaN(v)) v = 6;
         v = Math.max(0, Math.min(12, Math.round(v)));
-        const delta = v - 6;
-        const width = Math.round((Math.abs(delta) / 6) * 50);
-        left.style.width = delta < 0 ? `${width}%` : '0';
-        right.style.width = delta > 0 ? `${width}%` : '0';
+        const pos = P.capsulePositionPercent(v);
+        capsule.style.left = pos.leftPct + '%';
+        capsule.style.width = pos.widthPct + '%';
+        inner.style.background = P.capsuleGradientHomeCard(v);
     }
 
     async function loadHomeCardFromProfile() {

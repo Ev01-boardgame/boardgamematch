@@ -210,22 +210,21 @@
     width: 3px;
     transform: translateX(-1px);
     background: rgba(100,116,139,0.75);
+    z-index: 2;
+    pointer-events: none;
 }
-.home-dash-wrap .card-fill-right,
-.home-dash-wrap .card-fill-left {
+.home-dash-wrap .card-capsule {
     position: absolute;
     top: 0;
     bottom: 0;
+    border-radius: 999px;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
 }
-.home-dash-wrap .card-fill-right {
-    left: 50%;
-    background: linear-gradient(90deg, rgba(245,158,11,0.45), rgba(236,72,153,0.85));
-    border-radius: 0 999px 999px 0;
-}
-.home-dash-wrap .card-fill-left {
-    right: 50%;
-    background: linear-gradient(90deg, rgba(59,130,246,0.85), rgba(59,130,246,0.45));
-    border-radius: 999px 0 0 999px;
+.home-dash-wrap .card-capsule-inner {
+    width: 100%;
+    height: 100%;
 }
 .home-dash-wrap .section-title {
     font-size: 1.3rem;

@@ -180,16 +180,28 @@
     }
 
     function renderAxisRow(row, value) {
-        const left = row.querySelector('.card-fill-left');
-        const right = row.querySelector('.card-fill-right');
-        if (!left || !right) return;
+        const inner = row.querySelector('.card-capsule-inner');
+        const capsule = row.querySelector('.card-capsule');
+        const P = window.PreferenceAxisCapsule;
+        if (!inner || !capsule || !P) return;
         let v = Number(value);
         if (Number.isNaN(v)) v = 6;
         v = Math.max(0, Math.min(12, Math.round(v)));
-        const delta = v - 6;
-        const width = Math.round((Math.abs(delta) / 6) * 50);
-        left.style.width = delta < 0 ? `${width}%` : '0';
-        right.style.width = delta > 0 ? `${width}%` : '0';
+        const pos = P.capsulePositionPercent(v);
+        capsule.style.left = pos.leftPct + '%';
+        capsule.style.width = pos.widthPct + '%';
+        inner.style.background = P.capsuleGradientHomeCard(v);
+    }
+
+    /** 未登入預覽名片：固定示範分數，與舊靜態條視覺相近 */
+    function renderGuestPreviewAxes() {
+        const P = window.PreferenceAxisCapsule;
+        if (!P) return;
+        const vals = [3, 8, 10, 5, 7, 4];
+        const rows = document.querySelectorAll('#home-mode-guest .card-axes .card-ax-row');
+        rows.forEach((row, i) => {
+            renderAxisRow(row, vals[i] != null ? vals[i] : 6);
+        });
     }
 
     async function loadHomeCardFromProfile() {
@@ -390,6 +402,7 @@
         bindLoggedHeroCard();
         bindTilt(document.getElementById('home-mode-guest'));
         bindTilt(document.getElementById('home-mode-logged'));
+        renderGuestPreviewAxes();
         loadHomeRecentGames();
     });
 })();

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>偏好軸：滑動膠囊（離線 demo）</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { padding: 1rem; max-width: 720px; margin: 0 auto; }
+        .note {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #14532d;
+            margin-bottom: 1.25rem;
+        }
+        .note code { font-size: 0.8rem; background: rgba(255,255,255,0.7); padding: 0.1rem 0.25rem; border-radius: 0.25rem; }
+        h1 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+        .sub { font-size: 0.82rem; color: var(--text-light); margin-bottom: 1rem; }
+
+        /* 視覺軸：數值域 −3～15（長度 18）；膠囊寬度固定 6；實際分數 v∈0～12 → 左緣 L = −3 + v */
+        .capsule-axis {
+            position: relative;
+            width: 100%;
+            height: 22px;
+            border-radius: 999px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        /* 中立點（數值 6）在軌道上的位置 = (6−(−3))/18 = 50% */
+        .capsule-axis .mid {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background: rgba(148, 163, 184, 0.9);
+            transform: translateX(-1px);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .capsule {
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            border-radius: 999px;
+            z-index: 2;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        /* 膠囊內依「軌道中心 6」切兩色：偏左語意 / 偏右語意 */
+        .capsule-inner {
+            width: 100%;
+            height: 100%;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 52px 1fr;
+            gap: 0.65rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .lbl { font-size: 0.82rem; font-weight: 700; color: var(--text-color); }
+        .meta {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            margin-top: 0.2rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            margin: 1rem 0 1.25rem;
+            padding: 0.75rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+        .controls label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; }
+        .controls input[type="range"] { width: 100%; }
+        .tick-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-light);
+            margin-top: 0.15rem;
+            padding: 0 0.15rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>偏好軸：滑動膠囊（離線 demo）</h1>
+    <p class="sub">用固定寬度的「偏好區間」在加長軌道上滑動，中立時左右都有填色，避免只看起來像只選右邊。</p>
+
+    <div class="note">
+        <strong>模型（與你描述一致）</strong><br>
+        實際分數 <code>v ∈ [0, 12]</code> 不變。視覺軌道畫成 <code>−3 ～ 15</code>（長度 18）。<br>
+        膠囊寬度固定為 <strong>6</strong>（與軌道同一單位）。左緣 <code>L = −3 + v</code>。<br>
+        例：<code>v=6</code> → 膠囊 <code>[3, 9]</code>，以數值 <code>6</code> 為中心，左 3、右 3。<br>
+        <code>v=8</code> → <code>[5, 11]</code>，中心 6 左側長度 1、右側長度 5（你說的 5 右 1 左）。<br>
+        <code>v=12</code> → <code>[9, 15]</code>，整段在中心右側。
+    </div>
+
+    <div class="controls">
+        <label for="demo-v">單軸試播：分數 v（0～12）</label>
+        <input type="range" id="demo-v" min="0" max="12" step="1" value="6">
+        <div class="tick-row"><span>0</span><span>6 中立</span><span>12</span></div>
+        <p class="meta" id="demo-meta" style="margin-top:0.5rem;"></p>
+    </div>
+
+    <div class="row">
+        <div class="lbl">試播</div>
+        <div>
+            <div class="capsule-axis" id="demo-axis" aria-hidden="true">
+                <div class="mid"></div>
+                <div class="capsule" id="demo-capsule"><div class="capsule-inner" id="demo-capsule-inner"></div></div>
+            </div>
+            <div class="meta" id="demo-axis-meta"></div>
+        </div>
+    </div>
+
+    <h2 style="font-size:1rem;margin:1.25rem 0 0.5rem;">六軸假資料（可對照現有結果頁）</h2>
+    <div id="six-mount"></div>
+
+    <script>
+(function () {
+    var TRACK_MIN = -3;
+    var TRACK_MAX = 15;
+    var TRACK_LEN = TRACK_MAX - TRACK_MIN; // 18
+    var CAP_W = 6;
+    var CENTER = 6; // 0–12 的中立點，落在延伸軌道的 50% 處
+
+    function capsuleLeftEdge(v) {
+        return TRACK_MIN + Number(v);
+    }
+
+    /** 回傳膠囊內左色所佔比例 0–1（其餘為右色） */
+    function splitLeftRatio(L) {
+        var R = L + CAP_W;
+        if (R <= CENTER) return 1;
+        if (L >= CENTER) return 0;
+        return (CENTER - L) / CAP_W;
+    }
+
+    function applyCapsule(capsuleEl, innerEl, v) {
+        var L = capsuleLeftEdge(v);
+        var leftPct = ((L - TRACK_MIN) / TRACK_LEN) * 100;
+        var widthPct = (CAP_W / TRACK_LEN) * 100;
+        capsuleEl.style.left = leftPct + '%';
+        capsuleEl.style.width = widthPct + '%';
+
+        var lr = splitLeftRatio(L);
+        var stop = Math.round(lr * 1000) / 10;
+        innerEl.style.background =
+            'linear-gradient(90deg, rgba(59,130,246,0.55) 0%, rgba(59,130,246,0.4) ' + stop + '%, rgba(236,72,153,0.4) ' + stop + '%, rgba(236,72,153,0.55) 100%)';
+    }
+
+    var demoV = document.getElementById('demo-v');
+    var demoCapsule = document.getElementById('demo-capsule');
+    var demoInner = document.getElementById('demo-capsule-inner');
+    var demoMeta = document.getElementById('demo-meta');
+    var demoAxisMeta = document.getElementById('demo-axis-meta');
+
+    function tickDemo() {
+        var v = parseInt(demoV.value, 10);
+        var L = capsuleLeftEdge(v);
+        applyCapsule(demoCapsule, demoInner, v);
+        var R = L + CAP_W;
+        var leftOfCenter = Math.max(0, Math.min(CAP_W, CENTER - L));
+        var rightOfCenter = Math.max(0, Math.min(CAP_W, R - CENTER));
+        demoMeta.textContent = 'v = ' + v + ' → 膠囊區間 [' + L + ', ' + R + ']（相對中立線 6：左段 ' + leftOfCenter.toFixed(1) + '、右段 ' + rightOfCenter.toFixed(1) + '）';
+        demoAxisMeta.textContent = '軌道 −3～15 · 膠囊寬 6 · 左緣 L = ' + L;
+    }
+    demoV.addEventListener('input', tickDemo);
+    tickDemo();
+
+    var AXES = [
+        { short: '門檻', left: '🌱 易學', right: '📚 複雜', v: 10 },
+        { short: '氛圍', left: '😂 歡樂', right: '🧠 燒腦', v: 5 },
+        { short: '勝負', left: '🎲 運氣', right: '♟️ 策略', v: 11 },
+        { short: '心態', left: '☀️ 磊落', right: '🎭 心機', v: 11 },
+        { short: '互動', left: '🗣️ 社交', right: '🧘 自我', v: 7 },
+        { short: '立場', left: '🤝 合作', right: '⚔️ 對抗', v: 8 }
+    ];
+
+    var mount = document.getElementById('six-mount');
+    AXES.forEach(function (a, i) {
+        var wrap = document.createElement('div');
+        wrap.className = 'row';
+        wrap.innerHTML =
+            '<div class="lbl">' + a.short + '</div>' +
+            '<div>' +
+            '  <div class="capsule-axis" id="ax-' + i + '">' +
+            '    <div class="mid"></div>' +
+            '    <div class="capsule" id="cap-' + i + '"><div class="capsule-inner" id="in-' + i + '"></div></div>' +
+            '  </div>' +
+            '  <div class="meta">分數 v=' + a.v + '（示意）</div>' +
+            '</div>';
+        mount.appendChild(wrap);
+        applyCapsule(
+            document.getElementById('cap-' + i),
+            document.getElementById('in-' + i),
+            a.v
+        );
+    });
+})();
+    </script>
+</body>
+</html>
