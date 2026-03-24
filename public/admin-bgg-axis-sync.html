@@ -58,7 +58,7 @@
     <div class="wrap">
         <div class="hero">
             <h1>BGG ID 掃描 · Category／Mechanic → 六軸補齊</h1>
-            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）與 <a href="admin-add-games.html" style="color:#a5f3fc;">admin-add-games</a> 搜尋相同：<strong>Jina 優先</strong>、allorigins 後備。</p>
+            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）與 <a href="admin-add-games.html" style="color:#a5f3fc;">admin-add-games</a> 搜尋相同：<strong>Jina 優先</strong>、allorigins 後備。<strong>若 thing XML 失敗或缺欄</strong>，會再從 <strong>Jina 頁面 Markdown</strong> 用與 admin-games「從 BGG 抓取」相同規則補上數值欄。</p>
             <p>未收錄則以 Jina + BGG XML API 建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
         </div>
 
@@ -352,6 +352,67 @@
                 || l.includes('the item you requested is not in the database');
         }
 
+        /**
+         * thing XML 失敗時，從 Jina 回傳的 BGG 頁面 Markdown 擷取數值（與 admin-games「從 BGG 抓取」邏輯對齊）。
+         */
+        function jinaMarkdownToNumericBasics(text, bggId) {
+            if (!text || typeof text !== 'string') return null;
+            const out = {
+                name_en: '',
+                name_zh: '',
+                name_ja: '',
+                year: null,
+                min_players: null,
+                max_players: null,
+                playing_time: null,
+                complexity: null,
+                image_url: '',
+                bgg_id: String(bggId)
+            };
+            const titleMatch = text.match(/^#\s+(.+)/m);
+            if (titleMatch) {
+                const fullTitle = titleMatch[1].trim();
+                const yInParens = fullTitle.match(/\((\d{4})\)\s*$/);
+                if (yInParens) out.year = parseInt(yInParens[1], 10);
+                out.name_en = fullTitle.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+            }
+            const playersMatch = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Pp]layers?/);
+            if (playersMatch) {
+                out.min_players = parseInt(playersMatch[1], 10);
+                out.max_players = parseInt(playersMatch[2], 10);
+            }
+            const timeMatch = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in|(\d+)\s*[Mm]inutes?/);
+            if (timeMatch) {
+                const t = timeMatch[2] || timeMatch[3];
+                if (t) out.playing_time = parseInt(t, 10);
+            }
+            const weightMatch = text.match(/(\d+\.\d+)\s*\/\s*5/);
+            if (weightMatch) {
+                out.complexity = Math.round(parseFloat(weightMatch[1]) * 100) / 100;
+            }
+            const anyNum = out.year != null || out.min_players != null || out.max_players != null
+                || out.playing_time != null || out.complexity != null;
+            const hasName = !!(out.name_en && out.name_en.length);
+            return (anyNum || hasName) ? out : null;
+        }
+
+        /** XML 優先；XML 缺漏欄位由 Jina 文字補上 */
+        function mergeThingXmlWithJinaMarkdown(xml, jinaFb) {
+            if (!jinaFb) return xml;
+            if (!xml) return jinaFb;
+            const keys = ['name_en', 'name_zh', 'name_ja', 'year', 'min_players', 'max_players', 'playing_time', 'complexity', 'image_url'];
+            const out = { ...xml };
+            for (const k of keys) {
+                const v = xml[k];
+                const yearBad = k === 'year' && (v == null || v === '' || Number(v) === 0);
+                const missing = v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
+                if ((missing || yearBad) && jinaFb[k] != null && jinaFb[k] !== '') {
+                    out[k] = jinaFb[k];
+                }
+            }
+            return out;
+        }
+
         // ── BGG xmlapi2/thing：與 admin-add-games 的「搜尋 XML」相同，優先走 Jina（allorigins 常 500／CORS／逾時）──
         async function fetchBGGXmlItem(bggId) {
             const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
@@ -594,6 +655,21 @@
             } catch (e) {
                 log(`[${idStr}] XML 失敗（仍可用 Jina 補）：${e.message}`, 'warn');
             }
+            const jinaNum = jinaMarkdownToNumericBasics(jina.text, idStr);
+            const mergedBasics = mergeThingXmlWithJinaMarkdown(xmlBasics, jinaNum);
+            if (jinaNum) {
+                if (!xmlBasics) {
+                    log(`[${idStr}] 數值欄改由 Jina 頁面文字解析（thing XML 不可用）`, 'warn');
+                } else {
+                    const usedJina = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'].some((k) => {
+                        const v = xmlBasics[k];
+                        const miss = v == null || v === '' || (k === 'year' && Number(v) === 0);
+                        return miss && jinaNum[k] != null && jinaNum[k] !== '';
+                    });
+                    if (usedJina) log(`[${idStr}] 部分數值欄由 Jina 頁面補齊（thing XML 缺漏）`, 'warn');
+                }
+            }
+            xmlBasics = mergedBasics;
 
             if (row) {
                 const patch = {};

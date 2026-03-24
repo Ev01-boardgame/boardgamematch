@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 快取 bust：修改此頁或依賴的 css/js 時，請把全頁 ?v= 數字一併改成新日期 -->
     <title>遊戲管理 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260326">
-    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260326">
+    <link rel="stylesheet" href="css/styles.css?v=20260327">
+    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260327">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -317,7 +317,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <!-- 管理後台驗證 -->
-    <script src="js/admin-auth.js?v=20260326"></script>
+    <script src="js/admin-auth.js?v=20260327"></script>
 </head>
 <body>
     <!-- 導覽列 -->
@@ -663,12 +663,12 @@
     <button class="add-game-btn" onclick="openModal()">完整新增</button>
 
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
-    <script src="js/admin-navbar-cleanup.js?v=20260326"></script>
-    <script src="js/app.js?v=20260326"></script>
-    <script src="js/bgg-axis-deltas-v1.js?v=20260326"></script>
-    <script src="js/bgg-axis-deltas-loader.js?v=20260326"></script>
-    <script src="js/bgg-six-axes-compute.js?v=20260326"></script>
-    <script src="js/show-admin-link.js?v=20260326"></script>
+    <script src="js/admin-navbar-cleanup.js?v=20260327"></script>
+    <script src="js/app.js?v=20260327"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=20260327"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=20260327"></script>
+    <script src="js/bgg-six-axes-compute.js?v=20260327"></script>
+    <script src="js/show-admin-link.js?v=20260327"></script>
     <script>
         // ══ 分頁狀態 ══
         let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
@@ -883,6 +883,34 @@
             }, 300);
         }
 
+        function formatAdminListPlayers(g) {
+            const a = g.min_players, b = g.max_players;
+            if (a != null && a !== '' && b != null && b !== '') return `${a}-${b}`;
+            if (a != null && a !== '') return `${a}-?`;
+            if (b != null && b !== '') return `?-${b}`;
+            return '-';
+        }
+
+        function formatAdminListTime(g) {
+            if (g.playing_time != null && g.playing_time !== '') return `${g.playing_time}分`;
+            const mn = g.min_playtime, mx = g.max_playtime;
+            if (mn != null && mn !== '' && mx != null && mx !== '') {
+                return Number(mn) === Number(mx) ? `${mn}分` : `${mn}-${mx}分`;
+            }
+            if (mn != null && mn !== '') return `${mn}分起`;
+            if (mx != null && mx !== '') return `≤${mx}分`;
+            return '-';
+        }
+
+        function formatAdminListComplexity(g) {
+            const c = g.complexity;
+            if (c == null || c === '') return '-';
+            const n = Number(c);
+            if (Number.isNaN(n)) return '-';
+            const stars = Math.min(5, Math.max(0, Math.round(n)));
+            return (stars > 0 ? '★'.repeat(stars) + ' ' : '') + n.toFixed(2);
+        }
+
         // 渲染遊戲列表
         function renderGames(games) {
             const tbody = document.getElementById('game-list');
@@ -903,10 +931,10 @@
                         <div class="game-name">${game.name_zh || game.name_en || '未命名'}${isPending(game) ? ' <span class="badge-pending">⚠️待補充</span>' : ''}</div>
                         <div class="game-name-en">${game.name_en || '-'}</div>
                     </td>
-                    <td class="col-year">${game.year || '-'}</td>
-                    <td class="col-players">${game.min_players && game.max_players ? `${game.min_players}-${game.max_players}` : '-'}</td>
-                    <td class="col-time">${game.playing_time ? `${game.playing_time}分` : '-'}</td>
-                    <td class="col-complexity complexity-stars">${game.complexity ? '★'.repeat(game.complexity) : '-'}</td>
+                    <td class="col-year">${game.year != null && game.year !== '' && Number(game.year) !== 0 ? game.year : '-'}</td>
+                    <td class="col-players">${formatAdminListPlayers(game)}</td>
+                    <td class="col-time">${formatAdminListTime(game)}</td>
+                    <td class="col-complexity complexity-stars">${formatAdminListComplexity(game)}</td>
                     <td>
                         <div class="btn-actions">
                             <button class="btn-small btn-edit" onclick="editGame('${game.id}')">編輯</button>
