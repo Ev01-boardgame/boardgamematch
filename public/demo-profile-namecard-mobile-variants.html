@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo 檔案名片・手機兩種版型（本機離線預覽）</title>
+    <link rel="stylesheet" href="css/home-dashboard.css?v=20260325">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #e8e4dc;
+            color: #2d2d2d;
+            padding: 1rem 1rem 2rem;
+        }
+        .page-title {
+            max-width: 900px;
+            margin: 0 auto 1rem;
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+        .page-note {
+            max-width: 900px;
+            margin: 0 auto 1.25rem;
+            font-size: 0.88rem;
+            color: #4b5563;
+            line-height: 1.55;
+        }
+        .compare-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem 2rem;
+            justify-content: center;
+            align-items: flex-start;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .compare-col {
+            flex: 0 1 390px;
+            max-width: 100%;
+        }
+        .compare-col h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+            color: #1f2937;
+        }
+        .compare-col .hint {
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin-bottom: 0.65rem;
+            line-height: 1.45;
+        }
+        /* 模擬手機寬度（固定 375，與常見 iPhone 邏輯寬相近） */
+        .demo-phone {
+            width: 375px;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 28px;
+            border: 10px solid #1f2937;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+            overflow: hidden;
+            background: #1f2937;
+        }
+        .demo-phone .home-dash-wrap {
+            padding: 0;
+            margin: 0;
+            max-width: none;
+        }
+        .demo-phone .hero-card {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        .demo-phone .hero-card-inner {
+            padding: 12px 11px 10px;
+        }
+
+        /* 與 profile 頁小鈕一致（不依賴 profile.html） */
+        .demo-phone .profile-nc-btn {
+            font-size: 0.68rem;
+            padding: 0.28rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #e8e3dc;
+            background: #fff;
+            color: #2d2d2d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            line-height: 1.2;
+        }
+        .demo-phone .profile-nc-btn.profile-nc-logout {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+        .demo-phone .profile-mbti-chip {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .demo-phone .profile-card-joined {
+            font-size: 0.72rem;
+            color: #6b7280;
+            margin: 0.2rem 0 0;
+        }
+
+        /* ── 版型 A：頭像＋名稱一排，操作鈕整列在下方「橫向滑動」 ── */
+        .demo-phone--a .card-top {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            gap: 8px 10px;
+            align-items: start;
+        }
+        .demo-phone--a .card-top > .card-avatar { grid-column: 1; grid-row: 1; }
+        .demo-phone--a .card-top > .card-identity { grid-column: 2; grid-row: 1; min-width: 0; }
+        .demo-phone--a .card-top > .profile-card-actions {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 2px 2px 6px;
+            margin: 0 -2px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+        .demo-phone--a .profile-card-actions::-webkit-scrollbar { height: 4px; }
+        .demo-phone--a .profile-card-actions::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        .demo-phone--a .profile-nc-btn { flex-shrink: 0; }
+
+        /* ── 版型 B：維持三欄，右上操作區「窄欄＋自動折行」 ── */
+        .demo-phone--b .card-top {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) minmax(0, 118px);
+            gap: 6px 6px;
+            align-items: start;
+        }
+        .demo-phone--b .card-top > .profile-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-content: flex-start;
+            gap: 4px;
+            align-self: start;
+        }
+        .demo-phone--b .profile-nc-btn {
+            font-size: 0.62rem;
+            padding: 0.24rem 0.42rem;
+        }
+
+        @media (max-width: 420px) {
+            .compare-grid { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="page-title">檔案／首頁名片 · 手機版型對照（本機離線可開）</h1>
+    <p class="page-note">
+        直接雙擊開啟此檔即可預覽（需與 <code>css/home-dashboard.css</code> 相對路徑正確）。<br>
+        <strong>版型 A</strong>：頭像與暱稱維持一列；六顆操作鈕移到下方獨立一帶，可<strong>左右滑動</strong>，不擠壓姓名區。<br>
+        <strong>版型 B</strong>：維持桌面「右上」概念，但在窄寬下讓按鈕在<strong>右側窄欄內折成多行</strong>（字略縮小）。
+    </p>
+
+    <div class="compare-grid">
+        <div class="compare-col">
+            <h2>版型 A · 下方橫滑操作列</h2>
+            <p class="hint">模擬寬度 375px。在觸控裝置上於按鈕列左右滑動。</p>
+            <div class="demo-phone demo-phone--a">
+                <div class="home-dash-wrap">
+                    <div class="hero-card-wrap">
+                        <div class="hero-card">
+                            <div class="hero-card-inner">
+                                <div class="card-top">
+                                    <div class="card-avatar" style="padding:0;overflow:hidden;border:3px solid #8b6f47;">
+                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect fill='%23667eea' width='72' height='72'/%3E%3Ctext x='36' y='42' font-size='28' text-anchor='middle' fill='white'%3E🎲%3C/text%3E%3C/svg%3E" alt="" width="72" height="72" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                                    </div>
+                                    <div class="card-identity">
+                                        <div class="card-name">示範玩家名稱</div>
+                                        <div class="card-sub" style="margin-top:4px;">
+                                            <span class="profile-mbti-chip">INTJ</span>
+                                            <span style="color:#6b7280;">建築師</span>
+                                            · 桌遊收藏 <span>12</span> 款
+                                        </div>
+                                        <p class="profile-card-joined">加入於 2025/01/01</p>
+                                    </div>
+                                    <div class="profile-card-actions">
+                                        <span class="profile-nc-btn">🧪 適性</span>
+                                        <span class="profile-nc-btn">📝 簡介</span>
+                                        <span class="profile-nc-btn">🥳 喜好</span>
+                                        <span class="profile-nc-btn">🏠 收藏</span>
+                                        <span class="profile-nc-btn">🥇 排名</span>
+                                        <span class="profile-nc-btn profile-nc-logout">🚪 登出</span>
+                                    </div>
+                                </div>
+                                <p class="card-bio" style="display:block;">簡介：週末常開中策，歡迎揪團。</p>
+                                <div class="card-axes">
+                                    <div class="card-ax-row"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule" style="left:35%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">📚 複雜</span></div>
+                                    <div class="card-ax-row"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule" style="left:42%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                                    <div class="card-ax-row"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule" style="left:50%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="compare-col">
+            <h2>版型 B · 右上窄欄折行</h2>
+            <p class="hint">按鈕留在頭像列右側，以兩～三行小 pill 排列（較像縮小的桌面版）。</p>
+            <div class="demo-phone demo-phone--b">
+                <div class="home-dash-wrap">
+                    <div class="hero-card-wrap">
+                        <div class="hero-card">
+                            <div class="hero-card-inner">
+                                <div class="card-top">
+                                    <div class="card-avatar" style="padding:0;overflow:hidden;border:3px solid #8b6f47;">
+                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect fill='%23667eea' width='72' height='72'/%3E%3Ctext x='36' y='42' font-size='28' text-anchor='middle' fill='white'%3E🎲%3C/text%3E%3C/svg%3E" alt="" width="72" height="72" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                                    </div>
+                                    <div class="card-identity">
+                                        <div class="card-name">示範玩家名稱</div>
+                                        <div class="card-sub" style="margin-top:4px;">
+                                            <span class="profile-mbti-chip">INTJ</span>
+                                            <span style="color:#6b7280;">建築師</span>
+                                            · 桌遊收藏 <span>12</span> 款
+                                        </div>
+                                        <p class="profile-card-joined">加入於 2025/01/01</p>
+                                    </div>
+                                    <div class="profile-card-actions">
+                                        <span class="profile-nc-btn">🧪 適性</span>
+                                        <span class="profile-nc-btn">📝 簡介</span>
+                                        <span class="profile-nc-btn">🥳 喜好</span>
+                                        <span class="profile-nc-btn">🏠 收藏</span>
+                                        <span class="profile-nc-btn">🥇 排名</span>
+                                        <span class="profile-nc-btn profile-nc-logout">🚪 登出</span>
+                                    </div>
+                                </div>
+                                <p class="card-bio" style="display:block;">簡介：週末常開中策，歡迎揪團。</p>
+                                <div class="card-axes">
+                                    <div class="card-ax-row"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule" style="left:35%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">📚 複雜</span></div>
+                                    <div class="card-ax-row"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule" style="left:42%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                                    <div class="card-ax-row"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule" style="left:50%;width:28%;"><div class="card-capsule-inner" style="background:linear-gradient(90deg,rgba(59,130,246,0.85),rgba(236,72,153,0.85));"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

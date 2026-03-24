@@ -17,6 +17,7 @@
     </script>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/gamification.css">
+    <link rel="stylesheet" href="css/home-dashboard.css?v=20260325">
     <link rel="stylesheet" href="css/hourglass-simple.css">
     <style>
         /* 手機版遊戲清單卡片高度修正 */
@@ -76,6 +77,76 @@
             display: inline-flex;
             justify-content: center;
             align-items: center;
+        }
+        .profile-page-hero { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+        .profile-page-hero .hero-card { cursor: default; }
+        .profile-page-hero .profile-card-avatar-img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;
+        }
+        .profile-page-hero .profile-mbti-chip {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            vertical-align: middle;
+        }
+        .profile-page-hero .profile-card-joined {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            margin: 0.2rem 0 0;
+        }
+        .profile-page-hero .profile-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            justify-content: flex-end;
+            align-content: flex-start;
+            max-width: min(300px, 100%);
+        }
+        .profile-page-hero .profile-nc-btn {
+            font-size: 0.68rem;
+            padding: 0.28rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            line-height: 1.2;
+            box-sizing: border-box;
+        }
+        .profile-page-hero .profile-nc-btn:hover { filter: brightness(0.97); }
+        .profile-page-hero .profile-nc-btn.profile-nc-logout {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+        /* 手機：版型 B — 右上固定窄欄，操作鈕折行（與 demo-profile-namecard-mobile-variants.html 一致） */
+        @media (max-width: 640px) {
+            .profile-page-hero .card-top {
+                grid-template-columns: auto minmax(0, 1fr) minmax(0, 118px);
+                gap: 6px 6px;
+                align-items: start;
+            }
+            .profile-page-hero .profile-card-actions {
+                max-width: 118px;
+                gap: 4px;
+                justify-content: flex-end;
+            }
+            .profile-page-hero .profile-nc-btn {
+                font-size: 0.62rem;
+                padding: 0.24rem 0.42rem;
+            }
         }
         .pref-tab-row {
             display: flex; gap: 0.5rem; flex-wrap: wrap;
@@ -394,76 +465,50 @@
 
         <!-- 已登入狀態 -->
         <div id="logged-in" style="display: none;">
-            <!-- 使用者資訊卡片 -->
+            <!-- 使用者資訊：與首頁登入後名片同版型，操作鈕於右上角 -->
             <section style="margin-bottom: 3rem;">
                 <div style="background: var(--card-bg); padding: 2rem; border-radius: 1rem; box-shadow: var(--shadow-lg); position: relative;">
                     <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; border-radius: 1rem 1rem 0 0;" id="profile-gradient"></div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-                        <div style="flex: 1; min-width: 250px;">
-                            <!-- 🎨 可點擊的頭貼 -->
-                            <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                                <div style="position: relative;">
-                                    <img id="profile-avatar" 
-                                         src="" 
-                                         alt="頭貼" 
-                                         style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--primary-color); transition: all 0.3s ease;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;" id="profile-username">-</h1>
-                                    <!-- 地區、是否想被聯絡（供之後「想找桌友」用） -->
-                                    <div id="profile-region-display" style="font-size:0.88rem; color:var(--text-light); margin-bottom:0.5rem;"></div>
-                                    <!-- 社群連結 inline 顯示列 -->
-                                    <div id="social-links-inline" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;"></div>
-                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                                        <!-- 🎯 MBTI 標籤（未設定時可點擊；設定後鎖定） -->
-                                        <span onclick="showMBTIPicker()" 
-                                              style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); 
-                                                     color: white; 
-                                                     padding: 0.5rem 1rem; 
-                                                     border-radius: 2rem; 
-                                                     font-weight: 600; 
-                                                     cursor: pointer; 
-                                                     transition: all 0.3s ease;
-                                                     position: relative;
-                                                     display: inline-flex;
-                                                     align-items: center;
-                                                     gap: 0.35rem;"
-                                              onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
-                                              onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
-                                              title="點擊設定或更改 MBTI"
-                                              id="profile-mbti">INTJ<span id="mbti-lock-icon" style="display:none;font-size:0.75rem;opacity:0.85;"></span>
-                                        </span>
-                                        <span style="color: var(--text-light);" id="profile-mbti-name">建築師</span>
+
+                    <div class="home-dash-wrap profile-page-hero">
+                        <div class="hero-card-wrap">
+                            <div class="hero-card">
+                                <div class="hero-card-inner">
+                                    <div class="card-top">
+                                        <div class="card-avatar" style="padding:0;overflow:hidden;border:3px solid var(--primary-color);">
+                                            <img id="profile-avatar" class="profile-card-avatar-img" src="" alt="頭貼">
+                                        </div>
+                                        <div class="card-identity" style="min-width:0;">
+                                            <div id="profile-username" class="card-name">-</div>
+                                            <div class="card-sub" style="margin-top:4px;">
+                                                <span onclick="showMBTIPicker()" class="profile-mbti-chip" title="點擊設定或更改 MBTI" id="profile-mbti">INTJ<span id="mbti-lock-icon" style="display:none;font-size:0.75rem;opacity:0.85;"></span></span>
+                                                <span style="color: var(--text-light);" id="profile-mbti-name">建築師</span>
+                                                · 桌遊收藏 <span id="profile-collection-count">0</span> 款
+                                            </div>
+                                            <p id="profile-created-at" class="profile-card-joined">加入於 -</p>
+                                        </div>
+                                        <div class="profile-card-actions">
+                                            <a href="personality-test.html" class="profile-nc-btn">🧪 適性</a>
+                                            <button type="button" class="profile-nc-btn" onclick="showBioEditor()">📝 簡介</button>
+                                            <a href="edit-games-drag.html" class="profile-nc-btn">🥳 喜好</a>
+                                            <a href="edit-game-collection.html" class="profile-nc-btn">🏠 收藏</a>
+                                            <a href="rankings.html" class="profile-nc-btn">🥇 排名</a>
+                                            <button type="button" class="profile-nc-btn profile-nc-logout" onclick="profileLogout()">🚪 登出</button>
+                                        </div>
+                                    </div>
+                                    <div id="profile-region-display" style="font-size:0.82rem; color:var(--text-light); margin-bottom:0.35rem; display:none;"></div>
+                                    <p id="profile-bio-display" class="card-bio" style="display:none;"></p>
+                                    <div id="profile-card-meta-display" class="card-info-list" style="display:none;"></div>
+                                    <div id="social-links-inline" class="card-social" style="display:none;"></div>
+                                    <div id="profile-preference-content" class="card-axes">
+                                        <div class="card-ax-row" data-axis-key="axis_entry"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">📚 複雜</span></div>
+                                        <div class="card-ax-row" data-axis-key="axis_mood"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                                        <div class="card-ax-row" data-axis-key="axis_control"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                                        <div class="card-ax-row" data-axis-key="axis_sociality"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧘 自我</span></div>
+                                        <div class="card-ax-row" data-axis-key="axis_openness"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🎭 心機</span></div>
+                                        <div class="card-ax-row" data-axis-key="axis_competition"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">⚔️ 對抗</span></div>
                                     </div>
                                 </div>
-                            </div>
-                            <p style="color: var(--text-light); margin-bottom: 0.5rem; margin-top: 0.2rem;" id="profile-created-at">加入於 -</p>
-                            <!-- 個人簡介 -->
-                            <p id="profile-bio-display" style="display:none; color:var(--text-color); font-size:0.95rem; line-height:1.6; margin-bottom:1rem; padding:0.6rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid var(--primary-color);"></p>
-                            <!-- 名片補充資訊（有值才顯示） -->
-                            <div id="profile-card-meta-display" style="display:none; margin-bottom:0.9rem; padding:0.65rem 0.8rem; background:var(--bg-color); border-radius:0.5rem; border-left:3px solid #c7b39b;">
-                                <div style="font-weight:700; font-size:0.88rem; color:var(--text-color); margin-bottom:0.45rem;">🎴 玩家名片資訊</div>
-                                <div id="profile-card-meta-list" style="display:grid; gap:0.25rem; font-size:0.86rem; color:var(--text-color); line-height:1.45;"></div>
-                            </div>
-                        </div>
-                        
-                        <div style="display:flex; flex-direction:column; gap: 0.75rem; align-items:flex-start; flex: 0 1 360px; min-width: 320px; max-width: 420px; width: 100%;">
-                            <div class="profile-action-group">
-                                <a href="personality-test.html" class="btn btn-secondary profile-action-btn">🧪 桌友適性測驗</a>
-                                <button class="btn btn-secondary profile-action-btn" onclick="showBioEditor()">📝 編輯我的簡介</button>
-                                <a href="edit-games-drag.html" class="btn btn-secondary profile-action-btn">🥳 編輯桌遊喜好</a>
-                                <a href="edit-game-collection.html" class="btn btn-secondary profile-action-btn">🏠 編輯桌遊收藏</a>
-                                <a href="rankings.html" class="btn btn-secondary profile-action-btn">🥇 編輯各類排名</a>
-                                <button class="btn btn-secondary profile-action-btn" onclick="profileLogout()"
-                                        style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
-                                    🚪 登出
-                                </button>
-                            </div>
-                            <!-- 桌遊偏好（僅能透過測驗寫入，不可編輯） -->
-                            <div id="profile-preference-section" style="padding-top: 1rem; border-top: 1px solid var(--border-color); width: 100%;">
-                                <div style="color: var(--text-color); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem;">🎯 桌遊偏好</div>
-                                <div id="profile-preference-content" style="color: var(--text-light); font-size: 0.9rem;">載入中...</div>
                             </div>
                         </div>
                     </div>
@@ -680,7 +725,7 @@
     <script src="js/api-base.js?v=20260320"></script>
     <script src="js/app.js?v=20260320"></script>
     <script src="js/game-names.js"></script>
-    <script src="js/preference-axis-capsule.js?v=3"></script>
+    <script src="js/preference-axis-capsule.js?v=4"></script>
 
     <script>
         // ── safePatch 備援定義（若 app.js 尚未載入時使用）──
@@ -1005,6 +1050,8 @@
             // 顯示使用者名稱
             const displayName = googleUser.nickname || googleUser.name;
             document.getElementById('profile-username').textContent = displayName;
+            const collSimple = document.getElementById('profile-collection-count');
+            if (collSimple) collSimple.textContent = '0';
             
             // 🎨 顯示預設頭貼
             const avatarElement = document.getElementById('profile-avatar');
@@ -1085,66 +1132,43 @@
         async function loadAndShowPreferenceProfile() {
             const el = document.getElementById('profile-preference-content');
             if (!el || !currentUser || !currentUser.id) return;
+            const P = window.PreferenceAxisCapsule;
+            const applyRows = function (data) {
+                el.querySelectorAll('.card-ax-row[data-axis-key]').forEach(function (row) {
+                    var key = row.getAttribute('data-axis-key');
+                    if (P && P.applyToHomeCardRow) P.applyToHomeCardRow(row, data[key]);
+                });
+            };
+            const emptyMsg = '<p style="font-size:0.86rem;color:var(--text-light);margin:0;">尚未測驗（可到「桌友適性」完成）</p>';
             try {
                 const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' };
                 const r = await fetch('tables/user_preference_profiles/' + currentUser.id, { headers });
                 if (r.status === 404) {
-                    el.textContent = '尚未測驗（可到「桌友適性」完成）';
+                    el.classList.remove('card-axes');
+                    el.innerHTML = emptyMsg;
                     return;
                 }
                 if (!r.ok) {
-                    el.textContent = '無法載入';
+                    el.classList.remove('card-axes');
+                    el.innerHTML = '<p style="font-size:0.86rem;color:var(--text-light);margin:0;">無法載入</p>';
                     return;
                 }
                 const data = await r.json();
-                const axes = [
-                    { key: 'axis_entry', label: '門檻', left: '🌱 易學', right: '📚 複雜' },
-                    { key: 'axis_mood', label: '氛圍', left: '😂 歡樂', right: '🧠 燒腦' },
-                    { key: 'axis_control', label: '勝負', left: '🎲 運氣', right: '♟️ 策略' },
-                    { key: 'axis_sociality', label: '互動', left: '🗣️ 社交', right: '🧘 自我' },
-                    { key: 'axis_openness', label: '心態', left: '☀️ 磊落', right: '🎭 心機' },
-                    { key: 'axis_competition', label: '立場', left: '🤝 合作', right: '⚔️ 對抗' }
-                ];
-                const P = window.PreferenceAxisCapsule;
-                const html = [
-                    '<div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;align-items:stretch;">',
-                    axes.map(function(a) {
-                        var v = Number(data[a.key] ?? 6);
-                        if (isNaN(v)) v = 6;
-                        if (v < 0) v = 0;
-                        if (v > 12) v = 12;
-                        v = Math.round(v);
-                        var delta = v - 6;
-                        var side = delta < 0 ? 'left' : (delta > 0 ? 'right' : 'neutral');
-                        var leftEndClass = 'pref-div-endInBar left ' + (side === 'left' ? 'active' : 'neutralMuted');
-                        var rightEndClass = 'pref-div-endInBar right ' + (side === 'right' ? 'active' : 'neutralMuted');
-                        var capHtml = '';
-                        if (P) {
-                            var pos = P.capsulePositionPercent(v);
-                            var bg = P.capsuleGradientPreferenceBar(v);
-                            capHtml = '<div class="pref-capsule" style="left:' + pos.leftPct + '%;width:' + pos.widthPct + '%">' +
-                                '<div class="pref-capsule-inner" style="background:' + bg + '"></div></div>';
-                        }
-                        return '' +
-                            '<div style="display:flex;flex-direction:column;gap:0.25rem;">' +
-                              '<div class="pref-div-row">' +
-                                '<div class="pref-div-label">' + a.label + '</div>' +
-                                '<div>' +
-                                  '<div class="pref-div-wrap endsOverlay" role="img" aria-label="' + a.label + ' ' + v + ' / 12">' +
-                                      '<div class="pref-div-mid"></div>' +
-                                      capHtml +
-                                      '<div class="' + leftEndClass + '">' + a.left + '</div>' +
-                                      '<div class="' + rightEndClass + '">' + a.right + '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                              '</div>' +
-                            '</div>';
-                    }).join('') +
-                    '</div>'
-                ].join('');
-                el.innerHTML = html;
+                if (!el.querySelector('.card-ax-row')) {
+                    el.classList.add('card-axes');
+                    el.innerHTML =
+                        '<div class="card-ax-row" data-axis-key="axis_entry"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">📚 複雜</span></div>' +
+                        '<div class="card-ax-row" data-axis-key="axis_mood"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>' +
+                        '<div class="card-ax-row" data-axis-key="axis_control"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>' +
+                        '<div class="card-ax-row" data-axis-key="axis_sociality"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧘 自我</span></div>' +
+                        '<div class="card-ax-row" data-axis-key="axis_openness"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🎭 心機</span></div>' +
+                        '<div class="card-ax-row" data-axis-key="axis_competition"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">⚔️ 對抗</span></div>';
+                }
+                el.classList.add('card-axes');
+                applyRows(data);
             } catch (e) {
-                el.textContent = '尚未測驗（可到「桌友適性」完成）';
+                el.classList.remove('card-axes');
+                el.innerHTML = emptyMsg;
             }
         }
 
@@ -1189,6 +1213,12 @@
                 if (usernameElement) {
                     usernameElement.textContent = currentUser.username || '未命名';
                     console.log('✅ 已設置使用者名稱:', currentUser.username);
+                }
+                const collCountEl = document.getElementById('profile-collection-count');
+                if (collCountEl) {
+                    const og = currentUser.owned_games;
+                    const n = Array.isArray(og) ? og.length : 0;
+                    collCountEl.textContent = String(n);
                 }
                 
                 // 🎨 顯示頭貼（優先順序：資料庫 avatar_url → localStorage → 預設）
@@ -1264,9 +1294,14 @@
 
                     // 個人簡介
                     const bioDisplayEl = document.getElementById('profile-bio-display');
-                    if (bioDisplayEl && currentUser.bio) {
-                        bioDisplayEl.textContent = currentUser.bio;
-                        bioDisplayEl.style.display = 'block';
+                    if (bioDisplayEl) {
+                        if (currentUser.bio) {
+                            bioDisplayEl.textContent = currentUser.bio;
+                            bioDisplayEl.style.display = 'block';
+                        } else {
+                            bioDisplayEl.textContent = '';
+                            bioDisplayEl.style.display = 'none';
+                        }
                     }
                     updateProfileRegionDisplay();
                     renderProfileCardMetaDisplay();
@@ -3229,18 +3264,17 @@
 
         function renderProfileCardMetaDisplay() {
             const wrap = document.getElementById('profile-card-meta-display');
-            const list = document.getElementById('profile-card-meta-list');
-            if (!wrap || !list) return;
+            if (!wrap) return;
             const user = currentUser || window.currentUser || {};
             const meta = getProfileCardMetaForUser(user);
             const rows = getProfileCardMetaRows(meta, user);
             if (!rows.length) {
                 wrap.style.display = 'none';
-                list.innerHTML = '';
+                wrap.innerHTML = '';
                 return;
             }
-            wrap.style.display = 'block';
-            list.innerHTML = rows.map(r => `<div><b>${r.icon} ${r.label}：</b>${r.value}</div>`).join('');
+            wrap.style.display = 'grid';
+            wrap.innerHTML = rows.map(r => `<div><b>${r.icon} ${r.label}：</b>${r.value}</div>`).join('');
         }
 
         function updateProfileRegionDisplay() {

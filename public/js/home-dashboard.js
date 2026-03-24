@@ -180,17 +180,12 @@
     }
 
     function renderAxisRow(row, value) {
-        const inner = row.querySelector('.card-capsule-inner');
-        const capsule = row.querySelector('.card-capsule');
         const P = window.PreferenceAxisCapsule;
-        if (!inner || !capsule || !P) return;
+        if (!P || !P.applyToHomeCardRow) return;
         let v = Number(value);
         if (Number.isNaN(v)) v = 6;
         v = Math.max(0, Math.min(12, Math.round(v)));
-        const pos = P.capsulePositionPercent(v);
-        capsule.style.left = pos.leftPct + '%';
-        capsule.style.width = pos.widthPct + '%';
-        inner.style.background = P.capsuleGradientHomeCard(v);
+        P.applyToHomeCardRow(row, v);
     }
 
     /** 未登入預覽名片：固定示範分數，與舊靜態條視覺相近 */
@@ -382,6 +377,8 @@
         if (!el) return;
         el.addEventListener('click', (e) => {
             if (e.target.closest('a')) return;
+            if (e.target.closest('button')) return;
+            if (e.target.closest('.home-card-actions')) return;
             window.location.href = 'profile.html';
         });
     }
