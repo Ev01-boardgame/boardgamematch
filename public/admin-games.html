@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 快取 bust：修改此頁或依賴的 css/js 時，請把全頁 ?v= 數字一併改成新日期 -->
     <title>遊戲管理 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/hourglass-simple.css">
+    <link rel="stylesheet" href="css/styles.css?v=20260326">
+    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260326">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -316,7 +317,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <!-- 管理後台驗證 -->
-    <script src="js/admin-auth.js?v=20240222-fix"></script>
+    <script src="js/admin-auth.js?v=20260326"></script>
 </head>
 <body>
     <!-- 導覽列 -->
@@ -662,12 +663,12 @@
     <button class="add-game-btn" onclick="openModal()">完整新增</button>
 
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
-    <script src="js/admin-navbar-cleanup.js"></script>
-    <script src="js/app.js?v=20260320"></script>
-    <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
-    <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
-    <script src="js/bgg-six-axes-compute.js?v=1"></script>
-    <script src="js/show-admin-link.js"></script>
+    <script src="js/admin-navbar-cleanup.js?v=20260326"></script>
+    <script src="js/app.js?v=20260326"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=20260326"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=20260326"></script>
+    <script src="js/bgg-six-axes-compute.js?v=20260326"></script>
+    <script src="js/show-admin-link.js?v=20260326"></script>
     <script>
         // ══ 分頁狀態 ══
         let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
@@ -1061,21 +1062,37 @@
             });
         }
 
-        // 開啟彈窗
-        function openModal(gameId = null) {
-            document.getElementById('modal-title').textContent = gameId ? '編輯遊戲' : '新增遊戲';
-            
+        /** GET tables/* 用：帶 JWT，且不要送 Content-Type（避免部分閘道對 GET 異常） */
+        function getTableReadHeaders() {
+            const h = typeof getAuthHeaders === 'function' ? { ...getAuthHeaders() } : {};
+            delete h['Content-Type'];
+            return h;
+        }
+
+        function clearEditGameFormShell() {
+            document.getElementById('game-form').reset();
+            document.getElementById('game-id').value = '';
+            document.getElementById('image-preview').innerHTML = '🎲';
+            setFetchStatus('', '');
+            resetAdminSixAxesForNewGame();
+        }
+
+        // 開啟彈窗（編輯時會 await 單筆 API，避免顯示上一筆或過期快取）
+        async function openModal(gameId = null) {
+            const modal = document.getElementById('game-modal');
+
             if (gameId) {
-                loadGameData(gameId);
+                modal.classList.add('active');
+                document.getElementById('modal-title').textContent = '載入遊戲資料…';
+                clearEditGameFormShell();
+                const ok = await loadGameData(gameId);
+                document.getElementById('modal-title').textContent = '編輯遊戲';
+                if (!ok) modal.classList.remove('active');
             } else {
-                document.getElementById('game-form').reset();
-                document.getElementById('game-id').value = '';
-                document.getElementById('image-preview').innerHTML = '🎲';
-                setFetchStatus('', '');
-                resetAdminSixAxesForNewGame();
+                document.getElementById('modal-title').textContent = '新增遊戲';
+                clearEditGameFormShell();
+                modal.classList.add('active');
             }
-            
-            document.getElementById('game-modal').classList.add('active');
         }
 
         // 關閉彈窗
@@ -1083,15 +1100,35 @@
             document.getElementById('game-modal').classList.remove('active');
         }
 
-        // 載入遊戲資料：一律先 GET 單筆（避免 allGames 全量快取過舊；與 axis-sync 寫入不同步）
+        // 載入遊戲資料：只信任單筆 GET 結果；失敗時不再退回 allGames（正式站曾因此永遠顯示過期快取）
         async function loadGameData(gameId) {
             let game = null;
             try {
-                const r = await fetch(`tables/game_database/${encodeURIComponent(gameId)}`);
-                if (r.ok) game = await r.json();
-            } catch (e) {}
-            if (!game && allGamesLoaded) game = allGames.find(g => g.id === gameId);
-            if (!game) return;
+                const r = await fetch(`tables/game_database/${encodeURIComponent(gameId)}`, {
+                    headers: getTableReadHeaders(),
+                    cache: 'no-store'
+                });
+                if (!r.ok) {
+                    let detail = '';
+                    try {
+                        const errBody = await r.json();
+                        if (errBody && errBody.error) detail = '\n' + String(errBody.error);
+                    } catch (e2) {}
+                    alert(
+                        `載入遊戲失敗：HTTP ${r.status}${detail}\n\n` +
+                        '請開 F12 → Network 找 game_database 那一筆。403 多為未帶登入狀態或網域不符；年份／人數若資料庫本來就空，axis-sync 只會補分類／機制／六軸，需按「從 BGG 抓取」另補。'
+                    );
+                    return false;
+                }
+                game = await r.json();
+            } catch (e) {
+                alert('載入遊戲失敗：' + (e && e.message ? e.message : e));
+                return false;
+            }
+            if (!game || !game.id) {
+                alert('伺服器回傳資料異常（缺少 id）。');
+                return false;
+            }
             
             document.getElementById('game-id').value = game.id;
             document.getElementById('game-name-zh').value = game.name_zh || '';
@@ -1120,11 +1157,12 @@
             setAdminBggMetaFromGame(game);
             updateImagePreview();
             refreshAdminSixAxesPanel();
+            return true;
         }
 
         // 編輯遊戲
-        function editGame(gameId) {
-            openModal(gameId);
+        async function editGame(gameId) {
+            await openModal(gameId);
         }
 
         // ── 即時檢查 BGG ID 重複 ──
