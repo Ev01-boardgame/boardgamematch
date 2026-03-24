@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo 首頁排版（未登入・本機預覽）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --primary: #8b6f47;
+            --primary-dark: #a0826d;
+            --accent: #d4956c;
+            --bg: #faf8f5;
+            --text-main: #2d2d2d;
+            --text-light: #6b7280;
+            --card-bg: #ffffff;
+            --border-color: #e8e3dc;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        .page-wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+        }
+
+        /* Hero 區（與 demo-home 一致） */
+        .hero {
+            display: block;
+            margin-bottom: 3rem;
+        }
+        .hero-welcome {
+            margin-bottom: 1rem;
+        }
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            margin-bottom: 0;
+        }
+        .hero-highlight {
+            background: linear-gradient(120deg, var(--primary), var(--accent), var(--primary-dark));
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 0.98rem;
+            color: var(--text-light);
+            line-height: 1.7;
+            margin-bottom: 1.4rem;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .btn-main {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 999px;
+            border: none;
+            padding: 0.7rem 1.6rem;
+            font-size: 0.95rem;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(139,111,71,0.28);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .btn-main:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+        .btn-ghost {
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            padding: 0.7rem 1.4rem;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            background: var(--card-bg);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+        }
+        .btn-ghost:hover {
+            background: #f3f4f6;
+        }
+
+        .hero-card-wrap { perspective: 2200px; }
+        .hero-card {
+            position: relative;
+            transition: transform .22s ease, box-shadow .22s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(232,227,220,0.9);
+            box-shadow: 0 16px 30px rgba(45,45,45,0.14);
+            background: linear-gradient(135deg, #b79c81, #8b6f47);
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            --mx: 50%;
+            --my: 50%;
+        }
+        .hero-card * {
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04));
+        }
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            inset: -6%;
+            pointer-events: none;
+            background:
+                radial-gradient(220px 140px at var(--mx) var(--my),
+                    rgba(255,255,255,0.34) 0%,
+                    rgba(255,255,255,0.06) 36%,
+                    rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transition: opacity 0.18s ease;
+        }
+        .hero-card.is-hover::after { opacity: 0.4; }
+        .hero-card-inner {
+            padding: 14px 14px 12px;
+            background: linear-gradient(135deg, rgba(255,248,236,0.95), rgba(250,241,229,0.93));
+            transition: transform 0.12s ease;
+        }
+        .guest-preview-ribbon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 2;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #5c4a38;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(200, 184, 160, 0.95);
+            border-radius: 999px;
+            padding: 4px 10px;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(45,45,45,0.08);
+        }
+        .card-top {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+        .card-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: 3px solid #fff;
+            box-shadow: 0 8px 16px rgba(45,45,45,0.22);
+        }
+        .card-name { font-size: 1.12rem; font-weight: 800; color: #1f1a14; }
+        .card-sub { font-size: .9rem; color: #3f3327; margin-top: 3px; font-weight: 600; }
+        .card-bio {
+            border: 1px dashed #d9ccbf;
+            background: #fffaf4;
+            border-radius: 11px;
+            padding: 9px 10px;
+            font-size: .86rem;
+            line-height: 1.6;
+            color: #3e3023;
+            margin-bottom: 9px;
+            font-weight: 500;
+        }
+        .card-info-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 6px 10px;
+            margin-bottom: 10px;
+            font-size: .82rem;
+            color: #2f3a48;
+            font-weight: 500;
+        }
+        .card-info-list b { color: #1f2937; font-weight: 700; }
+        .card-social {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .card-social span {
+            font-size: .79rem;
+            border-radius: 999px;
+            border: 1px solid #c9b69f;
+            background: #fffdf9;
+            padding: 3px 9px;
+            color: #243447;
+            font-weight: 600;
+        }
+        .card-axes { display: grid; gap: 6px; }
+        .card-ax-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 70px;
+            gap: 6px;
+            align-items: center;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+        .card-ax-l { text-align: left; color: #334155; white-space: nowrap; }
+        .card-ax-r { text-align: right; color: #334155; white-space: nowrap; }
+        .card-track {
+            position: relative;
+            height: 12px;
+            border-radius: 999px;
+            border: 1px solid #dbe3ea;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .card-track::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 3px;
+            transform: translateX(-1px);
+            background: rgba(100,116,139,0.75);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .card-capsule {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-radius: 999px;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .card-capsule-inner {
+            width: 100%;
+            height: 100%;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .section-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1.1rem;
+        }
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+        .shortcut-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 1rem;
+            border: 1px solid rgba(229,231,235,0.9);
+            padding: 0.9rem 1rem;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+            position: relative;
+        }
+        .shortcut-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(15,23,42,0.08);
+            border-color: #d9c5ae;
+        }
+        .shortcut-card--muted {
+            opacity: 0.92;
+        }
+        .shortcut-badge {
+            align-self: flex-start;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #8b6f47;
+            background: #fff8ef;
+            border: 1px solid #e7d6bc;
+            border-radius: 999px;
+            padding: 2px 8px;
+            margin-top: 2px;
+        }
+        .shortcut-title {
+            font-size: 0.98rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .shortcut-desc {
+            font-size: 0.86rem;
+            color: var(--text-light);
+        }
+
+        .games-section {
+            margin-bottom: 2.5rem;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+        .games-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+        .games-card h3 {
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
+        }
+        .games-card .game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid rgba(229,231,235,0.8);
+            font-size: 0.88rem;
+        }
+        .games-card .game-item:last-child { border-bottom: none; }
+        .games-card .game-name {
+            color: var(--text-main);
+            font-weight: 600;
+            line-height: 1.45;
+            min-width: 0;
+        }
+        .games-card .game-votes {
+            color: var(--text-light);
+            font-size: 0.82rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .footer-demo {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.82rem;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .page-wrap { padding-inline: 1rem; }
+            .card-info-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                <div class="navbar-logo-text" style="display:flex;flex-direction:column;line-height:1.3;">
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">MBTI ×</span>
+                    <span style="display:block;font-size:1.1rem;font-weight:700;">桌遊配對</span>
+                </div>
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="active">回到首頁</a></li>
+                <li><a href="recommend.html">桌遊探索</a></li>
+                <li><a href="quiz.html">桌遊問答</a></li>
+                <li><a href="personality-test.html">桌友適性</a></li>
+                <li><a href="explore.html">玩家數據</a></li>
+                <li><a href="community.html">揪桌趣處</a></li>
+                <li><a href="profile.html">我的檔案</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-wrap">
+
+        <!-- Hero：未登入（版型對齊 demo-home：標題區 + 名片卡） -->
+        <section class="hero">
+            <div class="hero-welcome">
+                <h1 class="hero-title">
+                    歡迎來到 <span class="hero-highlight">MBTI × 桌遊配對</span><br>登入後解鎖個人名片與完整工具
+                </h1>
+                <p class="hero-subtitle">
+                    你可以先逛逛探索與社群內容；登入後首頁會顯示你的桌遊名片、收藏數、六軸偏好與社群資訊（與 demo-home 登入版相同位置）。
+                </p>
+                <div class="hero-actions">
+                    <button type="button" class="btn-main" onclick="window.location.href='index.html'">🔐 前往首頁登入</button>
+                    <button type="button" class="btn-ghost" onclick="window.location.href='explore-list.html'">👀 先逛逛功能</button>
+                </div>
+            </div>
+            <div class="hero-card-wrap">
+                <div class="hero-card js-tilt" style="position:relative;">
+                    <span class="guest-preview-ribbon">預覽示意（未登入）</span>
+                    <div class="hero-card-inner">
+                        <div class="card-top">
+                            <div class="card-avatar">🎲</div>
+                            <div>
+                                <div class="card-name">玩家暱稱（示意）</div>
+                                <div class="card-sub">INFJ · 桌遊收藏 22 款</div>
+                            </div>
+                        </div>
+                        <div class="card-bio">玩家簡介：喜歡有決策感與劇情沉浸的中長局，偏好與熟友固定團穩定開桌。</div>
+                        <div class="card-info-list">
+                            <div><b>📅 常玩時段：</b>平日晚上、週末午後</div>
+                            <div><b>🎯 開桌偏好：</b>4 人局、中長時長</div>
+                            <div><b>🧩 喜愛機制：</b>策略、合作、資源管理</div>
+                            <div><b>🏠 偏好地點：</b>桌遊店 / 朋友家</div>
+                            <div><b>📝 文字接受度：</b>中文 / English</div>
+                            <div><b>📍 活動範圍：</b>台北市</div>
+                        </div>
+                        <div class="card-social">
+                            <span>🙋 開放被揪</span>
+                            <span>📷 @demo.boardgame</span>
+                            <span>📘 fb.me/demo.tabletop</span>
+                            <span>💬 demo-line</span>
+                        </div>
+                        <div class="card-axes" id="guest-demo-card-axes">
+                            <div class="card-ax-row" data-demo-v="3"><span class="card-ax-l">🌱 易學</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">📚 複雜</span></div>
+                            <div class="card-ax-row" data-demo-v="8"><span class="card-ax-l">😂 歡樂</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧠 燒腦</span></div>
+                            <div class="card-ax-row" data-demo-v="10"><span class="card-ax-l">🎲 運氣</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">♟️ 策略</span></div>
+                            <div class="card-ax-row" data-demo-v="5"><span class="card-ax-l">🗣️ 社交</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🧘 自我</span></div>
+                            <div class="card-ax-row" data-demo-v="7"><span class="card-ax-l">☀️ 磊落</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">🎭 心機</span></div>
+                            <div class="card-ax-row" data-demo-v="4"><span class="card-ax-l">🤝 合作</span><div class="card-track"><div class="card-capsule"><div class="card-capsule-inner"></div></div></div><span class="card-ax-r">⚔️ 對抗</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 桌遊工具（與 demo-home 同文案／同版型；部分標示需登入） -->
+        <section>
+            <h2 class="section-title">桌遊工具</h2>
+            <p class="section-subtitle">
+                試試這些桌遊工具分享自己的桌遊世界。（未登入可先開啟部分頁面；需個人資料者登入後使用）
+            </p>
+            <div class="shortcut-grid">
+                <div class="shortcut-card shortcut-card--muted" data-href="tier-maker.html">
+                    <div class="shortcut-title">🥇 桌遊排名圖</div>
+                    <div class="shortcut-desc">
+                        依你自己的標準把桌遊分級，建立可分享的 Tier 排名圖與清單。
+                    </div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="collection-poster.html">
+                    <div class="shortcut-title">🧩 桌遊格狀海報</div>
+                    <div class="shortcut-desc">
+                        自訂列數與欄數（n×n）與版面比例，將排行榜或收藏清單排版成圖卡並匯出分享。
+                    </div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="game-picker.html">
+                    <div class="shortcut-title">🎯 今晚玩什麼？</div>
+                    <div class="shortcut-desc">
+                        輸入人數、時長與難度偏好，立即從你的候選遊戲中挑出最適合今晚開桌的選項。
+                    </div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="find-players.html">
+                    <div class="shortcut-title">🤝 尋找桌友</div>
+                    <div class="shortcut-desc">
+                        依玩家檔案與條件篩選，探索「開放被揪」的桌友並快速配對。
+                    </div>
+                    <span class="shortcut-badge">需登入</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 常用功能入口（與 demo-home 一致） -->
+        <section>
+            <h2 class="section-title">常用功能入口</h2>
+            <p class="section-subtitle">保留你最常用的四個核心入口，方便快速切換。</p>
+            <div class="shortcut-grid">
+                <div class="shortcut-card shortcut-card--muted" data-href="profile.html">
+                    <div class="shortcut-title">📁 我的桌遊檔案</div>
+                    <div class="shortcut-desc">查看 MBTI 與偏好雷達，管理「喜歡 / 普普 / 不喜歡 / 想玩」分類。</div>
+                    <span class="shortcut-badge">需登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="explore-list.html">
+                    <div class="shortcut-title">🎲 桌遊探索</div>
+                    <div class="shortcut-desc">用機制、主題、關鍵字找新遊戲，一鍵加入偏好分類或收藏。</div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="quiz.html">
+                    <div class="shortcut-title">🧠 桌遊問答</div>
+                    <div class="shortcut-desc">透過問答了解你的桌遊偏好與風格，登入後可同步到個人檔案。</div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+                <div class="shortcut-card shortcut-card--muted" data-href="community.html">
+                    <div class="shortcut-title">📍 揪桌趣處</div>
+                    <div class="shortcut-desc">查找桌遊店、線上平台與社群連結，快速安排下一場開桌。</div>
+                    <span class="shortcut-badge">建議登入</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 熱門桌遊（與 demo-home 同 ranked list 版型，靜態示意） -->
+        <section class="games-section">
+            <h2 class="section-title">🏆 玩家最近都在玩什麼？</h2>
+            <p class="section-subtitle">顯示全站熱門與最受期待候選。（此頁為離線示意，非即時 API）</p>
+            <div class="games-grid">
+                <div class="games-card">
+                    <h3>😍 最受歡迎</h3>
+                    <div id="guest-popular-games">
+                        <div class="game-item"><span class="game-name">1. 瘟疫危機：承傳</span><span class="game-votes">❤️ 42</span></div>
+                        <div class="game-item"><span class="game-name">2. 車票之旅：歐洲</span><span class="game-votes">❤️ 38</span></div>
+                        <div class="game-item"><span class="game-name">3. 花磚物語</span><span class="game-votes">❤️ 35</span></div>
+                        <div class="game-item"><span class="game-name">4. 璀璨寶石</span><span class="game-votes">❤️ 31</span></div>
+                    </div>
+                </div>
+                <div class="games-card">
+                    <h3>⭐ 最受期待</h3>
+                    <div id="guest-wishlist-games">
+                        <div class="game-item"><span class="game-name">1. 幽港迷城</span><span class="game-votes">⭐ 28</span></div>
+                        <div class="game-item"><span class="game-name">2. 翼展</span><span class="game-votes">⭐ 24</span></div>
+                        <div class="game-item"><span class="game-name">3. 根</span><span class="game-votes">⭐ 21</span></div>
+                        <div class="game-item"><span class="game-name">4. 方舟動物園</span><span class="game-votes">⭐ 19</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="footer-demo">本機 demo（demo-home-guest-local.html）：版型與 demo-home.html 對齊，情境為<strong>未登入</strong>；名片為靜態預覽。</div>
+    </div>
+
+<script src="js/preference-axis-capsule.js?v=3"></script>
+<script>
+    (function () {
+        const cards = document.querySelectorAll('.js-tilt');
+        cards.forEach((card) => {
+            const maxTilt = 6;
+            card.addEventListener('mouseenter', () => {
+                card.classList.add('is-hover');
+                card.style.transform = 'perspective(2200px) rotateX(0deg) rotateY(0deg) translateY(-1px)';
+                card.style.boxShadow = '0 20px 34px rgba(45,45,45,0.20)';
+            });
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                if (!rect.width || !rect.height) return;
+                const px = (e.clientX - rect.left) / rect.width - 0.5;
+                const py = (e.clientY - rect.top) / rect.height - 0.5;
+                const pointerX = Math.round(Math.max(-1, Math.min(1, px * 2)) * 100) / 100;
+                const pointerY = Math.round(Math.max(-1, Math.min(1, py * 2)) * 100) / 100;
+                card.style.setProperty('--mx', `${((pointerX + 1) * 50).toFixed(2)}%`);
+                card.style.setProperty('--my', `${((pointerY + 1) * 50).toFixed(2)}%`);
+                const rx = (-pointerY * maxTilt).toFixed(2);
+                const ry = (pointerX * maxTilt).toFixed(2);
+                card.style.transform = `perspective(2200px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-1px)`;
+                const sx = (-pointerX * 5).toFixed(2);
+                const sy = (9 - pointerY * 4).toFixed(2);
+                card.style.boxShadow = `${sx}px ${sy}px 24px rgba(45,45,45,0.20)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.classList.remove('is-hover');
+                card.style.transform = 'perspective(2200px) rotateX(0deg) rotateY(0deg) translateY(0)';
+                card.style.boxShadow = '0 16px 30px rgba(45,45,45,0.14)';
+                card.style.setProperty('--mx', '50%');
+                card.style.setProperty('--my', '50%');
+            });
+        });
+    })();
+
+    function renderGuestDemoAxisRow(row) {
+        const inner = row.querySelector('.card-capsule-inner');
+        const capsule = row.querySelector('.card-capsule');
+        const P = window.PreferenceAxisCapsule;
+        if (!inner || !capsule || !P) return;
+        const raw = row.getAttribute('data-demo-v');
+        let v = parseInt(raw, 10);
+        if (Number.isNaN(v)) v = 6;
+        v = P.clampV(v);
+        const pos = P.capsulePositionPercent(v);
+        capsule.style.left = pos.leftPct + '%';
+        capsule.style.width = pos.widthPct + '%';
+        inner.style.background = P.capsuleGradientHomeCard(v);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.shortcut-card[data-href]').forEach((card) => {
+            const href = card.getAttribute('data-href');
+            if (!href) return;
+            card.addEventListener('click', () => {
+                window.location.href = href;
+            });
+        });
+        document.querySelectorAll('#guest-demo-card-axes .card-ax-row').forEach((row) => renderGuestDemoAxisRow(row));
+    });
+</script>
+</body>
+</html>
