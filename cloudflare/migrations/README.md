@@ -128,3 +128,15 @@ npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_prof
 cd cloudflare
 npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/add_users_owned_to_buy_games.sql
 ```
+
+---
+
+## 20260326_users_bgg_collection_pending.sql
+
+為「編輯桌遊收藏」頁的 **BGG 匯入** 新增 `owned_games_bgg_pending`、`to_buy_games_bgg_pending`（JSON 陣列，存 BGG `objectid` 字串）。  
+未執行時，待對照 ID 僅存在前端，**儲存後無法寫入 D1**。
+
+```bash
+cd cloudflare
+npx wrangler d1 execute boardgame-match-db --remote --file=./migrations/20260326_users_bgg_collection_pending.sql
+```

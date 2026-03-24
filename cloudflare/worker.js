@@ -24,6 +24,9 @@
  * 例外（不需 X-Api-Key）：
  *   GET /api/bgg-axis-deltas — 公開讀取 BGG→六軸 delta（與靜態 bgg-axis-deltas-v1.js 後備一致）
  *
+ * BGG 收藏預覽（需 X-Api-Key）：
+ *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
+ *
  * 管理端（需 X-Api-Key + JWT + admin／超管）：
  *   PUT /api/admin/bgg-axis-deltas — 寫入整包 category／mechanic delta 至 D1
  */
@@ -319,6 +322,113 @@ async function getTableColumns(db, tableName) {
   }
 }
 
+function sleepMs(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** 解析 BGG xmlapi2 collection 回應 */
+function parseBggCollectionXml(xmlText) {
+  const items = [];
+  if (!xmlText || typeof xmlText !== 'string') return items;
+  const parts = xmlText.split('<item ');
+  for (let i = 1; i < parts.length; i++) {
+    const chunk = parts[i].split('</item>')[0];
+    const oid = /objectid="(\d+)"/.exec(chunk);
+    if (!oid) continue;
+    const objectid = oid[1];
+    const subMatch = /subtype="([^"]*)"/.exec(chunk);
+    const subtype = subMatch ? subMatch[1] : 'boardgame';
+    const nameMatch = /<name[^>]*>([^<]*)<\/name>/.exec(chunk);
+    const bggName = nameMatch ? nameMatch[1].trim() : '';
+    const statusM = chunk.match(/<status\s+([^>]+)\s*\/?>/);
+    const st = statusM ? statusM[1] : '';
+    const own = /\bown="1"/.test(st);
+    const wish = /\bwishlist="1"/.test(st);
+    if (!own && !wish) continue;
+    const list = own ? 'owned' : 'wishlist';
+    items.push({
+      objectid,
+      subtype,
+      bggName,
+      list,
+      isExpansion: subtype === 'boardgameexpansion'
+    });
+  }
+  return items;
+}
+
+async function fetchBggCollectionXmlRaw(username, includeExpansions) {
+  const qs = new URLSearchParams({
+    username: username.trim(),
+    own: '1',
+    wishlist: '1'
+  });
+  if (!includeExpansions) {
+    qs.set('excludesubtype', 'boardgameexpansion');
+  }
+  const bggUrl = `https://boardgamegeek.com/xmlapi2/collection?${qs.toString()}`;
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 28; attempt++) {
+    const r = await fetch(bggUrl, { headers: { Accept: 'application/xml, text/xml' } });
+    lastStatus = r.status;
+    if (r.status === 202) {
+      await sleepMs(2200);
+      continue;
+    }
+    if (!r.ok) {
+      throw new Error(`BGG collection HTTP ${r.status}`);
+    }
+    return await r.text();
+  }
+  throw new Error(`BGG collection 逾時（最後 HTTP ${lastStatus}）`);
+}
+
+async function mapBggObjectIdsToDbNames(db, objectIds) {
+  const map = new Map();
+  const ids = [...new Set(objectIds.map((x) => String(x).trim()).filter(Boolean))];
+  if (!ids.length || !db) return map;
+  const CHUNK = 80;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    const ph = chunk.map(() => '?').join(', ');
+    const r = await db
+      .prepare(`SELECT bgg_id, name_zh, name_en FROM game_database WHERE bgg_id IN (${ph})`)
+      .bind(...chunk)
+      .all();
+    for (const row of r.results || []) {
+      const id = String(row.bgg_id != null ? row.bgg_id : '').trim();
+      if (!id) continue;
+      const zh = (row.name_zh && String(row.name_zh).trim()) || '';
+      const en = (row.name_en && String(row.name_en).trim()) || '';
+      map.set(id, zh || en || null);
+    }
+  }
+  return map;
+}
+
+async function handleBggCollectionPreview(db, username, includeExpansions) {
+  const u = String(username || '').trim();
+  if (!u) throw new Error('請提供 BGG 使用者名稱');
+  if (u.length > 80) throw new Error('使用者名稱過長');
+  const xml = await fetchBggCollectionXmlRaw(u, !!includeExpansions);
+  if (/<error message=/.test(xml)) {
+    const em = /message="([^"]+)"/.exec(xml);
+    throw new Error(em ? em[1] : 'BGG 回傳錯誤');
+  }
+  const rawItems = parseBggCollectionXml(xml);
+  const ids = rawItems.map((it) => it.objectid);
+  const nameMap = await mapBggObjectIdsToDbNames(db, ids);
+  const items = rawItems.map((it) => ({
+    objectid: it.objectid,
+    bggName: it.bggName,
+    subtype: it.subtype,
+    list: it.list,
+    isExpansion: it.isExpansion,
+    mappedName: nameMap.get(it.objectid) || null
+  }));
+  return { username: u, items, count: items.length };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -348,6 +458,20 @@ export default {
       const provided = request.headers.get('X-Api-Key');
       if (provided !== apiSecret) {
         return errorResponse('Forbidden', 403, origin, env);
+      }
+    }
+
+    // ── GET /api/bgg/collection-preview?username=&include_expansions=0|1（需 X-Api-Key；代理 BGG，對照 game_database.bgg_id）──
+    if (url.pathname === '/api/bgg/collection-preview' && method === 'GET') {
+      if (!env.DB) return errorResponse('DB not configured', 503, origin, env);
+      const username = url.searchParams.get('username') || '';
+      const includeExpansions = url.searchParams.get('include_expansions') === '1';
+      try {
+        const payload = await handleBggCollectionPreview(env.DB, username, includeExpansions);
+        return jsonResponse(payload, 200, origin, env);
+      } catch (e) {
+        console.error('bgg collection-preview', e);
+        return errorResponse(e.message || 'BGG 讀取失敗', 502, origin, env);
       }
     }
 

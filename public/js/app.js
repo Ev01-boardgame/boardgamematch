@@ -311,6 +311,8 @@ async function getUserById(userId) {
         user.wishlist           = toArr(user.wishlist);
         user.owned_games        = toArr(user.owned_games);
         user.to_buy_games       = toArr(user.to_buy_games);
+        user.owned_games_bgg_pending = toArr(user.owned_games_bgg_pending);
+        user.to_buy_games_bgg_pending = toArr(user.to_buy_games_bgg_pending);
         return user;
     } catch (error) {
         console.error('Error fetching user:', error);
