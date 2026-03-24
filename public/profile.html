@@ -107,7 +107,8 @@
             gap: 0.35rem;
             justify-content: flex-end;
             align-content: flex-start;
-            max-width: min(300px, 100%);
+            /* 預設（含寬螢幕）：不鎖死 300px，否則六顆鈕會擠成 3×2 迷你格 */
+            max-width: min(640px, 100%);
         }
         .profile-page-hero .profile-nc-btn {
             font-size: 0.68rem;
@@ -131,21 +132,35 @@
             color: #fff;
             border-color: transparent;
         }
-        /* 手機：版型 B — 右上固定窄欄，操作鈕折行（與 demo-profile-namecard-mobile-variants.html 一致） */
+        /* 寬螢幕：操作鈕用較大字級／內距，避免像手機版縮圖 */
+        @media (min-width: 641px) {
+            .profile-page-hero .profile-card-actions {
+                gap: 0.45rem 0.5rem;
+                max-width: min(720px, 100%);
+            }
+            .profile-page-hero .profile-nc-btn {
+                font-size: 0.82rem;
+                padding: 0.4rem 0.75rem;
+            }
+        }
+        /* 手機：版型 B — 右上窄欄折行（欄寬略增以容納「編輯…」完整字） */
         @media (max-width: 640px) {
             .profile-page-hero .card-top {
-                grid-template-columns: auto minmax(0, 1fr) minmax(0, 118px);
+                grid-template-columns: auto minmax(0, 1fr) minmax(0, 168px);
                 gap: 6px 6px;
                 align-items: start;
             }
             .profile-page-hero .profile-card-actions {
-                max-width: 118px;
+                max-width: 168px;
                 gap: 4px;
                 justify-content: flex-end;
             }
             .profile-page-hero .profile-nc-btn {
                 font-size: 0.62rem;
                 padding: 0.24rem 0.42rem;
+                white-space: normal;
+                text-align: center;
+                line-height: 1.25;
             }
         }
         .pref-tab-row {
@@ -488,11 +503,11 @@
                                             <p id="profile-created-at" class="profile-card-joined">加入於 -</p>
                                         </div>
                                         <div class="profile-card-actions">
-                                            <a href="personality-test.html" class="profile-nc-btn">🧪 適性</a>
-                                            <button type="button" class="profile-nc-btn" onclick="showBioEditor()">📝 簡介</button>
-                                            <a href="edit-games-drag.html" class="profile-nc-btn">🥳 喜好</a>
-                                            <a href="edit-game-collection.html" class="profile-nc-btn">🏠 收藏</a>
-                                            <a href="rankings.html" class="profile-nc-btn">🥇 排名</a>
+                                            <a href="personality-test.html" class="profile-nc-btn">🧪 桌友適性測驗</a>
+                                            <button type="button" class="profile-nc-btn" onclick="showBioEditor()">📝 編輯我的簡介</button>
+                                            <a href="edit-games-drag.html" class="profile-nc-btn">🥳 編輯桌遊喜好</a>
+                                            <a href="edit-game-collection.html" class="profile-nc-btn">🏠 編輯桌遊收藏</a>
+                                            <a href="rankings.html" class="profile-nc-btn">🥇 編輯各類排名</a>
                                             <button type="button" class="profile-nc-btn profile-nc-logout" onclick="profileLogout()">🚪 登出</button>
                                         </div>
                                     </div>
