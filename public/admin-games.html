@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 快取 bust：修改此頁或依賴的 css/js 時，請把全頁 ?v= 數字一併改成新日期 -->
     <title>遊戲管理 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260327">
-    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260327">
+    <link rel="stylesheet" href="css/styles.css?v=20260329">
+    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260329">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -317,7 +317,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <!-- 管理後台驗證 -->
-    <script src="js/admin-auth.js?v=20260327"></script>
+    <script src="js/admin-auth.js?v=20260329"></script>
 </head>
 <body>
     <!-- 導覽列 -->
@@ -663,12 +663,12 @@
     <button class="add-game-btn" onclick="openModal()">完整新增</button>
 
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
-    <script src="js/admin-navbar-cleanup.js?v=20260327"></script>
-    <script src="js/app.js?v=20260327"></script>
-    <script src="js/bgg-axis-deltas-v1.js?v=20260327"></script>
-    <script src="js/bgg-axis-deltas-loader.js?v=20260327"></script>
-    <script src="js/bgg-six-axes-compute.js?v=20260327"></script>
-    <script src="js/show-admin-link.js?v=20260327"></script>
+    <script src="js/admin-navbar-cleanup.js?v=20260329"></script>
+    <script src="js/app.js?v=20260329"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=20260329"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=20260329"></script>
+    <script src="js/bgg-six-axes-compute.js?v=20260329"></script>
+    <script src="js/show-admin-link.js?v=20260329"></script>
     <script>
         // ══ 分頁狀態 ══
         let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
@@ -1327,6 +1327,189 @@
         // 綁定即時預覽
         document.getElementById('game-image-url')?.addEventListener('input', updateImagePreview);
 
+        /** Jina 主頁標題常為「Name | Board Game | BoardGameGeek」—只取遊戲名一段 */
+        function normalizeBggJinaTitle(raw) {
+            if (!raw || typeof raw !== 'string') return '';
+            const trimmed = raw.trim();
+            let s = trimmed.replace(/\s*\((19|20)\d{2}\)\s*$/, '').trim();
+            const pipeSeg = s.split(/\s*\|\s*/)[0];
+            return pipeSeg.trim();
+        }
+
+        function englishNameLooksLikeJinaGarbage(v) {
+            if (!v || typeof v !== 'string') return true;
+            return /\|\s*Board Game\b/i.test(v) || /\bBoardGameGeek\b/i.test(v) || (/\|/.test(v) && v.length > 42);
+        }
+
+        /** 優先「Playing Time: a–b min」，再任意 a–b min，最後單一 N min；區間時回傳 min/max 與平均作 playing_time */
+        function extractBggPlayingTimeFromMarkdown(text) {
+            const labeled = text.match(/Playing\s+Time[:\s]*(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in/i);
+            if (labeled) {
+                const a = parseInt(labeled[1], 10), b = parseInt(labeled[2], 10);
+                if (!isNaN(a) && !isNaN(b)) {
+                    const lo = Math.min(a, b), hi = Math.max(a, b);
+                    return { min: lo, max: hi, playing: Math.round((lo + hi) / 2), filledLabel: '遊戲時間（BGG 區間→平均）' };
+                }
+            }
+            const anyRange = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in\b/);
+            if (anyRange) {
+                const a = parseInt(anyRange[1], 10), b = parseInt(anyRange[2], 10);
+                if (!isNaN(a) && !isNaN(b)) {
+                    const lo = Math.min(a, b), hi = Math.max(a, b);
+                    return { min: lo, max: hi, playing: Math.round((lo + hi) / 2), filledLabel: '遊戲時間（區間→平均）' };
+                }
+            }
+            const single = text.match(/\b(\d+)\s*[Mm]in(?:ute)?s?\b/i);
+            if (single) {
+                const n = parseInt(single[1], 10);
+                if (!isNaN(n)) return { min: n, max: n, playing: n, filledLabel: '遊戲時間' };
+            }
+            return null;
+        }
+
+        function fillGameYearFromMainPageIfEmpty(mainMarkdown, rawTitleLine) {
+            const yEl = document.getElementById('game-year');
+            if (!yEl || yEl.value) return null;
+            if (rawTitleLine) {
+                const inTitle = rawTitleLine.match(/\((\d{4})\)/);
+                if (inTitle) {
+                    const y = parseInt(inTitle[1], 10);
+                    if (y >= 1900 && y <= 2099) {
+                        yEl.value = String(y);
+                        return `年份（標題 ${y}）`;
+                    }
+                }
+            }
+            const yPub = mainMarkdown.match(/Year\s+Published[:\s\n]+(\d{4})/im);
+            if (yPub) {
+                const y = parseInt(yPub[1], 10);
+                if (y >= 1900 && y <= 2099) {
+                    yEl.value = String(y);
+                    return `年份（主頁 Year Published ${y}）`;
+                }
+            }
+            const yRel = mainMarkdown.match(/Year\s+Released[:\s\n]+(\d{4})/im);
+            if (yRel) {
+                const y = parseInt(yRel[1], 10);
+                if (y >= 1900 && y <= 2099) {
+                    yEl.value = String(y);
+                    return `年份（主頁 Year Released ${y}）`;
+                }
+            }
+            const loose = mainMarkdown.match(/\b(19|20)\d{2}\b/);
+            if (loose) {
+                yEl.value = loose[0];
+                return '年份（備援）';
+            }
+            return null;
+        }
+
+        /** Worker 回傳的純 XML → 第一個 &lt;item&gt; */
+        function parseThingXmlItemFromText(xmlText) {
+            const doc = new DOMParser().parseFromString((xmlText || '').trim(), 'text/xml');
+            return doc.querySelector('items > item') || doc.querySelector('item');
+        }
+
+        async function fetchAdminBggThingXmlText(bggId) {
+            const path = `api/admin/bgg/thing?id=${encodeURIComponent(bggId)}&stats=1`;
+            const res = await fetch(path, {
+                method: 'GET',
+                headers: typeof getAuthHeaders === 'function'
+                    ? getAuthHeaders({ Accept: 'application/xml, text/xml, */*' })
+                    : { Accept: 'application/xml, text/xml, */*' },
+                signal: AbortSignal.timeout(35000)
+            });
+            if (!res.ok) {
+                let detail = '';
+                try {
+                    const j = await res.clone().json();
+                    if (j && j.error) detail = ': ' + j.error;
+                } catch (e) { /* ignore */ }
+                throw new Error('Worker thing HTTP ' + res.status + detail);
+            }
+            return await res.text();
+        }
+
+        /** 將 xmlapi2/thing（stats=1）的 item 寫入表單僅補空欄（英文名若為 Jina 垃圾字串則覆寫） */
+        function applyBggThingXmlItemToForm(xmlItem, filled) {
+            if (!xmlItem) return;
+            const nameEn = xmlItem.querySelector('name[type="primary"]')?.getAttribute('value') || '';
+            if (nameEn.trim()) {
+                const enEl = document.getElementById('game-name-en');
+                const cur = (enEl.value || '').trim();
+                if (!cur || englishNameLooksLikeJinaGarbage(cur)) {
+                    enEl.value = nameEn.trim();
+                    filled.push('英文名稱（BGG XML）');
+                }
+            }
+            const yEl = document.getElementById('game-year');
+            if (!yEl.value) {
+                const yearVal = xmlItem.querySelector('yearpublished')?.getAttribute('value');
+                if (yearVal && yearVal !== '0') {
+                    const y = parseInt(yearVal, 10);
+                    if (y >= 1900 && y <= 2099) {
+                        yEl.value = String(y);
+                        filled.push(`年份（BGG XML ${y}）`);
+                    }
+                }
+            }
+            if (!document.getElementById('game-min-players').value) {
+                const minP = xmlItem.querySelector('minplayers')?.getAttribute('value');
+                if (minP) {
+                    document.getElementById('game-min-players').value = minP;
+                    filled.push('最少玩家（BGG XML）');
+                }
+            }
+            if (!document.getElementById('game-max-players').value) {
+                const maxP = xmlItem.querySelector('maxplayers')?.getAttribute('value');
+                if (maxP) {
+                    document.getElementById('game-max-players').value = maxP;
+                    filled.push('最多玩家（BGG XML）');
+                }
+            }
+            const mnH = document.getElementById('game-min-playtime');
+            const mxH = document.getElementById('game-max-playtime');
+            const minPt = xmlItem.querySelector('minplaytime')?.getAttribute('value');
+            const maxPt = xmlItem.querySelector('maxplaytime')?.getAttribute('value');
+            if (mnH && minPt && !mnH.value) mnH.value = String(parseInt(minPt, 10) || minPt);
+            if (mxH && maxPt && !mxH.value) mxH.value = String(parseInt(maxPt, 10) || maxPt);
+            const ptEl = document.getElementById('game-playing-time');
+            if (!ptEl.value) {
+                const single = xmlItem.querySelector('playingtime')?.getAttribute('value')
+                    || xmlItem.querySelector('maxplaytime')?.getAttribute('value');
+                if (minPt && maxPt) {
+                    const a = parseInt(minPt, 10), b = parseInt(maxPt, 10);
+                    if (!isNaN(a) && !isNaN(b)) {
+                        ptEl.value = String(Math.round((a + b) / 2));
+                        filled.push('遊戲時間（BGG XML 區間平均）');
+                    }
+                } else if (single) {
+                    const n = parseInt(single, 10);
+                    if (!isNaN(n)) {
+                        ptEl.value = String(n);
+                        filled.push('遊戲時間（BGG XML）');
+                    }
+                }
+            }
+            if (!document.getElementById('game-complexity').value) {
+                const weightVal = xmlItem.querySelector('averageweight')?.getAttribute('value');
+                if (weightVal) {
+                    const w = parseFloat(weightVal);
+                    if (!isNaN(w)) {
+                        document.getElementById('game-complexity').value = w.toFixed(2);
+                        filled.push('複雜度（BGG XML）');
+                    }
+                }
+            }
+            const imgUrl = xmlItem.querySelector('image')?.textContent?.trim()
+                || xmlItem.querySelector('thumbnail')?.textContent?.trim();
+            if (imgUrl && !document.getElementById('game-image-url').value.trim()) {
+                document.getElementById('game-image-url').value = imgUrl;
+                updateImagePreview();
+                filled.push('封面圖片（BGG XML）');
+            }
+        }
+
         // ── 從 BGG 抓取資料 ──
         async function fetchFromBGG() {
             const bggId = document.getElementById('game-bgg-id').value.trim();
@@ -1338,20 +1521,32 @@
             const btn = document.getElementById('bgg-fetch-btn');
             btn.disabled = true;
             btn.textContent = '⏳ 抓取中...';
-            setFetchStatus('正在透過 Jina proxy 讀取 BGG 頁面...', '#888');
 
             try {
+                const filled = [];
+
+                // ════════════════════════════════════════════════
+                // 步驟零：本站 Worker → BGG xmlapi2/thing（官方 Token）
+                // ════════════════════════════════════════════════
+                setFetchStatus('正在透過本站 API 讀取 BGG XML（thing）…', '#888');
+                try {
+                    const xmlText = await fetchAdminBggThingXmlText(bggId);
+                    const item = parseThingXmlItemFromText(xmlText);
+                    if (item) applyBggThingXmlItemToForm(item, filled);
+                } catch (thingErr) {
+                    console.warn('BGG thing 代理失敗，改以 Jina 頁面為主：', thingErr.message || thingErr);
+                }
+
                 // ════════════════════════════════════════════════
                 // 步驟一：抓主頁（英文名 + 玩家數 + 時間 + 複雜度 + 封面圖 + 描述）
-                // 注意：Jina 抓圖邏輯完全不動，已確認為唯一可靠方式
+                // 注意：Jina 抓圖邏輯仍保留；欄位已有值時不覆寫（除非下方邏輯特別處理）
                 // ════════════════════════════════════════════════
+                setFetchStatus('正在透過 Jina proxy 讀取 BGG 頁面...', '#888');
                 const pageUrl  = `https://boardgamegeek.com/boardgame/${bggId}`;
                 const proxyUrl = `https://r.jina.ai/${pageUrl}`;
                 const res = await fetch(proxyUrl, { headers: { 'X-No-Cache': 'true' } });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
-
-                let filled = [];
 
                 // ── 抓英文名稱（暫存，供組 credits URL 用）──
                 let enNameFromMain = '';

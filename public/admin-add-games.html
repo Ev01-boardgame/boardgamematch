@@ -448,7 +448,7 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=20260320"></script>
+    <script src="js/app.js?v=20260329"></script>
     <script>
     // ── 全域狀態 ──
     let fetchedGames = [];   // [{bggId, status, data, selected, rowId}, ...]
@@ -466,9 +466,9 @@
         return await resp.text();
     }
 
-    // ── BGG XML API（thing）：優先 Jina 包一層（與下方搜尋 XML 相同），allorigins 僅作後備（較易 500／逾時）──
+    // ── BGG XML API（thing）：優先本站 Worker（後端帶 BGG Application Token），失敗再 Jina ──
     async function fetchBGGXmlApi(bggId) {
-        const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
+        const bggThingUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
 
         function unwrapJinaMarkdownMaybe(text) {
             if (!text || typeof text !== 'string') return text;
@@ -501,8 +501,29 @@
             throw new Error('無法解析 thing XML');
         }
 
+        async function viaWorkerProxy() {
+            const path = `api/admin/bgg/thing?id=${encodeURIComponent(bggId)}&stats=1`;
+            const headers = typeof getAuthHeaders === 'function'
+                ? getAuthHeaders({ Accept: 'application/xml, text/xml, */*' })
+                : { Accept: 'application/xml, text/xml, */*' };
+            const resp = await fetch(path, {
+                method: 'GET',
+                headers,
+                signal: AbortSignal.timeout(35000)
+            });
+            if (!resp.ok) {
+                let detail = '';
+                try {
+                    const j = await resp.clone().json();
+                    if (j && j.error) detail = ': ' + j.error;
+                } catch (e) { /* ignore */ }
+                throw new Error(`Worker thing HTTP ${resp.status}${detail}`);
+            }
+            return parseThingXmlText(await resp.text());
+        }
+
         async function viaJina() {
-            const proxyUrl = `https://r.jina.ai/${apiUrl}`;
+            const proxyUrl = `https://r.jina.ai/${bggThingUrl}`;
             const resp = await fetch(proxyUrl, {
                 headers: { 'X-No-Cache': 'true' },
                 signal: AbortSignal.timeout(45000)
@@ -511,16 +532,12 @@
             return parseThingXmlText(await resp.text());
         }
 
-        async function viaAllorigins() {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
-            if (!resp.ok) throw new Error(`allorigins HTTP ${resp.status}`);
-            const json = await resp.json();
-            const xmlText = json.contents;
-            if (!xmlText) throw new Error('allorigins 回傳空內容');
-            return parseThingXmlText(xmlText);
+        let wErr = '';
+        try {
+            return await viaWorkerProxy();
+        } catch (e) {
+            wErr = e && e.message ? e.message : String(e);
         }
-
         let jErr = '';
         try {
             return await viaJina();
@@ -528,35 +545,85 @@
             jErr = e && e.message ? e.message : String(e);
         }
         try {
-            return await viaAllorigins();
+            await new Promise(r => setTimeout(r, 400));
+            return await viaJina();
         } catch (e2) {
-            const a = e2 && e2.message ? e2.message : String(e2);
-            throw new Error(`Jina：${jErr}；allorigins：${a}`);
+            const j2 = e2 && e2.message ? e2.message : String(e2);
+            throw new Error(`Worker：${wErr}；Jina（兩次）：${jErr}；${j2}`);
         }
     }
 
-    // ── Jina proxy：搜尋 BGG（讀 BGG XML Search API）──
-    async function fetchBGGSearchXML(url) {
-        const proxyUrl = `https://r.jina.ai/${url}`;
-        const resp = await fetch(proxyUrl, {
-            headers: { 'X-No-Cache': 'true' },
-            signal: AbortSignal.timeout(15000)
-        });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const text = await resp.text();
-        // Jina 回的是 Markdown，但 XML 也可能直接包在裡面，嘗試提取
-        // 先嘗試直接解析（有時 Jina 會回純 XML）
+    // ── BGG Search XML：優先本站 Worker，失敗再 Jina ──
+    async function fetchBGGSearchResultsDoc(query) {
+        const q = query.trim();
+        function parseSearchDocFromText(text) {
+            const t = (text || '').trim();
+            try {
+                const xml = new DOMParser().parseFromString(t, 'text/xml');
+                if (xml.querySelector('item')) return xml;
+            } catch (e) { /* continue */ }
+            const xmlMatch = t.match(/<\?xml[\s\S]*?<\/items>/i) || t.match(/<items[\s\S]*?<\/items>/i);
+            if (xmlMatch) {
+                const xml = new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
+                if (xml.querySelector('item')) return xml;
+            }
+            throw new Error('無法解析搜尋結果');
+        }
+
+        async function viaWorker() {
+            const path = `api/admin/bgg/search?query=${encodeURIComponent(q)}&type=boardgame`;
+            const headers = typeof getAuthHeaders === 'function'
+                ? getAuthHeaders({ Accept: 'application/xml, text/xml, */*' })
+                : { Accept: 'application/xml, text/xml, */*' };
+            const resp = await fetch(path, {
+                method: 'GET',
+                headers,
+                signal: AbortSignal.timeout(30000)
+            });
+            if (!resp.ok) {
+                let detail = '';
+                try {
+                    const j = await resp.clone().json();
+                    if (j && j.error) detail = ': ' + j.error;
+                } catch (e) { /* ignore */ }
+                throw new Error('Worker search HTTP ' + resp.status + detail);
+            }
+            return parseSearchDocFromText(await resp.text());
+        }
+
+        async function viaJina() {
+            const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`;
+            const proxyUrl = `https://r.jina.ai/${searchUrl}`;
+            const resp = await fetch(proxyUrl, {
+                headers: { 'X-No-Cache': 'true' },
+                signal: AbortSignal.timeout(15000)
+            });
+            if (!resp.ok) throw new Error('Jina HTTP ' + resp.status);
+            return parseSearchDocFromText(await resp.text());
+        }
+
+        let wErr = '';
         try {
-            const xml = new DOMParser().parseFromString(text, 'text/xml');
-            if (xml.querySelector('items,item')) return xml;
-        } catch(e) {}
-        // 若是 Markdown 包裝，提取 <items> 區塊
-        const xmlMatch = text.match(/<\?xml[\s\S]*?<\/items>/i) || text.match(/<items[\s\S]*?<\/items>/i);
-        if (xmlMatch) return new DOMParser().parseFromString(xmlMatch[0], 'text/xml');
-        throw new Error('無法解析搜尋結果');
+            return await viaWorker();
+        } catch (e) {
+            wErr = e && e.message ? e.message : String(e);
+        }
+        let jErr = '';
+        try {
+            return await viaJina();
+        } catch (e) {
+            jErr = e && e.message ? e.message : String(e);
+        }
+        try {
+            await new Promise(r => setTimeout(r, 400));
+            return await viaJina();
+        } catch (e2) {
+            const j2 = e2 && e2.message ? e2.message : String(e2);
+            throw new Error(`Worker：${wErr}；Jina（兩次）：${jErr}；${j2}`);
+        }
     }
 
-    // ── 搜尋 BGG（透過 Jina 讀 BGG XML Search API）──
+    // ── 搜尋 BGG ──
     async function searchBGG() {
         const q = document.getElementById('bgg-search-input').value.trim();
         if (!q) return;
@@ -565,8 +632,7 @@
         resultsEl.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--text-light);font-size:0.88rem;">🔍 搜尋中...</div>';
 
         try {
-            const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(q)}&type=boardgame`;
-            const xml = await fetchBGGSearchXML(searchUrl);
+            const xml = await fetchBGGSearchResultsDoc(q);
             const items = xml.querySelectorAll('item');
             if (!items.length) {
                 resultsEl.innerHTML = '<div style="padding:1.2rem;text-align:center;color:var(--text-light);">沒有找到結果，請換個關鍵字試試</div>';

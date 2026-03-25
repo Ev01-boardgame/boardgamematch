@@ -28,6 +28,12 @@
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
  *   — 代理 BGG xmlapi2/collection（含 202 輪詢）、對照 game_database.bgg_id
  *
+ * 管理員 BGG thing 代理（需 X-Api-Key + JWT + admin／超管）：
+ *   GET /api/admin/bgg/thing?id=123&stats=1
+ *   — 代理 xmlapi2/thing；帶 BGG_XML_API_BEARER；回傳 application/xml
+ *   GET /api/admin/bgg/search?query=...&type=boardgame
+ *   — 代理 xmlapi2/search；同上
+ *
  * 選用 Secret（改善直連 BGG 被 401/403 擋的機率，見 boardgamegeek.com/using_the_xml_api）：
  *   BGG_XML_API_BEARER — BGG Application Token，直連 xmlapi2 時附加 Authorization: Bearer …
  *
@@ -491,6 +497,153 @@ async function lookupGamesByBggIds(db, ids) {
   return map;
 }
 
+/** 驗證 xmlapi2/thing 的 id 參數（逗號分隔，最多 20 個） */
+function parseAndValidateBggThingIds(raw) {
+  const ids = (raw || '').trim();
+  if (!ids) return { error: '缺少 id' };
+  const parts = ids.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0 || parts.length > 20) return { error: 'id 數量無效（須 1–20 個）' };
+  for (const p of parts) {
+    if (!/^\d{1,12}$/.test(p)) return { error: 'id 格式無效（須為數字）' };
+  }
+  return { ids: parts.join(',') };
+}
+
+/**
+ * GET /api/admin/bgg/thing?id=&stats=0|1
+ * 管理員專用；Worker 帶 BGG Application Token 直連 BGG。
+ */
+async function handleGetAdminBggThing(request, env, origin, db) {
+  if (!db) return errorResponse('Database not configured', 503, origin, env);
+
+  const url = new URL(request.url);
+  const idCheck = parseAndValidateBggThingIds(url.searchParams.get('id') || '');
+  if (idCheck.error) return errorResponse(idCheck.error, 400, origin, env);
+
+  const statsParam = url.searchParams.get('stats');
+  const stats = statsParam === '0' ? '0' : '1';
+  const bggUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${encodeURIComponent(idCheck.ids)}&stats=${stats}`;
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return errorResponse('Authentication required', 401, origin, env);
+  let jwtPayload;
+  try {
+    jwtPayload = await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+  }
+  const isAdmin = await checkAdminOrSuper(db, jwtPayload.sub);
+  if (!isAdmin) return errorResponse('Admin access required', 403, origin, env);
+
+  const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
+  const bearer =
+    env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
+  if (bearer) directHeaders['Authorization'] = `Bearer ${bearer}`;
+
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 28; attempt++) {
+    const res = await fetch(bggUrl, {
+      headers: directHeaders,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(25000),
+    });
+    lastStatus = res.status;
+    if (res.status === 200) {
+      const xml = await res.text();
+      const headers = { ...corsHeaders(origin, env) };
+      headers['Content-Type'] = 'application/xml; charset=utf-8';
+      headers['Cache-Control'] = 'no-store';
+      Object.keys(headers).forEach((k) => headers[k] === undefined && delete headers[k]);
+      return new Response(xml, { status: 200, headers });
+    }
+    if (res.status === 202) {
+      await sleep(2200);
+      continue;
+    }
+    const body = await res.text().catch(() => '');
+    return errorResponse(
+      `BGG thing HTTP ${res.status}${body ? ': ' + body.slice(0, 280) : ''}`,
+      res.status >= 400 && res.status < 600 ? res.status : 502,
+      origin,
+      env
+    );
+  }
+  return errorResponse(`BGG thing 逾時（最後 HTTP ${lastStatus}）`, 503, origin, env);
+}
+
+function validateBggSearchQuery(raw) {
+  const s = (raw || '').trim();
+  if (!s || s.length > 120) return { error: 'query 長度須 1–120' };
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(s)) return { error: 'query 含無效字元' };
+  return { query: s };
+}
+
+const BGG_SEARCH_ALLOWED_TYPES = new Set(['boardgame', 'boardgameexpansion', 'rpgitem', 'videogame']);
+
+/**
+ * GET /api/admin/bgg/search?query=&type=boardgame
+ */
+async function handleGetAdminBggSearch(request, env, origin, db) {
+  if (!db) return errorResponse('Database not configured', 503, origin, env);
+
+  const url = new URL(request.url);
+  const qCheck = validateBggSearchQuery(url.searchParams.get('query') || '');
+  if (qCheck.error) return errorResponse(qCheck.error, 400, origin, env);
+
+  let type = (url.searchParams.get('type') || 'boardgame').trim().toLowerCase();
+  if (!BGG_SEARCH_ALLOWED_TYPES.has(type)) type = 'boardgame';
+
+  const bggUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(qCheck.query)}&type=${encodeURIComponent(type)}`;
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return errorResponse('Authentication required', 401, origin, env);
+  let jwtPayload;
+  try {
+    jwtPayload = await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+  }
+  const isAdmin = await checkAdminOrSuper(db, jwtPayload.sub);
+  if (!isAdmin) return errorResponse('Admin access required', 403, origin, env);
+
+  const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
+  const bearer =
+    env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
+  if (bearer) directHeaders['Authorization'] = `Bearer ${bearer}`;
+
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const res = await fetch(bggUrl, {
+      headers: directHeaders,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(25000),
+    });
+    lastStatus = res.status;
+    if (res.status === 200) {
+      const xml = await res.text();
+      const headers = { ...corsHeaders(origin, env) };
+      headers['Content-Type'] = 'application/xml; charset=utf-8';
+      headers['Cache-Control'] = 'no-store';
+      Object.keys(headers).forEach((k) => headers[k] === undefined && delete headers[k]);
+      return new Response(xml, { status: 200, headers });
+    }
+    if (res.status === 202) {
+      await sleep(2200);
+      continue;
+    }
+    const body = await res.text().catch(() => '');
+    return errorResponse(
+      `BGG search HTTP ${res.status}${body ? ': ' + body.slice(0, 280) : ''}`,
+      res.status >= 400 && res.status < 600 ? res.status : 502,
+      origin,
+      env
+    );
+  }
+  return errorResponse(`BGG search 逾時（最後 HTTP ${lastStatus}）`, 503, origin, env);
+}
+
 async function handleGetBggCollectionPreview(request, env, origin, db) {
   const url = new URL(request.url);
   const rawUser = url.searchParams.get('username') || '';
@@ -637,6 +790,37 @@ export default {
         console.error('collection-preview', e);
         return errorResponse(
           e && e.message ? e.message : 'collection-preview failed',
+          500,
+          origin,
+          env
+        );
+      }
+    }
+
+    // ── GET /api/admin/bgg/thing（需 X-Api-Key + JWT + admin）：代理 xmlapi2/thing，帶 BGG_XML_API_BEARER ──
+    if (url.pathname === '/api/admin/bgg/thing' && method === 'GET') {
+      if (!env.DB) return errorResponse('Database not configured', 503, origin, env);
+      try {
+        return await handleGetAdminBggThing(request, env, origin, env.DB);
+      } catch (e) {
+        console.error('admin bgg thing', e);
+        return errorResponse(
+          e && e.message ? e.message : 'BGG thing proxy failed',
+          500,
+          origin,
+          env
+        );
+      }
+    }
+
+    if (url.pathname === '/api/admin/bgg/search' && method === 'GET') {
+      if (!env.DB) return errorResponse('Database not configured', 503, origin, env);
+      try {
+        return await handleGetAdminBggSearch(request, env, origin, env.DB);
+      } catch (e) {
+        console.error('admin bgg search', e);
+        return errorResponse(
+          e && e.message ? e.message : 'BGG search proxy failed',
           500,
           origin,
           env
