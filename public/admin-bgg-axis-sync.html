@@ -58,7 +58,7 @@
     <div class="wrap">
         <div class="hero">
             <h1>BGG ID 掃描 · Category／Mechanic → 六軸補齊</h1>
-            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）與 <a href="admin-add-games.html" style="color:#a5f3fc;">admin-add-games</a> 搜尋相同：<strong>Jina 優先</strong>、allorigins 後備。<strong>若 thing XML 失敗或缺欄</strong>，會再從 <strong>Jina 頁面 Markdown</strong> 用與 admin-games「從 BGG 抓取」相同規則補上數值欄。</p>
+            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）：<strong>優先</strong>本站 Worker <code>GET /api/admin/bgg/thing</code>（帶 Google 登入與管理員權限、後端附 BGG Application Token），失敗再 <strong>Jina</strong>。<strong>若 thing XML 失敗或缺欄</strong>，會再從 <strong>Jina 頁面 Markdown</strong> 用與 admin-games「從 BGG 抓取」相同規則補上數值欄。</p>
             <p>未收錄則以 Jina + BGG XML API 建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
         </div>
 
@@ -413,7 +413,7 @@
             return out;
         }
 
-        // ── BGG xmlapi2/thing：與 admin-add-games 的「搜尋 XML」相同，優先走 Jina（allorigins 常 500／CORS／逾時）──
+        // ── BGG xmlapi2/thing：優先本站 Worker，失敗再 Jina ──
         async function fetchBGGXmlItem(bggId) {
             const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
 
@@ -459,16 +459,31 @@
                 return parseThingXmlText(text);
             }
 
-            async function viaAllorigins() {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-                const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
-                if (!resp.ok) throw new Error('allorigins ' + resp.status);
-                const json = await resp.json();
-                const xmlText = json.contents;
-                if (!xmlText) throw new Error('allorigins 空內容');
-                return parseThingXmlText(xmlText);
+            async function viaWorkerProxy() {
+                const path = `api/admin/bgg/thing?id=${encodeURIComponent(bggId)}&stats=1`;
+                const res = await fetch(apiUrl(path), {
+                    method: 'GET',
+                    headers: apiHeaders({ Accept: 'application/xml, text/xml, */*' }),
+                    signal: AbortSignal.timeout(35000)
+                });
+                if (!res.ok) {
+                    let detail = '';
+                    try {
+                        const j = await res.clone().json();
+                        if (j && j.error) detail = ': ' + j.error;
+                    } catch (e2) { /* ignore */ }
+                    throw new Error(`Worker thing HTTP ${res.status}${detail}`);
+                }
+                const text = await res.text();
+                return parseThingXmlText(text);
             }
 
+            let wErr = '';
+            try {
+                return await viaWorkerProxy();
+            } catch (e) {
+                wErr = e && e.message ? e.message : String(e);
+            }
             let jErr = '';
             try {
                 return await viaJina();
@@ -476,10 +491,11 @@
                 jErr = e && e.message ? e.message : String(e);
             }
             try {
-                return await viaAllorigins();
+                await new Promise(r => setTimeout(r, 400));
+                return await viaJina();
             } catch (e2) {
-                const a = e2 && e2.message ? e2.message : String(e2);
-                throw new Error(`Jina：${jErr}；allorigins：${a}`);
+                const j2 = e2 && e2.message ? e2.message : String(e2);
+                throw new Error(`Worker：${wErr}；Jina（兩次）：${jErr}；${j2}`);
             }
         }
 
