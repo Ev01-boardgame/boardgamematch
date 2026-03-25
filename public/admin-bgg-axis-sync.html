@@ -459,27 +459,19 @@
                 return parseThingXmlText(text);
             }
 
-            async function viaAllorigins() {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-                const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
-                if (!resp.ok) throw new Error('allorigins ' + resp.status);
-                const json = await resp.json();
-                const xmlText = json.contents;
-                if (!xmlText) throw new Error('allorigins 空內容');
-                return parseThingXmlText(xmlText);
-            }
-
             let jErr = '';
             try {
                 return await viaJina();
             } catch (e) {
                 jErr = e && e.message ? e.message : String(e);
             }
+            // 瀏覽器對 api.allorigins.win 常無 CORS，後援只會誤導；改為 Jina 再試一次
             try {
-                return await viaAllorigins();
+                await new Promise(r => setTimeout(r, 400));
+                return await viaJina();
             } catch (e2) {
-                const a = e2 && e2.message ? e2.message : String(e2);
-                throw new Error(`Jina：${jErr}；allorigins：${a}`);
+                const j2 = e2 && e2.message ? e2.message : String(e2);
+                throw new Error(`Jina（兩次）：${jErr}；${j2}`);
             }
         }
 
