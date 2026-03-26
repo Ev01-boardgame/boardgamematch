@@ -122,7 +122,7 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/admin-auth.js?v=20260319-localdev"></script>
-    <script src="js/app.js?v=20260320"></script>
+    <script src="js/app.js?v=20260330"></script>
     <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
     <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
     <script src="js/bgg-six-axes-compute.js?v=1"></script>
@@ -233,8 +233,15 @@
          * 已存在列：把 xmlapi2/thing 的數值寫入 patch。
          * @param {boolean} forceMeta 對應「強制重抓 Jina」時一併覆寫 BGG 官方數值
          */
+        function englishNameLooksLikeJinaGarbage(v) {
+            if (!v || typeof v !== 'string') return true;
+            return /\|\s*Board Game\b/i.test(v) || /\bBoardGameGeek\b/i.test(v) || (/\|/.test(v) && v.length > 42);
+        }
+
         function assignXmlBasicsToPatch(patch, row, xmlBasics, forceMeta) {
             if (!xmlBasics) return;
+            let ne = xmlBasics.name_en ? normalizeBggJinaTitle(String(xmlBasics.name_en).trim()) : '';
+            if (ne) xmlBasics.name_en = ne;
             const fill = forceMeta || numericMetaMissing(row);
             if (!fill) return;
             const fields = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'];
@@ -245,8 +252,13 @@
                     patch[f] = v;
                 }
             }
-            if (xmlBasics.name_en && (forceMeta || !row.name_en)) {
-                patch.name_en = xmlBasics.name_en;
+            if (ne) {
+                const rowEn = (row.name_en || '').trim();
+                if (forceMeta) {
+                    if (!rowEn || englishNameLooksLikeJinaGarbage(rowEn)) patch.name_en = ne;
+                } else if (!rowEn) {
+                    patch.name_en = ne;
+                }
             }
             if (xmlBasics.image_url && (forceMeta || !row.image_url)) {
                 patch.image_url = xmlBasics.image_url;
@@ -352,6 +364,35 @@
                 || l.includes('the item you requested is not in the database');
         }
 
+        /** 與 admin-games 相同：Jina 標題「Name | Board Game | BoardGameGeek」只取第一段 */
+        function normalizeBggJinaTitle(raw) {
+            if (!raw || typeof raw !== 'string') return '';
+            const trimmed = raw.trim();
+            let s = trimmed.replace(/\s*\((19|20)\d{2}\)\s*$/, '').trim();
+            const pipeSeg = s.split(/\s*\|\s*/)[0];
+            return pipeSeg.trim();
+        }
+
+        /** 與 admin-games 相同：優先 Playing Time 區間，再一般 a–b min，最後單一 N min；區間取平均 */
+        function extractPlayingTimeMinutesFromBggMarkdown(text) {
+            const labeled = text.match(/Playing\s+Time[:\s]*(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in/i);
+            if (labeled) {
+                const a = parseInt(labeled[1], 10), b = parseInt(labeled[2], 10);
+                if (!isNaN(a) && !isNaN(b)) return Math.round((Math.min(a, b) + Math.max(a, b)) / 2);
+            }
+            const anyRange = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in\b/);
+            if (anyRange) {
+                const a = parseInt(anyRange[1], 10), b = parseInt(anyRange[2], 10);
+                if (!isNaN(a) && !isNaN(b)) return Math.round((Math.min(a, b) + Math.max(a, b)) / 2);
+            }
+            const single = text.match(/\b(\d+)\s*[Mm]in(?:ute)?s?\b/i);
+            if (single) {
+                const n = parseInt(single[1], 10);
+                if (!isNaN(n)) return n;
+            }
+            return null;
+        }
+
         /**
          * thing XML 失敗時，從 Jina 回傳的 BGG 頁面 Markdown 擷取數值（與 admin-games「從 BGG 抓取」邏輯對齊）。
          */
@@ -373,19 +414,19 @@
             if (titleMatch) {
                 const fullTitle = titleMatch[1].trim();
                 const yInParens = fullTitle.match(/\((\d{4})\)\s*$/);
-                if (yInParens) out.year = parseInt(yInParens[1], 10);
-                out.name_en = fullTitle.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+                if (yInParens) {
+                    const y = parseInt(yInParens[1], 10);
+                    if (y >= 1900 && y <= 2099) out.year = y;
+                }
+                out.name_en = normalizeBggJinaTitle(fullTitle);
             }
             const playersMatch = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Pp]layers?/);
             if (playersMatch) {
                 out.min_players = parseInt(playersMatch[1], 10);
                 out.max_players = parseInt(playersMatch[2], 10);
             }
-            const timeMatch = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in|(\d+)\s*[Mm]inutes?/);
-            if (timeMatch) {
-                const t = timeMatch[2] || timeMatch[3];
-                if (t) out.playing_time = parseInt(t, 10);
-            }
+            const pt = extractPlayingTimeMinutesFromBggMarkdown(text);
+            if (pt != null) out.playing_time = pt;
             const weightMatch = text.match(/(\d+\.\d+)\s*\/\s*5/);
             if (weightMatch) {
                 out.complexity = Math.round(parseFloat(weightMatch[1]) * 100) / 100;
@@ -415,7 +456,8 @@
 
         // ── BGG xmlapi2/thing：優先本站 Worker，失敗再 Jina ──
         async function fetchBGGXmlItem(bggId) {
-            const apiUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
+            // 勿命名為 apiUrl：會遮蔽外層 apiUrl()，導致 viaWorkerProxy 內 fetch(apiUrl(path)) 報錯
+            const bggThingDirectUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${bggId}&stats=1`;
 
             function unwrapJinaMarkdownMaybe(text) {
                 if (!text || typeof text !== 'string') return text;
@@ -449,7 +491,7 @@
             }
 
             async function viaJina() {
-                const proxyUrl = `https://r.jina.ai/${apiUrl}`;
+                const proxyUrl = `https://r.jina.ai/${bggThingDirectUrl}`;
                 const resp = await fetch(proxyUrl, {
                     headers: { 'X-No-Cache': 'true' },
                     signal: AbortSignal.timeout(45000)

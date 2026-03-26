@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 快取 bust：修改此頁或依賴的 css/js 時，請把全頁 ?v= 數字一併改成新日期 -->
     <title>遊戲管理 - MBTI × 桌遊配對</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260329">
-    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260329">
+    <link rel="stylesheet" href="css/styles.css?v=20260330">
+    <link rel="stylesheet" href="css/hourglass-simple.css?v=20260330">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -317,7 +317,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <!-- 管理後台驗證 -->
-    <script src="js/admin-auth.js?v=20260329"></script>
+    <script src="js/admin-auth.js?v=20260330"></script>
 </head>
 <body>
     <!-- 導覽列 -->
@@ -663,12 +663,12 @@
     <button class="add-game-btn" onclick="openModal()">完整新增</button>
 
     <!-- 🧹 後台導覽列清理（必須最先載入） -->
-    <script src="js/admin-navbar-cleanup.js?v=20260329"></script>
-    <script src="js/app.js?v=20260329"></script>
-    <script src="js/bgg-axis-deltas-v1.js?v=20260329"></script>
-    <script src="js/bgg-axis-deltas-loader.js?v=20260329"></script>
-    <script src="js/bgg-six-axes-compute.js?v=20260329"></script>
-    <script src="js/show-admin-link.js?v=20260329"></script>
+    <script src="js/admin-navbar-cleanup.js?v=20260330"></script>
+    <script src="js/app.js?v=20260330"></script>
+    <script src="js/bgg-axis-deltas-v1.js?v=20260330"></script>
+    <script src="js/bgg-axis-deltas-loader.js?v=20260330"></script>
+    <script src="js/bgg-six-axes-compute.js?v=20260330"></script>
+    <script src="js/show-admin-link.js?v=20260330"></script>
     <script>
         // ══ 分頁狀態 ══
         let allGames = [];        // 全量快取（來源篩選 + 重複偵測共用）
@@ -1341,6 +1341,29 @@
             return /\|\s*Board Game\b/i.test(v) || /\bBoardGameGeek\b/i.test(v) || (/\|/.test(v) && v.length > 42);
         }
 
+        /** credits／DDG 備援偶會把 Markdown 表格或 N/A(網址) 當成中文名，需擋掉 */
+        function isPlausibleZhAlternateName(l) {
+            if (!l || typeof l !== 'string') return false;
+            const s = l.trim();
+            if (s.length < 2 || s.length > 56) return false;
+            if (/https?:\/\//i.test(s) || /\bwww\./i.test(s) || /\([^)]*https?:/i.test(s)) return false;
+            if (/^\s*N\/?A\b/i.test(s) || /\bN\/A\s*\(/i.test(s)) return false;
+            if (!/[\u4e00-\u9fff]/.test(s)) return false;
+            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(s)) return false;
+            const cjk = (s.match(/[\u4e00-\u9fff]/g) || []).length;
+            if (cjk < 2 && s.length > 18) return false;
+            return true;
+        }
+
+        function isPlausibleJaAlternateName(l) {
+            if (!l || typeof l !== 'string') return false;
+            const s = l.trim();
+            if (s.length < 2 || s.length > 56) return false;
+            if (/https?:\/\//i.test(s) || /\([^)]*https?:/i.test(s)) return false;
+            if (/^\s*N\/?A\b/i.test(s) || /\bN\/A\s*\(/i.test(s)) return false;
+            return /[\u3040-\u309f\u30a0-\u30ff]/.test(s);
+        }
+
         /** 優先「Playing Time: a–b min」，再任意 a–b min，最後單一 N min；區間時回傳 min/max 與平均作 playing_time */
         function extractBggPlayingTimeFromMarkdown(text) {
             const labeled = text.match(/Playing\s+Time[:\s]*(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in/i);
@@ -1551,10 +1574,13 @@
                 // ── 抓英文名稱（暫存，供組 credits URL 用）──
                 let enNameFromMain = '';
                 const titleMatch = text.match(/^#\s+(.+)/m);
-                if (titleMatch) {
-                    enNameFromMain = titleMatch[1].replace(/\s*\(\d{4}\)\s*$/, '').trim();
-                    if (enNameFromMain && !document.getElementById('game-name-en').value) {
-                        document.getElementById('game-name-en').value = enNameFromMain;
+                const rawTitleLine = titleMatch ? titleMatch[1].trim() : '';
+                if (rawTitleLine) {
+                    enNameFromMain = normalizeBggJinaTitle(rawTitleLine);
+                    const enEl = document.getElementById('game-name-en');
+                    const curEn = (enEl.value || '').trim();
+                    if (enNameFromMain && (!curEn || englishNameLooksLikeJinaGarbage(curEn))) {
+                        enEl.value = enNameFromMain;
                         filled.push('英文名稱');
                     }
                 }
@@ -1572,12 +1598,17 @@
                     }
                 }
 
-                // ── 抓遊戲時間 ──
-                const timeMatch = text.match(/(\d+)\s*[–\-~]\s*(\d+)\s*[Mm]in|(\d+)\s*[Mm]inutes?/);
-                if (timeMatch && !document.getElementById('game-playing-time').value) {
-                    const t = timeMatch[2] || timeMatch[3];
-                    document.getElementById('game-playing-time').value = t;
-                    filled.push('遊戲時間');
+                // ── 抓遊戲時間（區間→平均 + min/max playtime 隱藏欄）──
+                if (!document.getElementById('game-playing-time').value) {
+                    const pt = extractBggPlayingTimeFromMarkdown(text);
+                    if (pt) {
+                        document.getElementById('game-playing-time').value = String(pt.playing);
+                        const mnH = document.getElementById('game-min-playtime');
+                        const mxH = document.getElementById('game-max-playtime');
+                        if (mnH) mnH.value = String(pt.min);
+                        if (mxH) mxH.value = String(pt.max);
+                        filled.push(pt.filledLabel);
+                    }
                 }
 
                 // ── 抓複雜度（格式：「4.44 / 5」）──
@@ -1612,8 +1643,10 @@
                 // ════════════════════════════════════════════════
                 setFetchStatus('🔍 正在讀取 credits 頁面（中日文名 + 年份）...', '#888');
 
-                // 組出 slug（英文名轉小寫 + 空格換連字號，去除特殊字元）
-                const enNameForSlug = (document.getElementById('game-name-en').value || enNameFromMain || bggId).trim();
+                // 組出 slug（先正規化 Jina 標題再 slugify）
+                const enNameForSlug = normalizeBggJinaTitle(
+                    (document.getElementById('game-name-en').value || enNameFromMain || bggId).trim()
+                ) || String(bggId);
                 const slug = enNameForSlug
                     .toLowerCase()
                     .replace(/[^a-z0-9\s-]/g, '')   // 去除非英數
@@ -1621,36 +1654,29 @@
                     .replace(/-+/g, '-')              // 合併多個 -
                     .replace(/^-|-$/g, '');           // 去頭尾 -
 
+                let creditsPageOk = false;
                 try {
                     const creditsUrl  = `https://boardgamegeek.com/boardgame/${bggId}/${slug}/credits`;
                     const creditsProxy = `https://r.jina.ai/${creditsUrl}`;
                     const cRes = await fetch(creditsProxy, { headers: { 'X-No-Cache': 'true' } });
 
                     if (cRes.ok) {
+                        creditsPageOk = true;
                         const cText = await cRes.text();
 
-                        // ── 解析 Primary Name ──
-                        // 格式通常是：
-                        //   Primary Name
-                        //   Gloomhaven
-                        // 或行內：Primary Name: Gloomhaven
                         const primaryMatch = cText.match(/Primary\s+Name[:\s\n]+([^\n]+)/i);
                         if (primaryMatch) {
-                            const pName = primaryMatch[1].trim().replace(/\*+/g, '').replace(/\[.*?\]/g, '').trim();
-                            if (pName && pName.length > 0 && !document.getElementById('game-name-en').value) {
-                                document.getElementById('game-name-en').value = pName;
+                            const pName = normalizeBggJinaTitle(
+                                primaryMatch[1].trim().replace(/\*+/g, '').replace(/\[.*?\]/g, '').trim()
+                            );
+                            const enEl = document.getElementById('game-name-en');
+                            const curEn = (enEl.value || '').trim();
+                            if (pName && pName.length > 0 && (!curEn || englishNameLooksLikeJinaGarbage(curEn))) {
+                                enEl.value = pName;
                                 filled.push('英文名稱（credits）');
                             }
                         }
 
-                        // ── 解析 Alternate Names：找中文 & 日文 ──
-                        // BGG credits 頁的格式：
-                        //   Alternate Names
-                        //   瘟疫危機
-                        //   パンデミック
-                        //   Pandémie
-                        //   ...
-                        // 用「Alternate Names」到下一個標題之間的內容
                         const altSection = cText.match(/Alternate\s+Names?[\s\S]*?\n([\s\S]+?)(?=\n#{1,3}\s|\n\*\*[A-Z]|\nYear|\nPublisher|\nDesigner|$)/i);
                         if (altSection) {
                             const altLines = altSection[1]
@@ -1658,18 +1684,16 @@
                                 .map(l => l.replace(/\*+/g, '').replace(/\[.*?\]/g, '').replace(/^[-•\s]+/, '').trim())
                                 .filter(l => l.length >= 2);
 
-                            // 找中文名（繁體 or 簡體）
                             if (!document.getElementById('game-name-zh').value) {
-                                const zhLine = altLines.find(l => /[\u4e00-\u9fff]/.test(l) && !/[\u3040-\u309f\u30a0-\u30ff]/.test(l));
+                                const zhLine = altLines.find(l => isPlausibleZhAlternateName(l));
                                 if (zhLine) {
                                     document.getElementById('game-name-zh').value = zhLine;
                                     filled.push('中文名稱');
                                 }
                             }
 
-                            // 找日文名（有平假名或片假名的才算日文）
                             if (!document.getElementById('game-name-ja').value) {
-                                const jaLine = altLines.find(l => /[\u3040-\u309f\u30a0-\u30ff]/.test(l));
+                                const jaLine = altLines.find(l => isPlausibleJaAlternateName(l));
                                 if (jaLine) {
                                     document.getElementById('game-name-ja').value = jaLine;
                                     filled.push('日文名稱');
@@ -1677,50 +1701,45 @@
                             }
                         }
 
-                        // ── 解析 Year Released ──
                         if (!document.getElementById('game-year').value) {
-                            // 格式：Year Released\n2017  或  Year Released: 2017
                             const yearRelMatch = cText.match(/Year\s+(?:Released|Published)[:\s\n]+(\d{4})/i);
                             if (yearRelMatch) {
-                                document.getElementById('game-year').value = yearRelMatch[1];
-                                filled.push(`年份 ${yearRelMatch[1]}`);
+                                const y = parseInt(yearRelMatch[1], 10);
+                                if (y >= 1900 && y <= 2099) {
+                                    document.getElementById('game-year').value = String(y);
+                                    filled.push(`年份（credits ${y}）`);
+                                }
                             }
                         }
 
                         filled.push('credits 頁完成');
                     }
-                } catch(creditsErr) {
+                } catch (creditsErr) {
                     console.warn('credits 頁讀取失敗（不影響其他資料）:', creditsErr.message);
-                    // 降級：用原有 DuckDuckGo 方式補中文名
-                    if (!document.getElementById('game-name-zh').value) {
-                        try {
-                            setFetchStatus('🔍 搜尋中文名稱（DuckDuckGo 備援）...', '#888');
-                            const enName = document.getElementById('game-name-en').value.trim();
-                            const q = encodeURIComponent(`${enName || 'BGG ' + bggId} 中文名 桌遊`);
-                            const dRes = await fetch(
-                                `https://r.jina.ai/https://duckduckgo.com/?q=${q}&ia=web`,
-                                { headers: { 'X-No-Cache': 'true' } }
-                            );
-                            if (dRes.ok) {
-                                const dText = await dRes.text();
-                                const zhName = extractChineseGameNameFallback(dText, enName || bggId);
-                                if (zhName) {
-                                    document.getElementById('game-name-zh').value = zhName;
-                                    filled.push('中文名稱（DuckDuckGo）');
-                                }
-                            }
-                        } catch(e) { /* 靜默失敗 */ }
-                    }
-
-                    // 降級：年份用主頁的簡單 match
-                    if (!document.getElementById('game-year').value) {
-                        const yearMatch2 = text.match(/\b(19|20)\d{2}\b/);
-                        if (yearMatch2) {
-                            document.getElementById('game-year').value = yearMatch2[0];
-                            filled.push('年份（備援）');
-                        }
-                    }
                 }
+
+                if (!creditsPageOk && !document.getElementById('game-name-zh').value) {
+                    try {
+                        setFetchStatus('🔍 搜尋中文名稱（DuckDuckGo 備援）...', '#888');
+                        const enName = document.getElementById('game-name-en').value.trim();
+                        const q = encodeURIComponent(`${enName || 'BGG ' + bggId} 中文名 桌遊`);
+                        const dRes = await fetch(
+                            `https://r.jina.ai/https://duckduckgo.com/?q=${q}&ia=web`,
+                            { headers: { 'X-No-Cache': 'true' } }
+                        );
+                        if (dRes.ok) {
+                            const dText = await dRes.text();
+                            const zhName = extractChineseGameNameFallback(dText, enName || bggId);
+                            if (zhName && isPlausibleZhAlternateName(zhName)) {
+                                document.getElementById('game-name-zh').value = zhName;
+                                filled.push('中文名稱（DuckDuckGo）');
+                            }
+                        }
+                    } catch (e) { /* 靜默失敗 */ }
+                }
+
+                const yMain = fillGameYearFromMainPageIfEmpty(text, rawTitleLine);
+                if (yMain) filled.push(yMain);
 
                 if (filled.length > 0) {
                     const zhHint = document.getElementById('game-name-zh').value ? '' : '（中文名未找到，請手動填寫）';
@@ -1742,21 +1761,34 @@
 
         // DuckDuckGo 備援：從搜尋結果文字中提取中文遊戲名
         function extractChineseGameNameFallback(dText, enGameName) {
+            const ok = (s) => (s && isPlausibleZhAlternateName(s) ? s.trim() : null);
             const enKeyword = (enGameName.split(/[\s:：]+/).find(w => w.length > 3 && !/^(the|a|an|of|in|at)$/i.test(w)) || enGameName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const p1 = new RegExp(`([\\u4e00-\\u9fff][\\u4e00-\\u9fff\\uff1a：:·\\-–\\s]{0,15}[\\u4e00-\\u9fff])\\s*(?:The\\s+|\\*\\*${enKeyword}|\\(\\*\\*${enKeyword}|繁體|簡體|Board)`, 'i');
             const m1 = dText.match(p1);
-            if (m1) return m1[1].trim();
+            if (m1) {
+                const t = ok(m1[1]);
+                if (t) return t;
+            }
 
             const headingMatches = [...dText.matchAll(/###\s+([^\n\[]{3,60})/g)];
             for (const hm of headingMatches) {
                 const content = hm[1].replace(/^\【[^\】]*\】\s*/, '').replace(/^\[[^\]]*\]\s*/, '');
                 const zhPart = content.match(/^([\u4e00-\u9fff][^\s]*[\u4e00-\u9fff\uff1a：:]{0,1}[\u4e00-\u9fff]*)/);
-                if (zhPart && zhPart[1].length >= 2) return zhPart[1].trim();
+                if (zhPart && zhPart[1].length >= 2) {
+                    const t = ok(zhPart[1]);
+                    if (t) return t;
+                }
             }
             const m3 = dText.match(/([\u4e00-\u9fff]{2,8}[\uff1a：:][^\n\[,，。．\s]{1,8}[\u4e00-\u9fff]{1,8})/);
-            if (m3) return m3[1].trim();
+            if (m3) {
+                const t = ok(m3[1]);
+                if (t) return t;
+            }
             const m4 = dText.match(/[《]([\u4e00-\u9fff：:·\-–—\s]{2,15})[》]/);
-            if (m4) return m4[1].trim();
+            if (m4) {
+                const t = ok(m4[1]);
+                if (t) return t;
+            }
             return null;
         }
 
