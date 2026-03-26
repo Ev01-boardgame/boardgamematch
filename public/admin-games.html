@@ -510,16 +510,16 @@
                 </div>
                 
                 <div class="form-group" style="margin-top:1rem;">
-                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（BGG 推論 + 審稿 Δ → 最終 0–12）</label>
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（以已存為基準微調，0–12）</label>
                     <p style="font-size:0.78rem;color:var(--text-light);line-height:1.5;margin:0 0 0.6rem;">
-                        <strong>BGG 推論</strong>依資料庫的 category／mechanics／complexity 即時計算（與掃描工具相同對照表）。<strong>已存</strong>為 API 回傳的 <code>axis_*</code> 實際欄位；若永遠為 —，多半是 D1 缺欄位（PATCH 會靜默略過）或尚未成功寫入。<strong>審稿 Δ</strong>可 ±6；<strong>預覽最終 = BGG + Δ</strong>（clamp 0～12）。按下儲存會把預覽最終寫入 <code>axis_*</code>。
+                        <strong>基準</strong>：編輯時為<strong>開啟此視窗當下</strong>資料庫的 <code>axis_*</code>（已存）；新增遊戲時為<strong>目前</strong> category／mechanics／complexity 的標籤推論（會隨你改複雜度等即時變動）。<strong>微調</strong>滑桿在基準上加減（±6，step 0.5）；<strong>調整後</strong>＝ clamp(基準＋微調)。儲存會寫入 <code>axis_*</code>，並寫入 <code>axis_*_reviewer_delta</code>＝調整後減「當下標籤推論」，供其他邏輯維持「推論＋審稿Δ」一致。
                     </p>
                     <div id="six-axes-panel-error" style="display:none;font-size:0.8rem;color:#b45309;background:#fffbeb;padding:0.45rem 0.55rem;border-radius:0.4rem;margin-bottom:0.5rem;"></div>
                     <div class="six-axes-grid" id="six-axes-panel">
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">門檻</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-entry-bgg">—</strong> · 已存 <strong id="game-axis-entry-db">—</strong> · Δ <strong id="game-axis-entry-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-entry-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-entry-db">—</strong> · 微調 <strong id="game-axis-entry-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-entry-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🌱 易學</span>
@@ -530,7 +530,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">氛圍</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-mood-bgg">—</strong> · 已存 <strong id="game-axis-mood-db">—</strong> · Δ <strong id="game-axis-mood-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-mood-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-mood-db">—</strong> · 微調 <strong id="game-axis-mood-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-mood-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">😂 歡樂</span>
@@ -541,7 +541,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">勝負</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-control-bgg">—</strong> · 已存 <strong id="game-axis-control-db">—</strong> · Δ <strong id="game-axis-control-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-control-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-control-db">—</strong> · 微調 <strong id="game-axis-control-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-control-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🎲 運氣</span>
@@ -552,7 +552,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">互動</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-sociality-bgg">—</strong> · 已存 <strong id="game-axis-sociality-db">—</strong> · Δ <strong id="game-axis-sociality-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-sociality-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-sociality-db">—</strong> · 微調 <strong id="game-axis-sociality-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-sociality-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🗣️ 社交</span>
@@ -563,7 +563,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">心態</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-openness-bgg">—</strong> · 已存 <strong id="game-axis-openness-db">—</strong> · Δ <strong id="game-axis-openness-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-openness-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-openness-db">—</strong> · 微調 <strong id="game-axis-openness-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-openness-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">☀️ 磊落</span>
@@ -574,7 +574,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">立場</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-competition-bgg">—</strong> · 已存 <strong id="game-axis-competition-db">—</strong> · Δ <strong id="game-axis-competition-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-competition-final">—</strong></span>
+                                <span class="axis-admin-meta">基準 <strong id="game-axis-competition-db">—</strong> · 微調 <strong id="game-axis-competition-delta-disp" class="axis-delta-disp is-zero">0</strong> · 調整後 <strong id="game-axis-competition-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🤝 合作</span>
@@ -583,7 +583,6 @@
                             </div>
                         </div>
                     </div>
-                    <p id="six-axes-db-hint" style="font-size:0.72rem;color:var(--text-light);margin:0.45rem 0 0;display:none;"></p>
                 </div>
 
                 <input type="hidden" id="game-id">
@@ -955,6 +954,8 @@
         const ADMIN_SIX_AXIS_KEYS = ['entry', 'mood', 'control', 'openness', 'sociality', 'competition'];
         window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null };
         window.__adminLastLoadedGame = window.__adminLastLoadedGame || null;
+        /** 編輯：開啟視窗當下的 axis_* 快照（凍結）；新增：null，基準用即時推論 */
+        window.__adminAxisBaselineAtLoad = window.__adminAxisBaselineAtLoad || null;
 
         function formatReviewerDeltaDisp(d) {
             const n = Number(d);
@@ -962,10 +963,9 @@
             return (n > 0 ? '+' : '') + n;
         }
 
-        /** BGG 推論 + 審稿 Δ → 顯示最終（已 clamp 0–12） */
+        /** 基準（編輯＝開啟時已存；新增＝即時推論）＋微調滑桿 → 調整後（clamp 0–12） */
         function refreshAdminSixAxesPanel() {
             const err = document.getElementById('six-axes-panel-error');
-            const hint = document.getElementById('six-axes-db-hint');
             if (err) err.style.display = 'none';
             if (!window.BggSixAxesCompute) {
                 if (err) {
@@ -987,69 +987,37 @@
                 bgg = window.BggSixAxesCompute.computeSixAxesFromRow(row);
             } catch (e) {
                 if (err) {
-                    err.textContent = 'BGG 六軸計算失敗：' + (e && e.message ? e.message : e);
+                    err.textContent = '六軸推論計算失敗：' + (e && e.message ? e.message : e);
                     err.style.display = 'block';
                 }
                 return;
             }
-            const deltas = {};
+            const baselineObj = window.__adminAxisBaselineAtLoad;
+            const isEditFrozen = baselineObj != null && typeof baselineObj === 'object';
             ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                const ax = 'axis_' + k;
+                const B = Number(bgg[ax]);
+                const bNum = isNaN(B) ? 6 : B;
+                let base;
+                if (isEditFrozen && baselineObj[ax] != null && !isNaN(Number(baselineObj[ax]))) {
+                    base = Number(baselineObj[ax]);
+                } else {
+                    base = bNum;
+                }
                 const deltaEl = document.getElementById('game-axis-' + k + '-delta');
-                deltas[k] = deltaEl ? parseFloat(deltaEl.value) || 0 : 0;
-            });
-            const finalAxes = window.BggSixAxesCompute.mergeBggWithReviewerDelta(bgg, deltas);
-            const gidEarly = document.getElementById('game-id') && document.getElementById('game-id').value;
-            const sgEarly = window.__adminLastLoadedGame;
-            const canDb = !!(gidEarly && sgEarly && sgEarly.id === gidEarly);
-            ADMIN_SIX_AXIS_KEYS.forEach(k => {
-                const bEl = document.getElementById('game-axis-' + k + '-bgg');
+                const micro = deltaEl ? parseFloat(deltaEl.value) : 0;
+                const microNum = isNaN(micro) ? 0 : micro;
+                const adjusted = window.BggSixAxesCompute.clampAxis(base + microNum);
                 const dbEl = document.getElementById('game-axis-' + k + '-db');
                 const fEl = document.getElementById('game-axis-' + k + '-final');
-                if (bEl) bEl.textContent = bgg['axis_' + k] != null ? String(bgg['axis_' + k]) : '—';
-                if (dbEl) {
-                    if (canDb) {
-                        const raw = sgEarly['axis_' + k];
-                        if (raw == null || raw === '') dbEl.textContent = '—';
-                        else {
-                            const n = Number(raw);
-                            dbEl.textContent = !isNaN(n) ? String(n) : '—';
-                        }
-                    } else {
-                        dbEl.textContent = '—';
-                    }
-                }
-                if (fEl) fEl.textContent = finalAxes['axis_' + k] != null ? String(finalAxes['axis_' + k]) : '—';
+                if (dbEl) dbEl.textContent = String(base);
+                if (fEl) fEl.textContent = String(adjusted);
                 const disp = document.getElementById('game-axis-' + k + '-delta-disp');
                 if (disp) {
-                    const dv = deltas[k];
-                    disp.textContent = formatReviewerDeltaDisp(dv);
-                    disp.className = 'axis-delta-disp ' + (dv > 0 ? 'is-pos' : dv < 0 ? 'is-neg' : 'is-zero');
+                    disp.textContent = formatReviewerDeltaDisp(microNum);
+                    disp.className = 'axis-delta-disp ' + (microNum > 0 ? 'is-pos' : microNum < 0 ? 'is-neg' : 'is-zero');
                 }
             });
-            if (hint) {
-                const gid = document.getElementById('game-id') && document.getElementById('game-id').value;
-                const sg = window.__adminLastLoadedGame;
-                const canHint = gid && sg && sg.id === gid;
-                if (canHint) {
-                    let mismatch = false;
-                    for (const k of ADMIN_SIX_AXIS_KEYS) {
-                        const db = Number(sg['axis_' + k]);
-                        const fn = Number(finalAxes['axis_' + k]);
-                        if (!isNaN(db) && !isNaN(fn) && Math.abs(db - fn) > 0.05) {
-                            mismatch = true;
-                            break;
-                        }
-                    }
-                    if (mismatch) {
-                        hint.style.display = 'block';
-                        hint.textContent = '提示：資料庫內既有 axis_* 與下方「BGG+審稿Δ」預覽不一致（可能為舊手動值或尚未執行 D1 migration）。儲存後將以預覽最終值覆寫 axis_*。';
-                    } else {
-                        hint.style.display = 'none';
-                    }
-                } else {
-                    hint.style.display = 'none';
-                }
-            }
         }
 
         function clearAdminBggMetaDisplay() {
@@ -1087,13 +1055,12 @@
         function resetAdminSixAxesForNewGame() {
             window.__adminGameEditMeta = { category: null, mechanics: null };
             window.__adminLastLoadedGame = null;
+            window.__adminAxisBaselineAtLoad = null;
             clearAdminBggMetaDisplay();
             ADMIN_SIX_AXIS_KEYS.forEach(k => {
                 const d = document.getElementById('game-axis-' + k + '-delta');
                 if (d) d.value = 0;
             });
-            const h = document.getElementById('six-axes-db-hint');
-            if (h) h.style.display = 'none';
             refreshAdminSixAxesPanel();
         }
 
@@ -1189,13 +1156,27 @@
                 mechanics: game.mechanics
             };
             window.__adminLastLoadedGame = game;
+            if (!window.BggSixAxesCompute) {
+                window.__adminAxisBaselineAtLoad = null;
+            } else {
+                const cxRaw = parseFloat(document.getElementById('game-complexity').value);
+                const bgg0 = window.BggSixAxesCompute.computeSixAxesFromRow({
+                    category: game.category,
+                    mechanics: game.mechanics,
+                    complexity: !isNaN(cxRaw) ? cxRaw : null
+                });
+                window.__adminAxisBaselineAtLoad = {};
+                ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                    const ax = 'axis_' + k;
+                    const raw = game[ax];
+                    const n = Number(raw);
+                    const has = raw != null && raw !== '' && !isNaN(n);
+                    window.__adminAxisBaselineAtLoad[ax] = has ? n : Number(bgg0[ax]);
+                });
+            }
             ADMIN_SIX_AXIS_KEYS.forEach(k => {
                 const deltaEl = document.getElementById('game-axis-' + k + '-delta');
-                if (!deltaEl) return;
-                const col = 'axis_' + k + '_reviewer_delta';
-                let dv = game[col];
-                if (dv == null || dv === '') dv = 0;
-                deltaEl.value = Number(dv);
+                if (deltaEl) deltaEl.value = 0;
             });
             document.getElementById('game-bgg-id').value = game.bgg_id || '';
             setAdminBggMetaFromGame(game);
@@ -1257,16 +1238,24 @@
                     mechanics: meta.mechanics,
                     complexity: !isNaN(cxRaw) ? cxRaw : null
                 });
-                const deltas = {};
+                const baselineObj = window.__adminAxisBaselineAtLoad;
+                const isEditFrozen = baselineObj != null && typeof baselineObj === 'object';
                 ADMIN_SIX_AXIS_KEYS.forEach(k => {
+                    const ax = 'axis_' + k;
+                    const B = Number(bgg[ax]);
+                    const bNum = isNaN(B) ? 6 : B;
+                    let base;
+                    if (isEditFrozen && baselineObj[ax] != null && !isNaN(Number(baselineObj[ax]))) {
+                        base = Number(baselineObj[ax]);
+                    } else {
+                        base = bNum;
+                    }
                     const deltaEl = document.getElementById('game-axis-' + k + '-delta');
-                    const dv = deltaEl ? parseFloat(deltaEl.value) : 0;
-                    deltas[k] = !isNaN(dv) ? dv : 0;
-                    gameData['axis_' + k + '_reviewer_delta'] = deltas[k];
-                });
-                const finalAxes = window.BggSixAxesCompute.mergeBggWithReviewerDelta(bgg, deltas);
-                ADMIN_SIX_AXIS_KEYS.forEach(k => {
-                    gameData['axis_' + k] = finalAxes['axis_' + k];
+                    const micro = deltaEl ? parseFloat(deltaEl.value) : 0;
+                    const microNum = isNaN(micro) ? 0 : micro;
+                    const T = window.BggSixAxesCompute.clampAxis(base + microNum);
+                    gameData[ax] = T;
+                    gameData[ax + '_reviewer_delta'] = Math.round((T - bNum) * 100) / 100;
                 });
             } else {
                 ADMIN_SIX_AXIS_KEYS.forEach(k => {
