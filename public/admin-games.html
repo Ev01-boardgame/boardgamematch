@@ -512,14 +512,14 @@
                 <div class="form-group" style="margin-top:1rem;">
                     <label style="display:block; margin-bottom:0.5rem; font-weight:600;">🎯 遊戲 6 維度（BGG 推論 + 審稿 Δ → 最終 0–12）</label>
                     <p style="font-size:0.78rem;color:var(--text-light);line-height:1.5;margin:0 0 0.6rem;">
-                        <strong>BGG 推論</strong>依資料庫的 category／mechanics／complexity 計算（與掃描工具相同對照表）。<strong>審稿 Δ</strong>可 ±6；<strong>最終值 = BGG + Δ 再強制限制在 0～12</strong>，不會超範圍。儲存時會寫入 <code>axis_*</code> 與 <code>axis_*_reviewer_delta</code>。
+                        <strong>BGG 推論</strong>依資料庫的 category／mechanics／complexity 即時計算（與掃描工具相同對照表）。<strong>已存</strong>為 API 回傳的 <code>axis_*</code> 實際欄位；若永遠為 —，多半是 D1 缺欄位（PATCH 會靜默略過）或尚未成功寫入。<strong>審稿 Δ</strong>可 ±6；<strong>預覽最終 = BGG + Δ</strong>（clamp 0～12）。按下儲存會把預覽最終寫入 <code>axis_*</code>。
                     </p>
                     <div id="six-axes-panel-error" style="display:none;font-size:0.8rem;color:#b45309;background:#fffbeb;padding:0.45rem 0.55rem;border-radius:0.4rem;margin-bottom:0.5rem;"></div>
                     <div class="six-axes-grid" id="six-axes-panel">
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">門檻</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-entry-bgg">—</strong> · Δ <strong id="game-axis-entry-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-entry-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-entry-bgg">—</strong> · 已存 <strong id="game-axis-entry-db">—</strong> · Δ <strong id="game-axis-entry-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-entry-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🌱 易學</span>
@@ -530,7 +530,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">氛圍</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-mood-bgg">—</strong> · Δ <strong id="game-axis-mood-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-mood-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-mood-bgg">—</strong> · 已存 <strong id="game-axis-mood-db">—</strong> · Δ <strong id="game-axis-mood-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-mood-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">😂 歡樂</span>
@@ -541,7 +541,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">勝負</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-control-bgg">—</strong> · Δ <strong id="game-axis-control-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-control-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-control-bgg">—</strong> · 已存 <strong id="game-axis-control-db">—</strong> · Δ <strong id="game-axis-control-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-control-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🎲 運氣</span>
@@ -552,7 +552,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">互動</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-sociality-bgg">—</strong> · Δ <strong id="game-axis-sociality-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-sociality-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-sociality-bgg">—</strong> · 已存 <strong id="game-axis-sociality-db">—</strong> · Δ <strong id="game-axis-sociality-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-sociality-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🗣️ 社交</span>
@@ -563,7 +563,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">心態</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-openness-bgg">—</strong> · Δ <strong id="game-axis-openness-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-openness-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-openness-bgg">—</strong> · 已存 <strong id="game-axis-openness-db">—</strong> · Δ <strong id="game-axis-openness-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-openness-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">☀️ 磊落</span>
@@ -574,7 +574,7 @@
                         <div class="axis-admin-cell">
                             <div class="axis-admin-head">
                                 <span class="axis-admin-name">立場</span>
-                                <span class="axis-admin-meta">BGG <strong id="game-axis-competition-bgg">—</strong> · Δ <strong id="game-axis-competition-delta-disp" class="axis-delta-disp is-zero">0</strong> · 最終 <strong id="game-axis-competition-final">—</strong></span>
+                                <span class="axis-admin-meta">BGG <strong id="game-axis-competition-bgg">—</strong> · 已存 <strong id="game-axis-competition-db">—</strong> · Δ <strong id="game-axis-competition-delta-disp" class="axis-delta-disp is-zero">0</strong> · 預覽 <strong id="game-axis-competition-final">—</strong></span>
                             </div>
                             <div class="axis-admin-slider-row">
                                 <span class="axis-pole axis-pole-l">🤝 合作</span>
@@ -998,10 +998,26 @@
                 deltas[k] = deltaEl ? parseFloat(deltaEl.value) || 0 : 0;
             });
             const finalAxes = window.BggSixAxesCompute.mergeBggWithReviewerDelta(bgg, deltas);
+            const gidEarly = document.getElementById('game-id') && document.getElementById('game-id').value;
+            const sgEarly = window.__adminLastLoadedGame;
+            const canDb = !!(gidEarly && sgEarly && sgEarly.id === gidEarly);
             ADMIN_SIX_AXIS_KEYS.forEach(k => {
                 const bEl = document.getElementById('game-axis-' + k + '-bgg');
+                const dbEl = document.getElementById('game-axis-' + k + '-db');
                 const fEl = document.getElementById('game-axis-' + k + '-final');
                 if (bEl) bEl.textContent = bgg['axis_' + k] != null ? String(bgg['axis_' + k]) : '—';
+                if (dbEl) {
+                    if (canDb) {
+                        const raw = sgEarly['axis_' + k];
+                        if (raw == null || raw === '') dbEl.textContent = '—';
+                        else {
+                            const n = Number(raw);
+                            dbEl.textContent = !isNaN(n) ? String(n) : '—';
+                        }
+                    } else {
+                        dbEl.textContent = '—';
+                    }
+                }
                 if (fEl) fEl.textContent = finalAxes['axis_' + k] != null ? String(finalAxes['axis_' + k]) : '—';
                 const disp = document.getElementById('game-axis-' + k + '-delta-disp');
                 if (disp) {
