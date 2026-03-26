@@ -653,6 +653,21 @@
             return o;
         }
 
+        function warnIfReturnedRowMissingPatchedAxes(patch, updated) {
+            if (!updated || typeof updated !== 'object') return;
+            const axisKeys = Object.keys(patch).filter(k =>
+                k.indexOf('axis_') === 0 && k.indexOf('reviewer_delta') === -1
+            );
+            for (const k of axisKeys) {
+                if (!(k in updated)) {
+                    log(
+                        `[err] PATCH 回傳列缺欄位 ${k}（已送寫入但 D1 表無此欄，Worker 會靜默略過）。請對 D1 執行 migration：cloudflare/migrations/20260331_game_database_axis_mood_through_competition.sql`,
+                        'err'
+                    );
+                }
+            }
+        }
+
         async function patchGame(id, patch) {
             if (document.getElementById('dry-run').checked) {
                 log(`[dry] PATCH ${id} ` + JSON.stringify(patch).slice(0, 200), 'warn');
@@ -667,6 +682,10 @@
                 const t = await r.text();
                 throw new Error(r.status + ' ' + t.slice(0, 120));
             }
+            try {
+                const updated = await r.json();
+                warnIfReturnedRowMissingPatchedAxes(patch, updated);
+            } catch (e) { /* 非 JSON 時略過 */ }
             return true;
         }
 
@@ -675,16 +694,19 @@
                 log(`[dry] POST game_database ` + JSON.stringify(body).slice(0, 240), 'warn');
                 return null;
             }
+            const sent = stripEmpty(body);
             const r = await fetch(apiUrl('tables/game_database'), {
                 method: 'POST',
                 headers: apiHeaders(),
-                body: JSON.stringify(stripEmpty(body))
+                body: JSON.stringify(sent)
             });
             if (!r.ok && r.status !== 201) {
                 const t = await r.text();
                 throw new Error(r.status + ' ' + t.slice(0, 120));
             }
-            return await r.json();
+            const created = await r.json();
+            warnIfReturnedRowMissingPatchedAxes(sent, created);
+            return created;
         }
 
         async function processOneBggId(n) {
