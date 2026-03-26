@@ -58,8 +58,8 @@
     <div class="wrap">
         <div class="hero">
             <h1>BGG ID 掃描 · Category／Mechanic → 六軸補齊</h1>
-            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>；已收錄則補 <code>category</code>／<code>mechanics</code>（與 <a href="admin-bgg-import.html" style="color:#a5f3fc;">admin-bgg-import</a> 相同 <strong>Jina</strong> 流程）並依下方<strong>標籤→六軸對照表</strong>寫入／更新六軸。<strong>xmlapi2/thing</strong>（年份／人數／時間／複雜度）：<strong>優先</strong>本站 Worker <code>GET /api/admin/bgg/thing</code>（帶 Google 登入與管理員權限、後端附 BGG Application Token），失敗再 <strong>Jina</strong>。<strong>若 thing XML 失敗或缺欄</strong>，會再從 <strong>Jina 頁面 Markdown</strong> 用與 admin-games「從 BGG 抓取」相同規則補上數值欄。</p>
-            <p>未收錄則以 Jina + BGG XML API 建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
+            <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>。<strong>xmlapi2/thing</strong>（Worker → Jina 備援）可取得：<strong>category／mechanic 官方名稱</strong>（<code>&lt;link type="boardgamecategory|boardgamemechanic"&gt;</code>）、<strong>min／max playtime</strong>、年份、人數、複雜度、圖片、subdomain 類型等。<strong>Jina 讀 HTML</strong>僅作備援（封面、thing 失敗時的標籤／數值補洞）。六軸仍依標籤＋複雜度對照表計算。</p>
+            <p>未收錄則以 thing 為主建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
         </div>
 
         <section class="card">
@@ -94,7 +94,7 @@
             <div class="row"><label>批次延遲 ms</label><input type="number" id="delay-ms" value="600" min="0" step="100"></div>
             <div class="row" style="flex-direction:column;align-items:flex-start;gap:0.35rem;">
                 <label><input type="checkbox" id="dry-run"> 乾跑（只記錄，不 POST／PATCH）</label>
-                <label><input type="checkbox" id="force-meta"> 強制重抓 Jina（category／mechanics／封面）</label>
+                <label><input type="checkbox" id="force-meta"> 強制重跑補洞（含 Jina 封面／Markdown 補欄；category／mechanic 仍以 thing XML 為優先）</label>
                 <label><input type="checkbox" id="force-axes"> 強制重算六軸（即使已有數值）</label>
             </div>
             <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
@@ -226,7 +226,25 @@
         function numericMetaMissing(row) {
             const n = (v) => v == null || v === '' || (typeof v === 'number' && Number.isNaN(v));
             const yearBad = n(row.year) || Number(row.year) === 0;
-            return yearBad || n(row.min_players) || n(row.max_players) || n(row.playing_time) || n(row.complexity);
+            const playBoundsMissing = n(row.min_playtime) && n(row.max_playtime);
+            return yearBad || n(row.min_players) || n(row.max_players) || n(row.playing_time) || n(row.complexity)
+                || playBoundsMissing;
+        }
+
+        /** 與 admin-bgg-import：由 min/max 局時與人數推估每位玩家平均分鐘 */
+        function derivePlayingTimePerPlayerFromBounds(minPlayers, maxPlayers, minPlaytime, maxPlaytime) {
+            const mn = minPlaytime != null && minPlaytime !== '' ? Number(minPlaytime) : NaN;
+            const mx = maxPlaytime != null && maxPlaytime !== '' ? Number(maxPlaytime) : NaN;
+            const minPlay = !isNaN(mn) && mn > 0 ? mn : null;
+            const maxPlay = !isNaN(mx) && mx > 0 ? mx : null;
+            if (minPlay == null && maxPlay == null) return null;
+            const minP = minPlayers != null && minPlayers !== '' ? Number(minPlayers) : NaN;
+            const maxP = maxPlayers != null && maxPlayers !== '' ? Number(maxPlayers) : NaN;
+            const minPer = (minPlay != null && !isNaN(maxP) && maxP > 0) ? minPlay / maxP : null;
+            const maxPer = (maxPlay != null && !isNaN(minP) && minP > 0) ? maxPlay / Math.max(minP, 1) : null;
+            const vals = [minPer, maxPer].filter(v => v != null && !isNaN(v));
+            if (!vals.length) return null;
+            return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
         }
 
         /**
@@ -244,7 +262,7 @@
             if (ne) xmlBasics.name_en = ne;
             const fill = forceMeta || numericMetaMissing(row);
             if (!fill) return;
-            const fields = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'];
+            const fields = ['year', 'min_players', 'max_players', 'min_playtime', 'max_playtime', 'playing_time', 'complexity'];
             for (const f of fields) {
                 const v = xmlBasics[f];
                 if (v == null || v === '') continue;
@@ -406,6 +424,8 @@
                 min_players: null,
                 max_players: null,
                 playing_time: null,
+                min_playtime: null,
+                max_playtime: null,
                 complexity: null,
                 image_url: '',
                 bgg_id: String(bggId)
@@ -441,7 +461,7 @@
         function mergeThingXmlWithJinaMarkdown(xml, jinaFb) {
             if (!jinaFb) return xml;
             if (!xml) return jinaFb;
-            const keys = ['name_en', 'name_zh', 'name_ja', 'year', 'min_players', 'max_players', 'playing_time', 'complexity', 'image_url'];
+            const keys = ['name_en', 'name_zh', 'name_ja', 'year', 'min_players', 'max_players', 'min_playtime', 'max_playtime', 'playing_time', 'complexity', 'image_url'];
             const out = { ...xml };
             for (const k of keys) {
                 const v = xml[k];
@@ -546,23 +566,56 @@
             const yearVal = xmlItem.querySelector('yearpublished')?.getAttribute('value');
             const minP = xmlItem.querySelector('minplayers')?.getAttribute('value');
             const maxP = xmlItem.querySelector('maxplayers')?.getAttribute('value');
-            const playTime = xmlItem.querySelector('maxplaytime')?.getAttribute('value')
-                || xmlItem.querySelector('playingtime')?.getAttribute('value');
+            const minPlayEl = xmlItem.querySelector('minplaytime')?.getAttribute('value');
+            const maxPlayEl = xmlItem.querySelector('maxplaytime')?.getAttribute('value');
+            const playingTimeEl = xmlItem.querySelector('playingtime')?.getAttribute('value');
             const weightVal = xmlItem.querySelector('averageweight')?.getAttribute('value');
             const image = xmlItem.querySelector('image')?.textContent?.trim();
             const thumb = xmlItem.querySelector('thumbnail')?.textContent?.trim();
             const imageUrl = image || thumb || '';
+            const minPi = minP ? parseInt(minP, 10) : null;
+            const maxPi = maxP ? parseInt(maxP, 10) : null;
+            const minT = minPlayEl && minPlayEl !== '0' ? parseInt(minPlayEl, 10) : null;
+            const maxT = maxPlayEl && maxPlayEl !== '0' ? parseInt(maxPlayEl, 10) : null;
+            const playingSingle = playingTimeEl && playingTimeEl !== '0' ? parseInt(playingTimeEl, 10) : null;
+            let playing_time = derivePlayingTimePerPlayerFromBounds(minPi, maxPi, minT, maxT);
+            if (playing_time == null) {
+                if (maxT != null) playing_time = maxT;
+                else if (minT != null) playing_time = minT;
+                else if (playingSingle != null) playing_time = playingSingle;
+            }
+            const category = [];
+            const mechanics = [];
+            xmlItem.querySelectorAll('link[type="boardgamecategory"]').forEach((el) => {
+                const v = el.getAttribute('value');
+                if (v && String(v).trim()) category.push(String(v).trim());
+            });
+            xmlItem.querySelectorAll('link[type="boardgamemechanic"]').forEach((el) => {
+                const v = el.getAttribute('value');
+                if (v && String(v).trim()) mechanics.push(String(v).trim());
+            });
+            let bgg_type = 'Uncategorized';
+            const sub = xmlItem.querySelector('link[type="boardgamesubdomain"]');
+            if (sub) {
+                const sv = sub.getAttribute('value');
+                if (sv && String(sv).trim()) bgg_type = String(sv).trim();
+            }
             return {
                 name_en: nameEn,
                 name_zh: '',
                 name_ja: '',
                 year: yearVal && yearVal !== '0' ? parseInt(yearVal, 10) : null,
-                min_players: minP ? parseInt(minP, 10) : null,
-                max_players: maxP ? parseInt(maxP, 10) : null,
-                playing_time: playTime ? parseInt(playTime, 10) : null,
+                min_players: minPi,
+                max_players: maxPi,
+                min_playtime: minT,
+                max_playtime: maxT,
+                playing_time: playing_time != null && !isNaN(playing_time) ? playing_time : null,
                 complexity: weightVal ? Math.round(parseFloat(weightVal) * 100) / 100 : null,
                 image_url: imageUrl,
-                bgg_id: String(bggId)
+                bgg_id: String(bggId),
+                category,
+                mechanics,
+                bgg_type
             };
         }
 
@@ -741,7 +794,7 @@
                 if (!xmlBasics) {
                     log(`[${idStr}] 數值欄改由 Jina 頁面文字解析（thing XML 不可用）`, 'warn');
                 } else {
-                    const usedJina = ['year', 'min_players', 'max_players', 'playing_time', 'complexity'].some((k) => {
+                    const usedJina = ['year', 'min_players', 'max_players', 'min_playtime', 'max_playtime', 'playing_time', 'complexity'].some((k) => {
                         const v = xmlBasics[k];
                         const miss = v == null || v === '' || (k === 'year' && Number(v) === 0);
                         return miss && jinaNum[k] != null && jinaNum[k] !== '';
@@ -755,9 +808,15 @@
                 const patch = {};
                 if (forceMeta || metaMissing(row)) {
                     if (jina.coverUrl && (!row.image_url || forceMeta)) patch.image_url = jina.coverUrl;
-                    if (jina.category.length) patch.category = JSON.stringify(jina.category);
-                    if (jina.mechanics.length) patch.mechanics = JSON.stringify(jina.mechanics);
-                    if (jina.bggType) patch.bgg_type = jina.bggType;
+                    const catArr = (xmlBasics && Array.isArray(xmlBasics.category) && xmlBasics.category.length)
+                        ? xmlBasics.category : jina.category;
+                    const mechArr = (xmlBasics && Array.isArray(xmlBasics.mechanics) && xmlBasics.mechanics.length)
+                        ? xmlBasics.mechanics : jina.mechanics;
+                    if (catArr.length) patch.category = JSON.stringify(catArr);
+                    if (mechArr.length) patch.mechanics = JSON.stringify(mechArr);
+                    const typePick = (xmlBasics && xmlBasics.bgg_type && xmlBasics.bgg_type !== 'Uncategorized')
+                        ? xmlBasics.bgg_type : jina.bggType;
+                    if (typePick && typePick !== 'Uncategorized') patch.bgg_type = typePick;
                 }
                 assignXmlBasicsToPatch(patch, row, xmlBasics, forceMeta);
 
@@ -794,28 +853,38 @@
             }
 
             // 不在資料庫 → 新建
-            const base = xmlBasics || {
+            const base = xmlBasics ? { ...xmlBasics } : {
                 name_en: '',
                 bgg_id: idStr,
                 image_url: jina.coverUrl || '',
                 year: null,
                 min_players: null,
                 max_players: null,
+                min_playtime: null,
+                max_playtime: null,
                 playing_time: null,
-                complexity: null
+                complexity: null,
+                bgg_type: 'Uncategorized'
             };
+            delete base.category;
+            delete base.mechanics;
+            if (!base.image_url && jina.coverUrl) base.image_url = jina.coverUrl;
             if (!base.name_en && jina.text) {
                 const tm = jina.text.match(/^Title:\s*(.+)/m);
                 if (tm) base.name_en = tm[1].replace(/\s*\|\s*BoardGameGeek.*$/i, '').trim();
             }
-            const category = jina.category || [];
-            const mechanics = jina.mechanics || [];
+            const category = (xmlBasics && Array.isArray(xmlBasics.category) && xmlBasics.category.length)
+                ? xmlBasics.category : (jina.category || []);
+            const mechanics = (xmlBasics && Array.isArray(xmlBasics.mechanics) && xmlBasics.mechanics.length)
+                ? xmlBasics.mechanics : (jina.mechanics || []);
             const axes = computeSixAxes(category, mechanics, base.complexity);
+            const typeNew = (xmlBasics && xmlBasics.bgg_type && xmlBasics.bgg_type !== 'Uncategorized')
+                ? xmlBasics.bgg_type : (jina.bggType || 'Uncategorized');
             const payload = stripEmpty({
                 ...base,
                 category: category.length ? JSON.stringify(category) : '',
                 mechanics: mechanics.length ? JSON.stringify(mechanics) : '',
-                bgg_type: jina.bggType || 'Uncategorized',
+                bgg_type: typeNew,
                 ...axes
             });
             if (!payload.name_en) {
