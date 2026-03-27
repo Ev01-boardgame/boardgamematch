@@ -436,7 +436,7 @@
                         </button>
                     </div>
                     <div style="margin-top:0.5rem; font-size:0.78rem; color:var(--text-light);">
-                        📋 可自動填入：英文名稱、發行年份、玩家數、遊戲時間、複雜度、封面圖片、中文名稱（DuckDuckGo 搜尋）
+                        📋 <strong>thing XML</strong> 優先：英文名、年、人數、<strong>最短／最長局時</strong>、複雜度、封面、<strong>分類／機制／類型</strong>（link）。Jina 補圖與 credits／中文名等。
                     </div>
                     <div id="bgg-fetch-status" style="margin-top:0.4rem; font-size:0.85rem; color:var(--text-light); min-height:1.2em;"></div>
                     <div id="bgg-duplicate-warning" style="display:none; margin-top:0.5rem; padding:0.6rem 0.85rem; background:#fff3cd; border:1px solid #ffc107; border-radius:0.5rem; font-size:0.85rem; color:#856404;"></div>
@@ -492,8 +492,18 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>遊戲時間（分鐘）</label>
-                        <input type="number" id="game-playing-time" min="1">
+                        <label>最短局時（分鐘）</label>
+                        <input type="number" id="game-min-playtime" min="1" placeholder="BGG minplaytime">
+                    </div>
+                    <div class="form-group">
+                        <label>最長局時（分鐘）</label>
+                        <input type="number" id="game-max-playtime" min="1" placeholder="BGG maxplaytime">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>估計每位玩家時間（分鐘）</label>
+                        <input type="number" id="game-playing-time" min="1" placeholder="可由局時＋人數推算">
                     </div>
                     <div class="form-group">
                         <label>複雜度（1-5）</label>
@@ -952,7 +962,7 @@
         // filterGames 已在上方定義（伺服器端分頁 + 前端來源篩選）
 
         const ADMIN_SIX_AXIS_KEYS = ['entry', 'mood', 'control', 'openness', 'sociality', 'competition'];
-        window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null };
+        window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null, bgg_type: null };
         window.__adminLastLoadedGame = window.__adminLastLoadedGame || null;
         /** 編輯：開啟視窗當下的 axis_* 快照（凍結）；新增：null，基準用即時推論 */
         window.__adminAxisBaselineAtLoad = window.__adminAxisBaselineAtLoad || null;
@@ -974,7 +984,7 @@
                 }
                 return;
             }
-            const meta = window.__adminGameEditMeta || { category: null, mechanics: null };
+            const meta = window.__adminGameEditMeta || { category: null, mechanics: null, bgg_type: null };
             const cxEl = document.getElementById('game-complexity');
             const cx = cxEl ? parseFloat(cxEl.value) : NaN;
             const row = {
@@ -1053,7 +1063,7 @@
         }
 
         function resetAdminSixAxesForNewGame() {
-            window.__adminGameEditMeta = { category: null, mechanics: null };
+            window.__adminGameEditMeta = { category: null, mechanics: null, bgg_type: null };
             window.__adminLastLoadedGame = null;
             window.__adminAxisBaselineAtLoad = null;
             clearAdminBggMetaDisplay();
@@ -1149,11 +1159,16 @@
             document.getElementById('game-year').value = game.year || '';
             document.getElementById('game-min-players').value = game.min_players || '';
             document.getElementById('game-max-players').value = game.max_players || '';
+            const mnPt = document.getElementById('game-min-playtime');
+            const mxPt = document.getElementById('game-max-playtime');
+            if (mnPt) mnPt.value = game.min_playtime != null && game.min_playtime !== '' ? game.min_playtime : '';
+            if (mxPt) mxPt.value = game.max_playtime != null && game.max_playtime !== '' ? game.max_playtime : '';
             document.getElementById('game-playing-time').value = game.playing_time || '';
             document.getElementById('game-complexity').value = game.complexity || '';
             window.__adminGameEditMeta = {
                 category: game.category,
-                mechanics: game.mechanics
+                mechanics: game.mechanics,
+                bgg_type: game.bgg_type != null && game.bgg_type !== '' ? game.bgg_type : null
             };
             window.__adminLastLoadedGame = game;
             if (!window.BggSixAxesCompute) {
@@ -1213,6 +1228,8 @@
             
             const gameId = document.getElementById('game-id').value;
             const imageUrlVal = document.getElementById('game-image-url').value.trim();
+            const mnPtEl = document.getElementById('game-min-playtime');
+            const mxPtEl = document.getElementById('game-max-playtime');
             const gameData = {
                 name_zh:      document.getElementById('game-name-zh').value.trim(),
                 name_ja:      document.getElementById('game-name-ja').value.trim(),
@@ -1221,6 +1238,8 @@
                 year:         parseInt(document.getElementById('game-year').value) || null,
                 min_players:  parseInt(document.getElementById('game-min-players').value) || null,
                 max_players:  parseInt(document.getElementById('game-max-players').value) || null,
+                min_playtime: mnPtEl && mnPtEl.value !== '' ? parseInt(mnPtEl.value, 10) || null : null,
+                max_playtime: mxPtEl && mxPtEl.value !== '' ? parseInt(mxPtEl.value, 10) || null : null,
                 playing_time: parseInt(document.getElementById('game-playing-time').value) || null,
                 // 複雜度：統一四捨五入為兩位小數後再儲存
                 complexity:   (function () {
@@ -1230,8 +1249,22 @@
                 })(),
                 bgg_id:       document.getElementById('game-bgg-id').value.trim()
             };
+            const metaSave = window.__adminGameEditMeta || {};
+            if (Array.isArray(metaSave.category) && metaSave.category.length) {
+                gameData.category = JSON.stringify(metaSave.category);
+            } else if (typeof metaSave.category === 'string' && metaSave.category.trim()) {
+                gameData.category = metaSave.category.trim();
+            }
+            if (Array.isArray(metaSave.mechanics) && metaSave.mechanics.length) {
+                gameData.mechanics = JSON.stringify(metaSave.mechanics);
+            } else if (typeof metaSave.mechanics === 'string' && metaSave.mechanics.trim()) {
+                gameData.mechanics = metaSave.mechanics.trim();
+            }
+            if (metaSave.bgg_type != null && String(metaSave.bgg_type).trim()) {
+                gameData.bgg_type = String(metaSave.bgg_type).trim();
+            }
             if (window.BggSixAxesCompute) {
-                const meta = window.__adminGameEditMeta || { category: null, mechanics: null };
+                const meta = window.__adminGameEditMeta || { category: null, mechanics: null, bgg_type: null };
                 const cxRaw = parseFloat(document.getElementById('game-complexity').value);
                 const bgg = window.BggSixAxesCompute.computeSixAxesFromRow({
                     category: meta.category,
@@ -1432,6 +1465,44 @@
             return null;
         }
 
+        /** 與 axis-sync：由 min/max 局時與人數推估每位玩家平均分鐘 */
+        function derivePlayingTimePerPlayerFromBounds(minPlayers, maxPlayers, minPlaytime, maxPlaytime) {
+            const mn = minPlaytime != null && minPlaytime !== '' ? Number(minPlaytime) : NaN;
+            const mx = maxPlaytime != null && maxPlaytime !== '' ? Number(maxPlaytime) : NaN;
+            const minPlay = !isNaN(mn) && mn > 0 ? mn : null;
+            const maxPlay = !isNaN(mx) && mx > 0 ? mx : null;
+            if (minPlay == null && maxPlay == null) return null;
+            const minP = minPlayers != null && minPlayers !== '' ? Number(minPlayers) : NaN;
+            const maxP = maxPlayers != null && maxPlayers !== '' ? Number(maxPlayers) : NaN;
+            const minPer = (minPlay != null && !isNaN(maxP) && maxP > 0) ? minPlay / maxP : null;
+            const maxPer = (maxPlay != null && !isNaN(minP) && minP > 0) ? maxPlay / Math.max(minP, 1) : null;
+            const vals = [minPer, maxPer].filter(v => v != null && !isNaN(v));
+            if (!vals.length) return null;
+            return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+        }
+
+        /** thing XML &lt;link&gt; → 與 axis-sync 相同 */
+        function extractThingTaxonomyFromXmlItem(xmlItem) {
+            if (!xmlItem) return { category: [], mechanics: [], bgg_type: 'Uncategorized' };
+            const category = [];
+            const mechanics = [];
+            xmlItem.querySelectorAll('link[type="boardgamecategory"]').forEach((el) => {
+                const v = el.getAttribute('value');
+                if (v && String(v).trim()) category.push(String(v).trim());
+            });
+            xmlItem.querySelectorAll('link[type="boardgamemechanic"]').forEach((el) => {
+                const v = el.getAttribute('value');
+                if (v && String(v).trim()) mechanics.push(String(v).trim());
+            });
+            let bgg_type = 'Uncategorized';
+            const sub = xmlItem.querySelector('link[type="boardgamesubdomain"]');
+            if (sub) {
+                const sv = sub.getAttribute('value');
+                if (sv && String(sv).trim()) bgg_type = String(sv).trim();
+            }
+            return { category, mechanics, bgg_type };
+        }
+
         /** Worker 回傳的純 XML → 第一個 &lt;item&gt; */
         function parseThingXmlItemFromText(xmlText) {
             const doc = new DOMParser().parseFromString((xmlText || '').trim(), 'text/xml');
@@ -1497,27 +1568,63 @@
             }
             const mnH = document.getElementById('game-min-playtime');
             const mxH = document.getElementById('game-max-playtime');
-            const minPt = xmlItem.querySelector('minplaytime')?.getAttribute('value');
-            const maxPt = xmlItem.querySelector('maxplaytime')?.getAttribute('value');
-            if (mnH && minPt && !mnH.value) mnH.value = String(parseInt(minPt, 10) || minPt);
-            if (mxH && maxPt && !mxH.value) mxH.value = String(parseInt(maxPt, 10) || maxPt);
+            const minPtRaw = xmlItem.querySelector('minplaytime')?.getAttribute('value');
+            const maxPtRaw = xmlItem.querySelector('maxplaytime')?.getAttribute('value');
+            const minPtNum = minPtRaw && minPtRaw !== '0' ? parseInt(minPtRaw, 10) : NaN;
+            const maxPtNum = maxPtRaw && maxPtRaw !== '0' ? parseInt(maxPtRaw, 10) : NaN;
+            if (mnH && !mnH.value && !isNaN(minPtNum)) {
+                mnH.value = String(minPtNum);
+                filled.push('最短局時（BGG XML）');
+            }
+            if (mxH && !mxH.value && !isNaN(maxPtNum)) {
+                mxH.value = String(maxPtNum);
+                filled.push('最長局時（BGG XML）');
+            }
             const ptEl = document.getElementById('game-playing-time');
             if (!ptEl.value) {
-                const single = xmlItem.querySelector('playingtime')?.getAttribute('value')
-                    || xmlItem.querySelector('maxplaytime')?.getAttribute('value');
-                if (minPt && maxPt) {
-                    const a = parseInt(minPt, 10), b = parseInt(maxPt, 10);
-                    if (!isNaN(a) && !isNaN(b)) {
-                        ptEl.value = String(Math.round((a + b) / 2));
-                        filled.push('遊戲時間（BGG XML 區間平均）');
-                    }
-                } else if (single) {
-                    const n = parseInt(single, 10);
-                    if (!isNaN(n)) {
-                        ptEl.value = String(n);
-                        filled.push('遊戲時間（BGG XML）');
+                const minPVal = document.getElementById('game-min-players').value;
+                const maxPVal = document.getElementById('game-max-players').value;
+                const derived = derivePlayingTimePerPlayerFromBounds(
+                    minPVal, maxPVal,
+                    !isNaN(minPtNum) ? minPtNum : null,
+                    !isNaN(maxPtNum) ? maxPtNum : null
+                );
+                if (derived != null) {
+                    ptEl.value = String(derived);
+                    filled.push('估計每位玩家時間（BGG XML 局時＋人數）');
+                } else {
+                    const single = xmlItem.querySelector('playingtime')?.getAttribute('value')
+                        || maxPtRaw;
+                    if (single && single !== '0') {
+                        const n = parseInt(single, 10);
+                        if (!isNaN(n)) {
+                            ptEl.value = String(n);
+                            filled.push('估計每位玩家時間（BGG XML 單一欄）');
+                        }
                     }
                 }
+            }
+            const tax = extractThingTaxonomyFromXmlItem(xmlItem);
+            window.__adminGameEditMeta = window.__adminGameEditMeta || { category: null, mechanics: null, bgg_type: null };
+            if (tax.category.length) {
+                window.__adminGameEditMeta.category = tax.category;
+                filled.push('分類（thing XML）');
+            }
+            if (tax.mechanics.length) {
+                window.__adminGameEditMeta.mechanics = tax.mechanics;
+                filled.push('機制（thing XML）');
+            }
+            if (tax.bgg_type && tax.bgg_type !== 'Uncategorized') {
+                window.__adminGameEditMeta.bgg_type = tax.bgg_type;
+                filled.push('類型（thing XML）');
+            }
+            if (tax.category.length || tax.mechanics.length || (tax.bgg_type && tax.bgg_type !== 'Uncategorized')) {
+                setAdminBggMetaFromGame({
+                    category: window.__adminGameEditMeta.category,
+                    mechanics: window.__adminGameEditMeta.mechanics,
+                    bgg_type: window.__adminGameEditMeta.bgg_type
+                });
+                if (typeof refreshAdminSixAxesPanel === 'function') refreshAdminSixAxesPanel();
             }
             if (!document.getElementById('game-complexity').value) {
                 const weightVal = xmlItem.querySelector('averageweight')?.getAttribute('value');
@@ -1761,6 +1868,7 @@
                 btn.textContent = '🔍 從 BGG 抓取資料';
                 updateSearchHint();
                 checkBggDuplicate();
+                if (typeof refreshAdminSixAxesPanel === 'function') refreshAdminSixAxesPanel();
             }
         }
 
