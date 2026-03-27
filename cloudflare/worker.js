@@ -28,6 +28,10 @@
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
  *   — 代理 BGG xmlapi2/collection（含 202 輪詢）、對照 game_database.bgg_id
  *
+ * BGG 搜尋 JSON（需 X-Api-Key + JWT，不需 admin）：
+ *   GET /api/bgg/search?query=...&type=boardgame
+ *   — 代理 xmlapi2/search，伺服器解析 XML，回傳 { ok, items: [{ id, name, year }] }
+ *
  * 管理員 BGG thing 代理（需 X-Api-Key + JWT + admin／超管）：
  *   GET /api/admin/bgg/thing?id=123&stats=1
  *   — 代理 xmlapi2/thing；帶 BGG_XML_API_BEARER；回傳 application/xml
@@ -581,6 +585,101 @@ function validateBggSearchQuery(raw) {
 
 const BGG_SEARCH_ALLOWED_TYPES = new Set(['boardgame', 'boardgameexpansion', 'rpgitem', 'videogame']);
 
+/** 解析 xmlapi2/search 回傳的 XML → 精簡項目（不含 DOM） */
+function parseBggSearchXmlToItems(xmlText, maxItems) {
+  const cap = Math.min(Math.max(maxItems || 25, 1), 50);
+  const items = [];
+  const re = /<item\s+([^>]+)>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = re.exec(xmlText)) !== null && items.length < cap) {
+    const open = m[1];
+    const block = m[2];
+    const idMatch = /\bid="(\d+)"/i.exec(open);
+    if (!idMatch) continue;
+    const id = idMatch[1];
+    let name = '';
+    let anyName = '';
+    const nameTagRe = /<name\b([^>]*)(?:\/>|>)/gi;
+    let nm;
+    while ((nm = nameTagRe.exec(block)) !== null) {
+      const attrs = nm[1] || '';
+      const valM = /\bvalue="([^"]*)"/i.exec(attrs);
+      if (!valM) continue;
+      const v = valM[1];
+      if (!anyName && v) anyName = v;
+      if (/type="primary"/i.test(attrs) && v) {
+        name = v;
+        break;
+      }
+    }
+    if (!name) name = anyName;
+    let year = null;
+    const yMatch = /<yearpublished\b[^>]*\bvalue="(\d{4})"/i.exec(block);
+    if (yMatch) year = yMatch[1];
+    items.push({
+      id,
+      name: (name && String(name).trim()) || `BGG ${id}`,
+      year,
+    });
+  }
+  return items;
+}
+
+/**
+ * GET /api/bgg/search?query=&type=boardgame — JWT 即可（與 collection-preview 相同層級）
+ */
+async function handleGetBggSearchJson(request, env, origin) {
+  const url = new URL(request.url);
+  const qCheck = validateBggSearchQuery(url.searchParams.get('query') || '');
+  if (qCheck.error) return errorResponse(qCheck.error, 400, origin, env);
+
+  let type = (url.searchParams.get('type') || 'boardgame').trim().toLowerCase();
+  if (!BGG_SEARCH_ALLOWED_TYPES.has(type)) type = 'boardgame';
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return errorResponse('Authentication required', 401, origin, env);
+  try {
+    await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+  }
+
+  const bggUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(qCheck.query)}&type=${encodeURIComponent(type)}`;
+
+  const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
+  const bearer =
+    env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
+  if (bearer) directHeaders['Authorization'] = `Bearer ${bearer}`;
+
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const res = await fetch(bggUrl, {
+      headers: directHeaders,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(25000),
+    });
+    lastStatus = res.status;
+    if (res.status === 200) {
+      const xml = await res.text();
+      const items = parseBggSearchXmlToItems(xml, 30);
+      return jsonResponse({ ok: true, query: qCheck.query, type, items }, 200, origin, env);
+    }
+    if (res.status === 202) {
+      await sleep(2200);
+      continue;
+    }
+    const body = await res.text().catch(() => '');
+    return errorResponse(
+      `BGG search HTTP ${res.status}${body ? ': ' + body.slice(0, 280) : ''}`,
+      res.status >= 400 && res.status < 600 ? res.status : 502,
+      origin,
+      env
+    );
+  }
+  return errorResponse(`BGG search 逾時（最後 HTTP ${lastStatus}）`, 503, origin, env);
+}
+
 /**
  * GET /api/admin/bgg/search?query=&type=boardgame
  */
@@ -790,6 +889,21 @@ export default {
         console.error('collection-preview', e);
         return errorResponse(
           e && e.message ? e.message : 'collection-preview failed',
+          500,
+          origin,
+          env
+        );
+      }
+    }
+
+    // ── GET /api/bgg/search（需 X-Api-Key + JWT）：xmlapi2/search → JSON items ──
+    if (url.pathname === '/api/bgg/search' && method === 'GET') {
+      try {
+        return await handleGetBggSearchJson(request, env, origin);
+      } catch (e) {
+        console.error('bgg search json', e);
+        return errorResponse(
+          e && e.message ? e.message : 'BGG search failed',
           500,
           origin,
           env

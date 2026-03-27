@@ -101,6 +101,7 @@
         .add-game-ac-item .ac-name-zh { font-weight:600; }
         .add-game-ac-item .ac-name-en { font-size:0.78rem; color:var(--text-light); }
         .add-game-ac-badge { font-size:0.72rem; padding:0.1rem 0.4rem; border-radius:999px; background:#dcfce7; color:#166534; flex-shrink:0; }
+        .add-game-ac-badge.bgg { background:#fef3c7; color:#92400e; }
         .list-toolbar {
             display: flex;
             flex-direction: column;
@@ -349,8 +350,8 @@
                             <div class="ac-wrap">
                                 <input id="add-owned-input" type="text" autocomplete="off" maxlength="80"
                                     placeholder="輸入遊戲名稱搜尋..."
-                                    oninput="onAcInput(this, 'drop-owned')"
-                                    onfocus="onAcInput(this, 'drop-owned')"
+                                    oninput="onAcInput(this, 'drop-owned', 'owned')"
+                                    onfocus="onAcInput(this, 'drop-owned', 'owned')"
                                     onblur="closeAc('drop-owned')"
                                     onkeydown="onAcKey(event, 'drop-owned', 'owned')">
                                 <div id="drop-owned" class="add-game-dropdown"></div>
@@ -378,8 +379,8 @@
                             <div class="ac-wrap">
                                 <input id="add-buy-input" type="text" autocomplete="off" maxlength="80"
                                     placeholder="輸入遊戲名稱搜尋..."
-                                    oninput="onAcInput(this, 'drop-buy')"
-                                    onfocus="onAcInput(this, 'drop-buy')"
+                                    oninput="onAcInput(this, 'drop-buy', 'buy')"
+                                    onfocus="onAcInput(this, 'drop-buy', 'buy')"
                                     onblur="closeAc('drop-buy')"
                                     onkeydown="onAcKey(event, 'drop-buy', 'buy')">
                                 <div id="drop-buy" class="add-game-dropdown"></div>
@@ -441,6 +442,8 @@
         let ownedBggPending = [];
         let toBuyBggPending = [];
         let bggPreviewRows = [];
+        /** 本頁工作階段：顯示名稱 → BGG id（用於待對照 pending 與刪除時一併移除） */
+        const acBggLink = { owned: Object.create(null), buy: Object.create(null) };
 
         function escapeHtml(s) {
             return String(s == null ? '' : s)
@@ -737,6 +740,15 @@
         }
 
         function removeGame(type, gameName) {
+            const bid = acBggLink[type] && acBggLink[type][gameName];
+            if (bid) {
+                const pend = type === 'owned' ? ownedBggPending : toBuyBggPending;
+                const s = String(bid);
+                const pi = pend.indexOf(s);
+                if (pi >= 0) pend.splice(pi, 1);
+                delete acBggLink[type][gameName];
+                updatePendingHint();
+            }
             if (type === 'owned') ownedGames = ownedGames.filter(g => g !== gameName);
             else toBuyGames = toBuyGames.filter(g => g !== gameName);
             if (pinnedGames[type]) pinnedGames[type] = pinnedGames[type].filter(g => g !== gameName);
@@ -750,6 +762,7 @@
 
             const target = type === 'owned' ? ownedGames : toBuyGames;
             const other = type === 'owned' ? toBuyGames : ownedGames;
+            const otherType = type === 'owned' ? 'buy' : 'owned';
             if (target.includes(val)) {
                 document.getElementById('save-hint').textContent = '這款遊戲已存在於目前分類';
                 return;
@@ -757,27 +770,75 @@
             const idx = other.indexOf(val);
             if (idx >= 0) {
                 other.splice(idx, 1);
-                const otherType = type === 'owned' ? 'buy' : 'owned';
                 if (pinnedGames[otherType] && pinnedGames[otherType].includes(val)) {
                     pinnedGames[otherType] = pinnedGames[otherType].filter(g => g !== val);
                     if (!pinnedGames[type]) pinnedGames[type] = [];
                     if (pinnedGames[type].length < MAX_PIN) pinnedGames[type].push(val);
                 }
+                const obid = acBggLink[otherType] && acBggLink[otherType][val];
+                if (obid) {
+                    delete acBggLink[otherType][val];
+                    acBggLink[type][val] = obid;
+                }
+                const otherPend = otherType === 'owned' ? ownedBggPending : toBuyBggPending;
+                const thisPend = type === 'owned' ? ownedBggPending : toBuyBggPending;
+                const ps = String(obid || '');
+                if (ps && /^\d+$/.test(ps)) {
+                    const pi = otherPend.indexOf(ps);
+                    if (pi >= 0) otherPend.splice(pi, 1);
+                    if (!thisPend.includes(ps)) thisPend.push(ps);
+                    updatePendingHint();
+                }
             }
             target.push(val);
+
+            const bid = acBggLink[type] && acBggLink[type][val];
+            if (bid) {
+                const pend = type === 'owned' ? ownedBggPending : toBuyBggPending;
+                const s = String(bid);
+                if (/^\d+$/.test(s) && !pend.includes(s)) {
+                    pend.push(s);
+                    updatePendingHint();
+                }
+            }
 
             input.value = '';
             closeAc(type === 'owned' ? 'drop-owned' : 'drop-buy');
             renderAll();
         }
 
-        function onAcInput(inputEl, dropId) {
+        function acPick(el) {
+            if (!el || !el.getAttribute) return;
+            const inputId = el.getAttribute('data-input-id');
+            const dropId = el.getAttribute('data-drop-id');
+            const listType = el.getAttribute('data-list-type');
+            const enc = el.getAttribute('data-display') || '';
+            let display = '';
+            try {
+                display = enc ? decodeURIComponent(enc) : '';
+            } catch (e) {
+                display = enc || '';
+            }
+            const bggId = (el.getAttribute('data-bgg-id') || '').trim();
+            if (!listType || !display) return;
+            const input = inputId ? document.getElementById(inputId) : null;
+            const drop = dropId ? document.getElementById(dropId) : null;
+            if (input) input.value = display;
+            if (drop) drop.classList.remove('open');
+            if (bggId) {
+                acBggLink[listType][display] = bggId;
+            } else {
+                delete acBggLink[listType][display];
+            }
+        }
+
+        function onAcInput(inputEl, dropId, listType) {
             const drop = document.getElementById(dropId);
             if (!drop) return;
             const raw = inputEl.value.trim();
             if (!raw) { drop.classList.remove('open'); drop.innerHTML = ''; if (acDebounce) clearTimeout(acDebounce); return; }
             if (raw.length < 2) {
-                drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">至少輸入 2 個字再搜尋</div>';
+                drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);pointer-events:none;">至少輸入 2 個字再搜尋</div>';
                 drop.classList.add('open');
                 if (acDebounce) clearTimeout(acDebounce);
                 return;
@@ -786,47 +847,72 @@
             acDebounce = setTimeout(() => {
                 const query = inputEl.value.trim();
                 if (!query || query.length < 2) return;
-                fetch(`tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`)
-                    .then(r => r.ok ? r.json() : { data: [] })
-                    .then(d => {
-                        if (inputEl.value.trim() !== query) return;
-                        const list = (d.data || []).slice(0, 20);
-                        if (!list.length) {
-                            drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">找不到符合的遊戲，可直接新增文字</div>';
-                            drop.classList.add('open');
-                            return;
-                        }
-                        drop.innerHTML = list.map(g => {
-                            const displayName = g.name_zh || g.name_en || g.name_ja || '';
-                            const subName = (g.name_zh && g.name_en ? g.name_en : '') || '';
-                            const safe = displayName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                            const img = g.image_url
-                                ? `<img src="${g.image_url}" onerror="this.style.display='none'">`
-                                : `<div style="width:28px;height:28px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
-                            return `<div class="add-game-ac-item" onmousedown="selectAc('${inputEl.id}','${dropId}','${safe}')">
-                                ${img}
-                                <div class="ac-name">
-                                    <div class="ac-name-zh">${displayName}</div>
-                                    ${subName ? `<div class="ac-name-en">${subName}</div>` : ''}
-                                </div>
-                                <span class="add-game-ac-badge">資料庫</span>
-                            </div>`;
-                        }).join('');
-                        drop.classList.add('open');
-                    })
-                    .catch(() => {
-                        if (inputEl.value.trim() !== query) return;
-                        drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);">搜尋失敗，請稍後再試</div>';
-                        drop.classList.add('open');
-                    });
+                const hdrs = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                const d1Url = `tables/game_database?search=${encodeURIComponent(query)}&limit=20&page=1`;
+                const bggUrl = `/api/bgg/search?query=${encodeURIComponent(query)}&type=boardgame`;
+                Promise.all([
+                    fetch(d1Url).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+                    fetch(bggUrl, { headers: hdrs, credentials: 'include' })
+                        .then(r => (r.ok ? r.json() : {}))
+                        .catch(() => ({})),
+                ]).then(([d, bgg]) => {
+                    if (inputEl.value.trim() !== query) return;
+                    const list = (d.data || []).slice(0, 20);
+                    const bggItems = (bgg.items && Array.isArray(bgg.items) ? bgg.items : []).slice(0, 15);
+                    const dbBggIds = new Set(
+                        list.map(g => g.bgg_id).filter(Boolean).map(x => String(x))
+                    );
+                    const parts = [];
+                    for (const g of list) {
+                        const displayName = g.name_zh || g.name_en || g.name_ja || '';
+                        if (!displayName) continue;
+                        const subName = (g.name_zh && g.name_en ? g.name_en : '') || '';
+                        const enc = encodeURIComponent(displayName);
+                        const img = g.image_url
+                            ? `<img src="${escapeHtml(g.image_url)}" onerror="this.style.display='none'">`
+                            : `<div style="width:28px;height:28px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>`;
+                        parts.push(`<div class="add-game-ac-item" tabindex="0" role="option"
+                            data-input-id="${escapeHtml(inputEl.id)}" data-drop-id="${escapeHtml(dropId)}" data-list-type="${escapeHtml(listType)}"
+                            data-display="${enc}" data-bgg-id=""
+                            onmousedown="event.preventDefault();acPick(this);">
+                            ${img}
+                            <div class="ac-name">
+                                <div class="ac-name-zh">${escapeHtml(displayName)}</div>
+                                ${subName ? `<div class="ac-name-en">${escapeHtml(subName)}</div>` : ''}
+                            </div>
+                            <span class="add-game-ac-badge">資料庫</span>
+                        </div>`);
+                    }
+                    for (const it of bggItems) {
+                        const id = String(it.id || '').trim();
+                        if (!id || dbBggIds.has(id)) continue;
+                        const displayName = String(it.name || '').trim() || `BGG ${id}`;
+                        const enc = encodeURIComponent(displayName);
+                        const subLine = it.year ? `${escapeHtml(String(it.year))} 年` : `id ${escapeHtml(id)}`;
+                        parts.push(`<div class="add-game-ac-item" tabindex="0" role="option"
+                            data-input-id="${escapeHtml(inputEl.id)}" data-drop-id="${escapeHtml(dropId)}" data-list-type="${escapeHtml(listType)}"
+                            data-display="${enc}" data-bgg-id="${escapeHtml(id)}"
+                            onmousedown="event.preventDefault();acPick(this);">
+                            <div style="width:28px;height:28px;border-radius:0.3rem;background:var(--border-color);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎲</div>
+                            <div class="ac-name">
+                                <div class="ac-name-zh">${escapeHtml(displayName)}</div>
+                                <div class="ac-name-en">${subLine}</div>
+                            </div>
+                            <span class="add-game-ac-badge bgg">BGG</span>
+                        </div>`);
+                    }
+                    if (!parts.length) {
+                        drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);pointer-events:none;">找不到符合的遊戲，可直接新增文字</div>';
+                    } else {
+                        drop.innerHTML = parts.join('');
+                    }
+                    drop.classList.add('open');
+                }).catch(() => {
+                    if (inputEl.value.trim() !== query) return;
+                    drop.innerHTML = '<div class="add-game-ac-item" style="color:var(--text-light);pointer-events:none;">搜尋失敗，請稍後再試</div>';
+                    drop.classList.add('open');
+                });
             }, 240);
-        }
-
-        function selectAc(inputId, dropId, value) {
-            const input = document.getElementById(inputId);
-            const drop = document.getElementById(dropId);
-            if (input) input.value = value;
-            if (drop) drop.classList.remove('open');
         }
 
         function closeAc(dropId) {
@@ -861,8 +947,7 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 if (idx >= 0) {
-                    const value = items[idx].querySelector('.ac-name-zh')?.textContent || '';
-                    if (value) selectAc(type === 'owned' ? 'add-owned-input' : 'add-buy-input', dropId, value.trim());
+                    acPick(items[idx]);
                 } else {
                     addGame(type);
                 }
