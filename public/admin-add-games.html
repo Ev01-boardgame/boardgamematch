@@ -553,7 +553,43 @@
         }
     }
 
-    // ── BGG Search XML：優先本站 Worker，失敗再 Jina ──
+    function derivePlayingTimePerPlayerFromBounds(minPlayers, maxPlayers, minPlaytime, maxPlaytime) {
+        const mn = minPlaytime != null && minPlaytime !== '' ? Number(minPlaytime) : NaN;
+        const mx = maxPlaytime != null && maxPlaytime !== '' ? Number(maxPlaytime) : NaN;
+        const minPlay = !isNaN(mn) && mn > 0 ? mn : null;
+        const maxPlay = !isNaN(mx) && mx > 0 ? mx : null;
+        if (minPlay == null && maxPlay == null) return null;
+        const minP = minPlayers != null && minPlayers !== '' ? Number(minPlayers) : NaN;
+        const maxP = maxPlayers != null && maxPlayers !== '' ? Number(maxPlayers) : NaN;
+        const minPer = (minPlay != null && !isNaN(maxP) && maxP > 0) ? minPlay / maxP : null;
+        const maxPer = (maxPlay != null && !isNaN(minP) && minP > 0) ? maxPlay / Math.max(minP, 1) : null;
+        const vals = [minPer, maxPer].filter(v => v != null && !isNaN(v));
+        if (!vals.length) return null;
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    }
+
+    function extractThingTaxonomyFromXmlItem(xmlItem) {
+        if (!xmlItem) return { category: [], mechanics: [], bgg_type: 'Uncategorized' };
+        const category = [];
+        const mechanics = [];
+        xmlItem.querySelectorAll('link[type="boardgamecategory"]').forEach((el) => {
+            const v = el.getAttribute('value');
+            if (v && String(v).trim()) category.push(String(v).trim());
+        });
+        xmlItem.querySelectorAll('link[type="boardgamemechanic"]').forEach((el) => {
+            const v = el.getAttribute('value');
+            if (v && String(v).trim()) mechanics.push(String(v).trim());
+        });
+        let bgg_type = 'Uncategorized';
+        const sub = xmlItem.querySelector('link[type="boardgamesubdomain"]');
+        if (sub) {
+            const sv = sub.getAttribute('value');
+            if (sv && String(sv).trim()) bgg_type = String(sv).trim();
+        }
+        return { category, mechanics, bgg_type };
+    }
+
+    // ── BGG Search：優先 Worker JSON（/api/bgg/search）→ 管理員 XML → Jina ──
     async function fetchBGGSearchResultsDoc(query) {
         const q = query.trim();
         function parseSearchDocFromText(text) {
@@ -570,14 +606,37 @@
             throw new Error('無法解析搜尋結果');
         }
 
-        async function viaWorker() {
-            const path = `api/admin/bgg/search?query=${encodeURIComponent(q)}&type=boardgame`;
+        function itemsJsonToSearchXmlDoc(items) {
+            function escXmlAttr(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
+            }
+            const parts = ['<?xml version="1.0" encoding="UTF-8"?><items>'];
+            for (const it of (items || []).slice(0, 30)) {
+                const id = String(it.id || '').trim();
+                if (!/^\d+$/.test(id)) continue;
+                const name = escXmlAttr(it.name || `BGG ${id}`);
+                parts.push(`<item id="${escXmlAttr(id)}" type="boardgame"><name type="primary" value="${name}" />`);
+                if (it.year != null && String(it.year).trim() !== '') {
+                    parts.push(`<yearpublished value="${escXmlAttr(String(it.year))}" />`);
+                }
+                parts.push('</item>');
+            }
+            parts.push('</items>');
+            return parseSearchDocFromText(parts.join(''));
+        }
+
+        async function viaWorkerJson() {
+            const path = `api/bgg/search?query=${encodeURIComponent(q)}&type=boardgame`;
             const headers = typeof getAuthHeaders === 'function'
-                ? getAuthHeaders({ Accept: 'application/xml, text/xml, */*' })
-                : { Accept: 'application/xml, text/xml, */*' };
+                ? getAuthHeaders({ Accept: 'application/json' })
+                : { Accept: 'application/json' };
             const resp = await fetch(path, {
                 method: 'GET',
                 headers,
+                credentials: 'include',
                 signal: AbortSignal.timeout(30000)
             });
             if (!resp.ok) {
@@ -586,7 +645,33 @@
                     const j = await resp.clone().json();
                     if (j && j.error) detail = ': ' + j.error;
                 } catch (e) { /* ignore */ }
-                throw new Error('Worker search HTTP ' + resp.status + detail);
+                throw new Error('Worker BGG search JSON HTTP ' + resp.status + detail);
+            }
+            const data = await resp.json().catch(() => ({}));
+            if (!data || !Array.isArray(data.items) || data.items.length === 0) {
+                throw new Error('BGG search JSON 無項目');
+            }
+            return itemsJsonToSearchXmlDoc(data.items);
+        }
+
+        async function viaWorkerXml() {
+            const path = `api/admin/bgg/search?query=${encodeURIComponent(q)}&type=boardgame`;
+            const headers = typeof getAuthHeaders === 'function'
+                ? getAuthHeaders({ Accept: 'application/xml, text/xml, */*' })
+                : { Accept: 'application/xml, text/xml, */*' };
+            const resp = await fetch(path, {
+                method: 'GET',
+                headers,
+                credentials: 'include',
+                signal: AbortSignal.timeout(30000)
+            });
+            if (!resp.ok) {
+                let detail = '';
+                try {
+                    const j = await resp.clone().json();
+                    if (j && j.error) detail = ': ' + j.error;
+                } catch (e) { /* ignore */ }
+                throw new Error('Worker admin search XML HTTP ' + resp.status + detail);
             }
             return parseSearchDocFromText(await resp.text());
         }
@@ -602,11 +687,17 @@
             return parseSearchDocFromText(await resp.text());
         }
 
-        let wErr = '';
+        let jsonErr = '';
         try {
-            return await viaWorker();
+            return await viaWorkerJson();
         } catch (e) {
-            wErr = e && e.message ? e.message : String(e);
+            jsonErr = e && e.message ? e.message : String(e);
+        }
+        let xmlErr = '';
+        try {
+            return await viaWorkerXml();
+        } catch (e) {
+            xmlErr = e && e.message ? e.message : String(e);
         }
         let jErr = '';
         try {
@@ -619,7 +710,7 @@
             return await viaJina();
         } catch (e2) {
             const j2 = e2 && e2.message ? e2.message : String(e2);
-            throw new Error(`Worker：${wErr}；Jina（兩次）：${jErr}；${j2}`);
+            throw new Error(`JSON：${jsonErr}；Admin XML：${xmlErr}；Jina（兩次）：${jErr}；${j2}`);
         }
     }
 
@@ -789,10 +880,15 @@
                 year:         creditsData?.year    || null,
                 min_players:  null,
                 max_players:  null,
+                min_playtime: null,
+                max_playtime: null,
                 playing_time: null,
                 complexity:   null,
                 image_url:    imageUrl,
                 bgg_id:       bggId,
+                category:     [],
+                mechanics:    [],
+                bgg_type:     null,
             };
 
             // ════════════════════════════════════════════════
@@ -820,16 +916,42 @@
                     const yearVal = xmlItem.querySelector('yearpublished')?.getAttribute('value');
                     if (yearVal && yearVal !== '0') game.year = parseInt(yearVal);
                 }
-                // 玩家數、時間、複雜度、描述（只有 XML 有）
+                // 玩家數、局時上下界、推估每位玩家分鐘、複雜度、BGG 分類（與 admin-games／axis-sync 一致）
                 const minP      = xmlItem.querySelector('minplayers')?.getAttribute('value');
                 const maxP      = xmlItem.querySelector('maxplayers')?.getAttribute('value');
-                const playTime  = xmlItem.querySelector('maxplaytime')?.getAttribute('value')
-                               || xmlItem.querySelector('playingtime')?.getAttribute('value');
+                const minPtRaw  = xmlItem.querySelector('minplaytime')?.getAttribute('value');
+                const maxPtRaw  = xmlItem.querySelector('maxplaytime')?.getAttribute('value');
+                const playTAlt  = xmlItem.querySelector('playingtime')?.getAttribute('value');
                 const weightVal = xmlItem.querySelector('averageweight')?.getAttribute('value');
-                if (minP)      game.min_players  = parseInt(minP);
-                if (maxP)      game.max_players  = parseInt(maxP);
-                if (playTime)  game.playing_time = parseInt(playTime);
-                if (weightVal) game.complexity   = Math.round(parseFloat(weightVal) * 100) / 100;
+                if (minP) game.min_players = parseInt(minP, 10);
+                if (maxP) game.max_players = parseInt(maxP, 10);
+                const mnPt = minPtRaw ? parseInt(minPtRaw, 10) : NaN;
+                const mxPt = maxPtRaw ? parseInt(maxPtRaw, 10) : NaN;
+                game.min_playtime = !isNaN(mnPt) && mnPt > 0 ? mnPt : null;
+                game.max_playtime = !isNaN(mxPt) && mxPt > 0 ? mxPt : null;
+                const derivedPt = derivePlayingTimePerPlayerFromBounds(
+                    game.min_players,
+                    game.max_players,
+                    game.min_playtime,
+                    game.max_playtime
+                );
+                if (derivedPt != null && !isNaN(derivedPt)) {
+                    game.playing_time = derivedPt;
+                } else {
+                    const fallback = xmlItem.querySelector('maxplaytime')?.getAttribute('value')
+                        || xmlItem.querySelector('playingtime')?.getAttribute('value')
+                        || playTAlt;
+                    if (fallback) {
+                        const n = parseInt(fallback, 10);
+                        if (!isNaN(n) && n > 0) game.playing_time = n;
+                    }
+                }
+                if (weightVal) game.complexity = Math.round(parseFloat(weightVal) * 100) / 100;
+
+                const tax = extractThingTaxonomyFromXmlItem(xmlItem);
+                if (tax.category.length) game.category = tax.category;
+                if (tax.mechanics.length) game.mechanics = tax.mechanics;
+                if (tax.bgg_type && tax.bgg_type !== 'Uncategorized') game.bgg_type = tax.bgg_type;
 
                 console.log(`[BGG ${bggId}] XML 補充完成`);
             } catch(xmlErr) {
@@ -1355,8 +1477,12 @@
                 const payload = { ...g.data };
                 // 確保欄位格式正確
                 payload.bgg_id = String(g.bggId);
-                // 移除空字串
-                Object.keys(payload).forEach(k => { if (payload[k] === '' || payload[k] === null) delete payload[k]; });
+                // 移除空字串與空陣列
+                Object.keys(payload).forEach(k => {
+                    const v = payload[k];
+                    if (v === '' || v === null) delete payload[k];
+                    if (Array.isArray(v) && v.length === 0) delete payload[k];
+                });
 
                 const resp = await fetch('tables/game_database', {
                     method: 'POST',
