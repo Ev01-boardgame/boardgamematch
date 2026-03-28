@@ -26,7 +26,7 @@
  *
  * BGG 收藏預覽（需 X-Api-Key + Authorization Bearer Google JWT）：
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
- *   — 代理 BGG xmlapi2/collection（含 202 輪詢）、對照 game_database.bgg_id
+ *   — 代理 BGG xmlapi2/collection（含 202 輪詢、page 分頁合併）、對照 game_database.bgg_id
  *
  * BGG 搜尋 JSON（需 X-Api-Key + JWT，不需 admin）：
  *   GET /api/bgg/search?query=...&type=boardgame
@@ -349,12 +349,13 @@ const BGG_COLLECTION_BROWSER_HEADERS = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
 };
 
-function buildBggCollectionApiUrl(username, includeExpansions) {
+function buildBggCollectionApiUrl(username, includeExpansions, page = 1) {
   const params = new URLSearchParams({
     username: username.trim(),
     own: '1',
     wishlist: '1',
     stats: '0',
+    page: String(Math.max(1, page)),
   });
   if (!includeExpansions) {
     params.set('excludesubtype', 'boardgameexpansion');
@@ -398,11 +399,11 @@ async function fetchBggCollectionXmlViaJina(bggUrl) {
 }
 
 /**
- * BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
+ * 單頁：BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
  * 直連若 401/403（隱私或阻擋 Worker IP），再試 Jina 備援。
  */
-async function fetchBggCollectionXml(username, includeExpansions, env) {
-  const bggUrl = buildBggCollectionApiUrl(username, includeExpansions);
+async function fetchBggCollectionXmlOnePage(username, includeExpansions, page, env) {
+  const bggUrl = buildBggCollectionApiUrl(username, includeExpansions, page);
   const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
   const bearer =
     env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
@@ -437,7 +438,7 @@ async function fetchBggCollectionXml(username, includeExpansions, env) {
 
   if (directAuthFail) {
     try {
-      console.warn('bgg collection: direct 401/403, trying Jina fallback', username);
+      console.warn('bgg collection: direct 401/403, trying Jina fallback', username, 'page', page);
       return await fetchBggCollectionXmlViaJina(bggUrl);
     } catch (e) {
       const err = new Error(
@@ -453,6 +454,82 @@ async function fetchBggCollectionXml(username, includeExpansions, env) {
   const err = new Error(`BGG collection 逾時（最後 HTTP ${lastStatus}）`);
   err.bggStatus = 503;
   throw err;
+}
+
+/** BGG collection 每頁約 100 筆，必須帶 page=1,2,… 合併；否則大收藏只會看到第一頁。 */
+async function fetchBggCollectionMerged(username, includeExpansions, env) {
+  const mergedOwned = [];
+  const mergedWish = [];
+  const seenOwned = new Set();
+  const seenWish = new Set();
+  let totalitems = null;
+  let cumulativeItemTags = 0;
+  const maxPages = 80;
+  let prevMergedSize = 0;
+
+  for (let page = 1; page <= maxPages; page++) {
+    let xml;
+    try {
+      xml = await fetchBggCollectionXmlOnePage(username, includeExpansions, page, env);
+    } catch (e) {
+      if (page === 1) throw e;
+      console.warn('bgg collection merged: stop at page', page, e && e.message);
+      break;
+    }
+
+    if (/<error\s+message=/i.test(xml)) {
+      const em = /message="([^"]+)"/.exec(xml);
+      if (page === 1) {
+        const err = new Error(em ? em[1] : 'BGG 回傳錯誤');
+        err.bggStatus = 400;
+        throw err;
+      }
+      break;
+    }
+
+    if (page === 1) {
+      const msg = parseBggCollectionMessage(xml);
+      if (msg && (/invalid/i.test(msg) || /not found/i.test(msg))) {
+        const err = new Error(`BGG：${msg}`);
+        err.bggStatus = 400;
+        throw err;
+      }
+    }
+
+    if (totalitems == null) {
+      const tm = /<items\b[^>]*\btotalitems="(\d+)"/i.exec(xml);
+      if (tm) totalitems = parseInt(tm[1], 10);
+    }
+
+    const { owned, wishlist } = parseBggCollectionItems(xml);
+    for (const it of owned) {
+      const id = String(it.bgg_id || '').trim();
+      if (!id || seenOwned.has(id)) continue;
+      seenOwned.add(id);
+      mergedOwned.push(it);
+    }
+    for (const it of wishlist) {
+      const id = String(it.bgg_id || '').trim();
+      if (!id || seenWish.has(id)) continue;
+      seenWish.add(id);
+      mergedWish.push(it);
+    }
+
+    const itemOpenCount = (xml.match(/<item\b/gi) || []).length;
+    cumulativeItemTags += itemOpenCount;
+
+    const mergedSize = mergedOwned.length + mergedWish.length;
+    if (itemOpenCount === 0) break;
+    if (page > 1 && mergedSize === prevMergedSize) break;
+    prevMergedSize = mergedSize;
+    if (totalitems != null) {
+      if (cumulativeItemTags >= totalitems) break;
+    } else if (itemOpenCount < 100) {
+      break;
+    }
+  }
+
+  return { owned: mergedOwned, wishlist: mergedWish };
 }
 
 function parseBggCollectionMessage(xml) {
@@ -765,9 +842,9 @@ async function handleGetBggCollectionPreview(request, env, origin, db) {
     return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
   }
 
-  let xml;
+  let collectionParts;
   try {
-    xml = await fetchBggCollectionXml(username, includeExpansions, env);
+    collectionParts = await fetchBggCollectionMerged(username, includeExpansions, env);
   } catch (e) {
     console.error('bgg collection-preview fetch', e && e.message, e && e.bggBodySnippet);
     const st = e && e.bggStatus;
@@ -787,17 +864,7 @@ async function handleGetBggCollectionPreview(request, env, origin, db) {
     return errorResponse(e.message || 'BGG collection request failed', clientStatus, origin, env);
   }
 
-  if (/<error\s+message=/i.test(xml)) {
-    const em = /message="([^"]+)"/.exec(xml);
-    return errorResponse(em ? em[1] : 'BGG 回傳錯誤', 400, origin, env);
-  }
-
-  const msg = parseBggCollectionMessage(xml);
-  if (msg && (/invalid/i.test(msg) || /not found/i.test(msg))) {
-    return errorResponse(`BGG：${msg}`, 400, origin, env);
-  }
-
-  const { owned, wishlist } = parseBggCollectionItems(xml);
+  const { owned, wishlist } = collectionParts;
   const allIds = [...owned, ...wishlist].map((x) => x.bgg_id);
   const lookup = await lookupGamesByBggIds(db, allIds);
 
@@ -1023,6 +1090,7 @@ export default {
           JSON.stringify({
             participatingUsers: agg.participatingUsers,
             nameCounts: agg.nameCounts,
+            bggPendingIdCounts: agg.bggPendingIdCounts || [],
             games
           }),
           { status: 200, headers }
@@ -1407,15 +1475,19 @@ function parseJsonArray(str) {
   return Array.isArray(str) ? str : [];
 }
 
-/** 別名後台：掃 users 四個清單欄位，聚合字串 → 次數（D1 端分批，避免單次回傳過大） */
+/** 別名後台：掃 users 喜好清單 + 擁有／想買收藏 + 待對照 BGG ID（D1 分批） */
 async function aggregateGameNamesForAdmin(db) {
   const counts = new Map();
+  const pendingById = new Map(); // bgg_id -> { count, owned_pending, buy_pending }
   let participatingUsers = 0;
   let offset = 0;
   const BATCH = 500;
   for (;;) {
     const r = await db.prepare(
-      'SELECT liked_games, neutral_games, disliked_games, wishlist FROM users LIMIT ? OFFSET ?'
+      `SELECT liked_games, neutral_games, disliked_games, wishlist,
+              owned_games, to_buy_games,
+              owned_games_bgg_pending, to_buy_games_bgg_pending
+       FROM users LIMIT ? OFFSET ?`
     ).bind(BATCH, offset).all();
     const rows = r.results || [];
     if (rows.length === 0) break;
@@ -1424,20 +1496,51 @@ async function aggregateGameNamesForAdmin(db) {
         ...parseJsonArray(row.liked_games),
         ...parseJsonArray(row.neutral_games),
         ...parseJsonArray(row.disliked_games),
-        ...parseJsonArray(row.wishlist)
+        ...parseJsonArray(row.wishlist),
+        ...parseJsonArray(row.owned_games),
+        ...parseJsonArray(row.to_buy_games),
       ];
-      if (merged.length) participatingUsers++;
+      const pendO = parseJsonArray(row.owned_games_bgg_pending);
+      const pendB = parseJsonArray(row.to_buy_games_bgg_pending);
+      const hasPending = pendO.length > 0 || pendB.length > 0;
+      if (merged.length > 0 || hasPending) participatingUsers++;
+
       for (const g of merged) {
         const name = typeof g === 'string' ? g.trim() : '';
         if (!name) continue;
         counts.set(name, (counts.get(name) || 0) + 1);
+      }
+
+      for (const raw of pendO) {
+        const id = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : '';
+        if (!id || !/^\d+$/.test(id)) continue;
+        const cur = pendingById.get(id) || { count: 0, owned_pending: 0, buy_pending: 0 };
+        cur.count += 1;
+        cur.owned_pending += 1;
+        pendingById.set(id, cur);
+      }
+      for (const raw of pendB) {
+        const id = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : '';
+        if (!id || !/^\d+$/.test(id)) continue;
+        const cur = pendingById.get(id) || { count: 0, owned_pending: 0, buy_pending: 0 };
+        cur.count += 1;
+        cur.buy_pending += 1;
+        pendingById.set(id, cur);
       }
     }
     if (rows.length < BATCH) break;
     offset += BATCH;
   }
   const nameCounts = Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
-  return { participatingUsers, nameCounts };
+  const bggPendingIdCounts = Array.from(pendingById.entries())
+    .map(([bgg_id, v]) => ({
+      bgg_id,
+      count: v.count,
+      owned_pending: v.owned_pending,
+      buy_pending: v.buy_pending,
+    }))
+    .sort((a, b) => b.count - a.count);
+  return { participatingUsers, nameCounts, bggPendingIdCounts };
 }
 
 /** 別名後台：僅需比對／自動完成用的遊戲名稱 */

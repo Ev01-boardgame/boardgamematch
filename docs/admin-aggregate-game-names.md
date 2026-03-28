@@ -17,12 +17,16 @@
 {
   "participatingUsers": 123,
   "nameCounts": [{ "name": "某遊戲", "count": 5 }],
+  "bggPendingIdCounts": [
+    { "bgg_id": "377303", "count": 2, "owned_pending": 1, "buy_pending": 1 }
+  ],
   "games": [{ "name_zh": "中文名", "name_en": "English" }]
 }
 ```
 
-- `participatingUsers`：至少有一筆 `liked_games` / `neutral_games` / `disliked_games` / `wishlist` 資料的使用者人數。
-- `nameCounts`：上述四欄合併後，每個字串出現次數。
+- `participatingUsers`：至少有一筆 `liked_games` / `neutral_games` / `disliked_games` / `wishlist` / **`owned_games` / `to_buy_games`** 字串，或 **`owned_games_bgg_pending` / `to_buy_games_bgg_pending`** 內有 BGG ID 的使用者人數。
+- `nameCounts`：上述六個「名稱清單」欄位合併後，每個字串出現次數。
+- `bggPendingIdCounts`：全站待對照 BGG ID（依出現次數降序）。`count` 為欄位內出現總次數（同一使用者在擁有待對照與想買待對照各一筆會算 2）；`owned_pending` / `buy_pending` 為分別出現在兩欄的次數。
 - `games`：`game_database` 的 `name_zh`、`name_en`（略過 `deleted_at` 已刪除列，若表有該欄）。
 
 ## 部署注意
