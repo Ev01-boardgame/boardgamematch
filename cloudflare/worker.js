@@ -26,7 +26,7 @@
  *
  * BGG 收藏預覽（需 X-Api-Key + Authorization Bearer Google JWT）：
  *   GET /api/bgg/collection-preview?username=&include_expansions=0|1
- *   — 代理 BGG xmlapi2/collection（含 202 輪詢、page 分頁合併）、對照 game_database.bgg_id
+ *   — 代理 BGG xmlapi2/collection（202 輪詢、page 分頁；擁有／願望分開請求再 OR 合併）、對照 game_database.bgg_id
  *
  * BGG 搜尋 JSON（需 X-Api-Key + JWT，不需 admin）：
  *   GET /api/bgg/search?query=...&type=boardgame
@@ -349,14 +349,22 @@ const BGG_COLLECTION_BROWSER_HEADERS = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
 };
 
-function buildBggCollectionApiUrl(username, includeExpansions, page = 1) {
+/**
+ * BGG collection：同時帶 own=1 與 wishlist=1 時為 AND（同時擁有＋願望），不是 OR。
+ * 必須分開請求「僅擁有」「僅願望」再合併。
+ * @param {'own'|'wishlist'} mode
+ */
+function buildBggCollectionApiUrl(username, includeExpansions, page = 1, mode = 'own') {
   const params = new URLSearchParams({
     username: username.trim(),
-    own: '1',
-    wishlist: '1',
     stats: '0',
     page: String(Math.max(1, page)),
   });
+  if (mode === 'own') {
+    params.set('own', '1');
+  } else if (mode === 'wishlist') {
+    params.set('wishlist', '1');
+  }
   if (!includeExpansions) {
     params.set('excludesubtype', 'boardgameexpansion');
     params.set('excludeexpansion', '1');
@@ -402,8 +410,8 @@ async function fetchBggCollectionXmlViaJina(bggUrl) {
  * 單頁：BGG xmlapi2/collection 常先回 202（背景建快取），必須重試至 200。
  * 直連若 401/403（隱私或阻擋 Worker IP），再試 Jina 備援。
  */
-async function fetchBggCollectionXmlOnePage(username, includeExpansions, page, env) {
-  const bggUrl = buildBggCollectionApiUrl(username, includeExpansions, page);
+async function fetchBggCollectionXmlOnePage(username, includeExpansions, page, env, mode = 'own') {
+  const bggUrl = buildBggCollectionApiUrl(username, includeExpansions, page, mode);
   const directHeaders = { ...BGG_COLLECTION_BROWSER_HEADERS };
   const bearer =
     env && env.BGG_XML_API_BEARER && String(env.BGG_XML_API_BEARER).trim();
@@ -456,12 +464,57 @@ async function fetchBggCollectionXmlOnePage(username, includeExpansions, page, e
   throw err;
 }
 
-/** BGG collection 每頁約 100 筆，必須帶 page=1,2,… 合併；否則大收藏只會看到第一頁。 */
-async function fetchBggCollectionMerged(username, includeExpansions, env) {
-  const mergedOwned = [];
-  const mergedWish = [];
-  const seenOwned = new Set();
-  const seenWish = new Set();
+/**
+ * 從 collection XML 取出所有 item（不依 status 分類；呼叫端已用 own / wishlist 參數過濾）。
+ * 支援 <name value="…"/> 與自閉合 <item …/>。
+ */
+function parseBggCollectionItemRows(xml) {
+  const out = [];
+  if (!xml || typeof xml !== 'string') return out;
+  let pos = 0;
+  while (pos < xml.length) {
+    const start = xml.indexOf('<item', pos);
+    if (start === -1) break;
+    const gt = xml.indexOf('>', start);
+    if (gt === -1) break;
+    const openTag = xml.slice(start, gt + 1);
+    const isSelfClosing = /\/>\s*$/.test(openTag);
+    let inner = '';
+    let nextPos;
+    if (isSelfClosing) {
+      nextPos = gt + 1;
+    } else {
+      const close = xml.indexOf('</item>', gt + 1);
+      if (close === -1) {
+        pos = gt + 1;
+        continue;
+      }
+      inner = xml.slice(gt + 1, close);
+      nextPos = close + '</item>'.length;
+    }
+    pos = nextPos;
+
+    let oid = /\bobjectid="(\d+)"/i.exec(openTag);
+    if (!oid && inner) oid = /\bobjectid="(\d+)"/i.exec(inner);
+    if (!oid) continue;
+    const bggId = oid[1];
+
+    let name = '';
+    const valM = /<name\b[^>]*\bvalue="([^"]*)"/i.exec(inner);
+    if (valM) name = String(valM[1] || '').trim();
+    if (!name) {
+      const textM = /<name\b[^>]*>([^<]*)<\/name>/i.exec(inner);
+      if (textM) name = String(textM[1] || '').trim();
+    }
+    out.push({ bgg_id: bggId, name: name || `BGG ${bggId}` });
+  }
+  return out;
+}
+
+/** 單一模式（own 或 wishlist）下分頁抓滿 */
+async function fetchBggCollectionAllPagesForMode(username, includeExpansions, env, mode) {
+  const merged = [];
+  const seen = new Set();
   let totalitems = null;
   let cumulativeItemTags = 0;
   const maxPages = 80;
@@ -470,10 +523,10 @@ async function fetchBggCollectionMerged(username, includeExpansions, env) {
   for (let page = 1; page <= maxPages; page++) {
     let xml;
     try {
-      xml = await fetchBggCollectionXmlOnePage(username, includeExpansions, page, env);
+      xml = await fetchBggCollectionXmlOnePage(username, includeExpansions, page, env, mode);
     } catch (e) {
       if (page === 1) throw e;
-      console.warn('bgg collection merged: stop at page', page, e && e.message);
+      console.warn('bgg collection mode', mode, 'stop at page', page, e && e.message);
       break;
     }
 
@@ -501,24 +554,18 @@ async function fetchBggCollectionMerged(username, includeExpansions, env) {
       if (tm) totalitems = parseInt(tm[1], 10);
     }
 
-    const { owned, wishlist } = parseBggCollectionItems(xml);
-    for (const it of owned) {
+    const rows = parseBggCollectionItemRows(xml);
+    for (const it of rows) {
       const id = String(it.bgg_id || '').trim();
-      if (!id || seenOwned.has(id)) continue;
-      seenOwned.add(id);
-      mergedOwned.push(it);
-    }
-    for (const it of wishlist) {
-      const id = String(it.bgg_id || '').trim();
-      if (!id || seenWish.has(id)) continue;
-      seenWish.add(id);
-      mergedWish.push(it);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      merged.push(it);
     }
 
     const itemOpenCount = (xml.match(/<item\b/gi) || []).length;
     cumulativeItemTags += itemOpenCount;
 
-    const mergedSize = mergedOwned.length + mergedWish.length;
+    const mergedSize = merged.length;
     if (itemOpenCount === 0) break;
     if (page > 1 && mergedSize === prevMergedSize) break;
     prevMergedSize = mergedSize;
@@ -529,36 +576,24 @@ async function fetchBggCollectionMerged(username, includeExpansions, env) {
     }
   }
 
+  return merged;
+}
+
+/** 擁有與願望分開向 BGG 請求後合併（OR 語意）。 */
+async function fetchBggCollectionMerged(username, includeExpansions, env) {
+  const mergedOwned = await fetchBggCollectionAllPagesForMode(username, includeExpansions, env, 'own');
+  let mergedWish = [];
+  try {
+    mergedWish = await fetchBggCollectionAllPagesForMode(username, includeExpansions, env, 'wishlist');
+  } catch (e) {
+    console.warn('bgg collection wishlist mode failed', e && e.message);
+  }
   return { owned: mergedOwned, wishlist: mergedWish };
 }
 
 function parseBggCollectionMessage(xml) {
   const m = /<message[^>]*>([\s\S]*?)<\/message>/i.exec(xml);
   return m ? m[1].replace(/\s+/g, ' ').trim() : null;
-}
-
-function parseBggCollectionItems(xml) {
-  const owned = [];
-  const wishlist = [];
-  const re = /<item\s+([^>]+)>([\s\S]*?)<\/item>/gi;
-  let m;
-  while ((m = re.exec(xml)) !== null) {
-    const open = m[1];
-    const block = m[2];
-    const oidMatch = /objectid="(\d+)"/i.exec(open);
-    if (!oidMatch) continue;
-    const bggId = oidMatch[1];
-    const nameMatch = /<name\b[^>]*>([^<]*)<\/name>/i.exec(block);
-    const name = nameMatch ? nameMatch[1].trim() : '';
-    const statusMatch = block.match(/<status\s+([^>]+?)\s*\/>/i);
-    const st = statusMatch ? statusMatch[1] : '';
-    const isOwn = /\bown="1"/i.test(st);
-    const isWish = /\bwishlist="1"/i.test(st);
-    const entry = { bgg_id: bggId, name };
-    if (isOwn) owned.push(entry);
-    if (isWish) wishlist.push(entry);
-  }
-  return { owned, wishlist };
 }
 
 async function lookupGamesByBggIds(db, ids) {
