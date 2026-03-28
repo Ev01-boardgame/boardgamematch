@@ -1228,10 +1228,12 @@ async function pruneResolvedBggPendingForUser(user) {
     };
     let ownedBggPending = toArray(user.owned_games_bgg_pending);
     let toBuyBggPending = toArray(user.to_buy_games_bgg_pending);
-    const ids = [...new Set([...ownedBggPending, ...toBuyBggPending].map(String))]
+    const ids = [...new Set([...ownedBggPending, ...toBuyBggPending].map((x) => String(x).trim()))]
         .filter((id) => /^\d+$/.test(id))
         .slice(0, 100);
-    if (!ids.length) return false;
+    if (!ids.length) {
+        return false;
+    }
 
     try {
         const r = await fetch('/api/bgg/resolve-pending-ids?ids=' + encodeURIComponent(ids.join(',')), {
@@ -1310,6 +1312,11 @@ async function pruneResolvedBggPendingForUser(user) {
             to_buy_games_bgg_pending: toBuyBggPending,
         });
         setCurrentUser(user);
+        console.info(
+            '[pruneResolvedBggPending] 已對照資料庫並寫回：已自 pending 移除',
+            [...inDb].join(','),
+            '（若擁有／想買名稱與 DB 的 name_zh/name_en 完全相同則字串不變）'
+        );
         return true;
     } catch (e) {
         console.warn('pruneResolvedBggPendingForUser failed', e);
