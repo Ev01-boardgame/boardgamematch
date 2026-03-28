@@ -874,7 +874,10 @@
                 
                 // 🔧 自動清理舊格式遊戲名稱（含「·」分隔符的合併名稱）
                 await cleanupLegacyGameNames(currentUser);
-                
+                if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
+                    window.currentUser = currentUser;
+                }
+
                 console.log('📍 步驟 6: 準備載入所有使用者...');
 
                 // 載入所有使用者（用於統計）—— 若步驟 2 已快取則跳過

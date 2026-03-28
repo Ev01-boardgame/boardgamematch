@@ -665,6 +665,17 @@
             toBuyBggPending = toArr(currentUser.to_buy_games_bgg_pending);
             updatePendingHint();
             try {
+                if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
+                    ownedGames = toArr(currentUser.owned_games);
+                    toBuyGames = toArr(currentUser.to_buy_games);
+                    ownedBggPending = toArr(currentUser.owned_games_bgg_pending);
+                    toBuyBggPending = toArr(currentUser.to_buy_games_bgg_pending);
+                    updatePendingHint();
+                    const sh = document.getElementById('save-hint');
+                    if (sh) sh.textContent = '已依資料庫對照更新待匯入 ID 與顯示名稱';
+                }
+            } catch (e) {}
+            try {
                 const rawPinned = currentUser?.pinned_games;
                 const parsed = typeof rawPinned === 'string' ? JSON.parse(rawPinned) : rawPinned;
                 pinnedGames.owned = Array.isArray(parsed?.owned) ? [...parsed.owned] : [];

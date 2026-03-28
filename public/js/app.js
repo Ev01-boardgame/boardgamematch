@@ -1210,6 +1210,98 @@ async function updateWishlist(userId, gameName, action = 'add') {
     }
 }
 
+/**
+ * 若 *_bgg_pending 的 ID 已存在 game_database，自 pending 移除，並將擁有／想買字串對齊資料庫主名（name_zh 優先）。
+ * @returns {Promise<boolean>} 是否已寫回資料庫
+ */
+async function pruneResolvedBggPendingForUser(user) {
+    if (!user || user.id == null) return false;
+    const toArray = (v) => {
+        if (Array.isArray(v)) return v;
+        if (typeof v === 'string' && v) {
+            try {
+                const p = JSON.parse(v);
+                return Array.isArray(p) ? p : [];
+            } catch (e) {}
+        }
+        return [];
+    };
+    let ownedBggPending = toArray(user.owned_games_bgg_pending);
+    let toBuyBggPending = toArray(user.to_buy_games_bgg_pending);
+    const ids = [...new Set([...ownedBggPending, ...toBuyBggPending].map(String))]
+        .filter((id) => /^\d+$/.test(id))
+        .slice(0, 100);
+    if (!ids.length) return false;
+
+    try {
+        const r = await fetch('/api/bgg/resolve-pending-ids?ids=' + encodeURIComponent(ids.join(',')), {
+            headers: getAuthHeaders(),
+            credentials: 'include',
+        });
+        if (!r.ok) return false;
+        const data = await r.json();
+        const items = data.items || [];
+        if (!items.length) return false;
+
+        const inDb = new Set(items.map((it) => String(it.bgg_id)));
+        let dirty = false;
+        ownedBggPending = ownedBggPending.filter((id) => {
+            if (inDb.has(String(id))) {
+                dirty = true;
+                return false;
+            }
+            return true;
+        });
+        toBuyBggPending = toBuyBggPending.filter((id) => {
+            if (inDb.has(String(id))) {
+                dirty = true;
+                return false;
+            }
+            return true;
+        });
+
+        let ownedGames = toArray(user.owned_games);
+        let toBuyGames = toArray(user.to_buy_games);
+        for (const it of items) {
+            const canon = String((it.name_zh || it.name_en || '').trim());
+            const candidates = [it.name_en, it.name_zh].filter(Boolean).map((s) => String(s).trim());
+            for (let i = 0; i < ownedGames.length; i++) {
+                const g = String(ownedGames[i] || '').trim();
+                if (candidates.some((c) => c && g === c) && canon && ownedGames[i] !== canon) {
+                    ownedGames[i] = canon;
+                    dirty = true;
+                }
+            }
+            for (let i = 0; i < toBuyGames.length; i++) {
+                const g = String(toBuyGames[i] || '').trim();
+                if (candidates.some((c) => c && g === c) && canon && toBuyGames[i] !== canon) {
+                    toBuyGames[i] = canon;
+                    dirty = true;
+                }
+            }
+        }
+
+        if (!dirty) return false;
+
+        user.owned_games_bgg_pending = ownedBggPending;
+        user.to_buy_games_bgg_pending = toBuyBggPending;
+        user.owned_games = ownedGames;
+        user.to_buy_games = toBuyGames;
+
+        await safePatch(`tables/users/${user.id}`, {
+            owned_games: ownedGames,
+            to_buy_games: toBuyGames,
+            owned_games_bgg_pending: ownedBggPending,
+            to_buy_games_bgg_pending: toBuyBggPending,
+        });
+        setCurrentUser(user);
+        return true;
+    } catch (e) {
+        console.warn('pruneResolvedBggPendingForUser failed', e);
+        return false;
+    }
+}
+
 // 匯出函數供全域使用
 window.GameMBTI = {
     MBTI_TYPES,
@@ -1250,5 +1342,6 @@ window.GameMBTI = {
     getRandomGame,
     recordGameAnswer,
     getAnswerStreak,
-    updateWishlist
+    updateWishlist,
+    pruneResolvedBggPendingForUser
 };
