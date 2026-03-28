@@ -455,6 +455,15 @@
             </div>
         </div>
 
+        <div id="bgg-pending-panel" class="alias-card" style="margin-bottom:1.25rem;display:none;">
+            <h3 style="margin:0 0 0.5rem;font-size:1rem;">🧩 待匯入 BGG ID（玩家收藏尚無站內對照）</h3>
+            <p class="hint" style="margin:0 0 0.75rem;line-height:1.45;font-size:0.86rem;">
+                以下為全站使用者寫入 <code>owned_games_bgg_pending</code>／<code>to_buy_games_bgg_pending</code> 的次數（同一人在兩欄各出現會算兩次）。
+                請到 <a href="admin-add-games.html">批次新增遊戲（BGG ID）</a> 匯入後，玩家端即會與資料庫對照。
+            </p>
+            <div id="bgg-pending-panel-body" style="overflow-x:auto;max-height:14rem;"></div>
+        </div>
+
         <!-- 批量操作 -->
         <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem; align-items:center;">
             <button onclick="previewAliasApply()" id="preview-apply-btn"
@@ -571,8 +580,56 @@
         let lastFilteredAliases = [];
         const ALIAS_PAGE_SIZE = 20;
         let aliasListPage = 1;
-        /** 至少有一筆喜歡／中立／不喜歡／願望清單資料的使用者數（載入時計算） */
+        /** 至少有一筆清單或待對照 BGG ID 的使用者數（載入時計算） */
         let statParticipatingUsers = 0;
+        /** 來自 aggregate API 或 legacy 掃描：{ bgg_id, count, owned_pending, buy_pending }[] */
+        let bggPendingIdCounts = [];
+
+        function userJsonStringArray(v) {
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string' && v) {
+                try {
+                    const p = JSON.parse(v);
+                    return Array.isArray(p) ? p : [];
+                } catch (e) { /* ignore */ }
+            }
+            return [];
+        }
+
+        function renderBggPendingPanel() {
+            const wrap = document.getElementById('bgg-pending-panel');
+            const body = document.getElementById('bgg-pending-panel-body');
+            if (!wrap || !body) return;
+            if (!bggPendingIdCounts.length) {
+                wrap.style.display = 'none';
+                body.innerHTML = '';
+                return;
+            }
+            wrap.style.display = 'block';
+            body.innerHTML = `
+                <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+                    <thead><tr style="text-align:left;border-bottom:1px solid var(--border-color);">
+                        <th style="padding:0.35rem 0.5rem;">BGG ID</th>
+                        <th style="padding:0.35rem 0.5rem;">出現次數</th>
+                        <th style="padding:0.35rem 0.5rem;">擁有待對照</th>
+                        <th style="padding:0.35rem 0.5rem;">想買待對照</th>
+                        <th style="padding:0.35rem 0.5rem;"></th>
+                    </tr></thead>
+                    <tbody>
+                        ${bggPendingIdCounts.slice(0, 80).map(row => {
+                            const id = String(row.bgg_id || '').replace(/"/g, '&quot;');
+                            return `<tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:0.35rem 0.5rem;font-weight:600;">${id}</td>
+                                <td style="padding:0.35rem 0.5rem;">${Number(row.count) || 0}</td>
+                                <td style="padding:0.35rem 0.5rem;">${Number(row.owned_pending) || 0}</td>
+                                <td style="padding:0.35rem 0.5rem;">${Number(row.buy_pending) || 0}</td>
+                                <td style="padding:0.35rem 0.5rem;"><a href="https://boardgamegeek.com/boardgame/${id}" target="_blank" rel="noopener">BGG ↗</a></td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+                ${bggPendingIdCounts.length > 80 ? `<p class="hint" style="margin:0.5rem 0 0;">僅顯示前 80 筆（依出現次數排序）。</p>` : ''}`;
+        }
 
         function authHeaders() {
             const h = { 'Content-Type': 'application/json' };
@@ -612,21 +669,52 @@
             }
 
             const gameStats = new Map();
+            const pendingMap = new Map();
             statParticipatingUsers = 0;
             users.forEach(user => {
                 const allUserGames = [
-                    ...(user.liked_games || []),
-                    ...(user.neutral_games || []),
-                    ...(user.disliked_games || []),
-                    ...(user.wishlist || [])
+                    ...userJsonStringArray(user.liked_games),
+                    ...userJsonStringArray(user.neutral_games),
+                    ...userJsonStringArray(user.disliked_games),
+                    ...userJsonStringArray(user.wishlist),
+                    ...userJsonStringArray(user.owned_games),
+                    ...userJsonStringArray(user.to_buy_games),
                 ];
-                if (allUserGames.length > 0) statParticipatingUsers++;
+                const pendO = userJsonStringArray(user.owned_games_bgg_pending);
+                const pendB = userJsonStringArray(user.to_buy_games_bgg_pending);
+                if (allUserGames.length > 0 || pendO.length > 0 || pendB.length > 0) statParticipatingUsers++;
                 allUserGames.forEach(game => {
-                    if (!gameStats.has(game)) gameStats.set(game, 0);
-                    gameStats.set(game, gameStats.get(game) + 1);
+                    const g = typeof game === 'string' ? game.trim() : '';
+                    if (!g) return;
+                    if (!gameStats.has(g)) gameStats.set(g, 0);
+                    gameStats.set(g, gameStats.get(g) + 1);
                 });
+                for (const raw of pendO) {
+                    const id = String(raw || '').trim();
+                    if (!/^\d+$/.test(id)) continue;
+                    const cur = pendingMap.get(id) || { count: 0, owned_pending: 0, buy_pending: 0 };
+                    cur.count += 1;
+                    cur.owned_pending += 1;
+                    pendingMap.set(id, cur);
+                }
+                for (const raw of pendB) {
+                    const id = String(raw || '').trim();
+                    if (!/^\d+$/.test(id)) continue;
+                    const cur = pendingMap.get(id) || { count: 0, owned_pending: 0, buy_pending: 0 };
+                    cur.count += 1;
+                    cur.buy_pending += 1;
+                    pendingMap.set(id, cur);
+                }
             });
-            return gameStats;
+            const legacyBggPending = Array.from(pendingMap.entries())
+                .map(([bgg_id, v]) => ({
+                    bgg_id,
+                    count: v.count,
+                    owned_pending: v.owned_pending,
+                    buy_pending: v.buy_pending,
+                }))
+                .sort((a, b) => b.count - a.count);
+            return { gameStats, bggPendingIdCounts: legacyBggPending };
         }
 
         // 載入所有資料
@@ -639,6 +727,7 @@
                     const agg = await aggRes.json();
                     statParticipatingUsers = Number(agg.participatingUsers) || 0;
                     allGames = Array.isArray(agg.games) ? agg.games : [];
+                    bggPendingIdCounts = Array.isArray(agg.bggPendingIdCounts) ? agg.bggPendingIdCounts : [];
                     for (const row of agg.nameCounts || []) {
                         if (row && row.name != null && row.name !== '') {
                             gameStats.set(row.name, Number(row.count) || 0);
@@ -646,7 +735,9 @@
                     }
                 } else {
                     console.warn('admin/aggregate-game-names 不可用（', aggRes.status, '），改為整表載入');
-                    gameStats = await loadGameStatsLegacy();
+                    const legacy = await loadGameStatsLegacy();
+                    gameStats = legacy.gameStats;
+                    bggPendingIdCounts = legacy.bggPendingIdCounts || [];
                 }
 
                 // 載入別名對應資料（分頁取回，超過單頁 limit 也不漏）
@@ -703,6 +794,7 @@
 
                 // 更新統計與清單
                 updateStats();
+                renderBggPendingPanel();
                 filterAliases();
 
             } catch (error) {
