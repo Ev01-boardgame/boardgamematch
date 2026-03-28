@@ -793,7 +793,7 @@ async function checkAndUnlockAchievements(userId) {
         const hasSpecial = allAchievements.some(a => a.unlock_type === 'special');
         if (hasSpecial) {
             try {
-                const ar = await fetch('tables/admin_whitelist?limit=200');
+                const ar = await fetch('tables/admin_whitelist?limit=200', { headers: getAuthHeaders() });
                 if (ar.ok) {
                     const ad = await ar.json();
                     (ad.data || []).filter(a => a.is_active !== false).forEach(a => {
@@ -840,7 +840,7 @@ async function checkAndUnlockAchievements(userId) {
         const hasTesterBadge = allAchievements.some(a => a.unlock_type === 'special' && a.id === 'badge_tester');
         if (hasTesterBadge) {
             try {
-                const tr = await fetch('tables/tester_whitelist?limit=200');
+                const tr = await fetch('tables/tester_whitelist?limit=200', { headers: getAuthHeaders() });
                 if (tr.ok) {
                     const td = await tr.json();
                     (td.data || []).filter(a => a.is_active !== false).forEach(a => {
