@@ -428,7 +428,7 @@
     </div>
 
     <script src="js/api-base.js?v=20260320"></script>
-    <script src="js/app.js?v=20260320"></script>
+    <script src="js/app.js?v=20260329"></script>
     <script src="js/game-names.js"></script>
     <script>
         let currentUser = null;
@@ -665,14 +665,16 @@
             toBuyBggPending = toArr(currentUser.to_buy_games_bgg_pending);
             updatePendingHint();
             try {
-                if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
-                    ownedGames = toArr(currentUser.owned_games);
-                    toBuyGames = toArr(currentUser.to_buy_games);
-                    ownedBggPending = toArr(currentUser.owned_games_bgg_pending);
-                    toBuyBggPending = toArr(currentUser.to_buy_games_bgg_pending);
-                    updatePendingHint();
-                    const sh = document.getElementById('save-hint');
-                    if (sh) sh.textContent = '已依資料庫對照更新待匯入 ID 與顯示名稱';
+                if (typeof GameMBTI.pruneResolvedBggPendingForUser === 'function') {
+                    if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
+                        ownedGames = toArr(currentUser.owned_games);
+                        toBuyGames = toArr(currentUser.to_buy_games);
+                        ownedBggPending = toArr(currentUser.owned_games_bgg_pending);
+                        toBuyBggPending = toArr(currentUser.to_buy_games_bgg_pending);
+                        updatePendingHint();
+                        const sh = document.getElementById('save-hint');
+                        if (sh) sh.textContent = '已依資料庫對照更新待匯入 ID 與顯示名稱';
+                    }
                 }
             } catch (e) {}
             try {

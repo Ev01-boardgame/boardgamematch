@@ -744,7 +744,7 @@
     </footer>
 
     <script src="js/api-base.js?v=20260320"></script>
-    <script src="js/app.js?v=20260320"></script>
+    <script src="js/app.js?v=20260329"></script>
     <script src="js/game-names.js"></script>
     <script src="js/preference-axis-capsule.js?v=4"></script>
 
@@ -874,8 +874,10 @@
                 
                 // 🔧 自動清理舊格式遊戲名稱（含「·」分隔符的合併名稱）
                 await cleanupLegacyGameNames(currentUser);
-                if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
-                    window.currentUser = currentUser;
+                if (typeof GameMBTI.pruneResolvedBggPendingForUser === 'function') {
+                    if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
+                        window.currentUser = currentUser;
+                    }
                 }
 
                 console.log('📍 步驟 6: 準備載入所有使用者...');

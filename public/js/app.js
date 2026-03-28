@@ -1238,10 +1238,25 @@ async function pruneResolvedBggPendingForUser(user) {
             headers: getAuthHeaders(),
             credentials: 'include',
         });
-        if (!r.ok) return false;
+        if (!r.ok) {
+            const hint =
+                r.status === 404
+                    ? '（API 路由不存在：請確認已部署 mbti-boardgame-api Worker 含 resolve-pending-ids）'
+                    : r.status === 403
+                      ? '（403：請用掛上入口 Worker 的網域如 boardgamematch.com.tw，勿只用 *.pages.dev）'
+                      : '';
+            console.warn('[pruneResolvedBggPending] resolve-pending-ids HTTP', r.status, hint);
+            return false;
+        }
         const data = await r.json();
         const items = data.items || [];
-        if (!items.length) return false;
+        if (!items.length) {
+            console.info(
+                '[pruneResolvedBggPending] 無已入庫的 pending bgg_id（仍待匯入或 bgg_id 與資料庫不一致）:',
+                ids.join(',')
+            );
+            return false;
+        }
 
         const inDb = new Set(items.map((it) => String(it.bgg_id)));
         let dirty = false;

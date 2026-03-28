@@ -608,10 +608,13 @@ async function lookupGamesByBggIds(db, ids) {
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize);
     const ph = chunk.map(() => '?').join(',');
-    const q = `SELECT bgg_id, name_zh, name_en, name_ja FROM game_database WHERE bgg_id IN (${ph})`;
+    // TRIM：避免 D1 內 bgg_id 含空白時與 pending 數字字串對不到
+    const q = `SELECT bgg_id, name_zh, name_en, name_ja FROM game_database WHERE TRIM(COALESCE(CAST(bgg_id AS TEXT), '')) IN (${ph})`;
     const res = await db.prepare(q).bind(...chunk).all();
     for (const row of res.results || []) {
-      if (row && row.bgg_id != null && row.bgg_id !== '') map.set(String(row.bgg_id), row);
+      if (row && row.bgg_id != null && String(row.bgg_id).trim() !== '') {
+        map.set(String(row.bgg_id).trim(), row);
+      }
     }
   }
   return map;
