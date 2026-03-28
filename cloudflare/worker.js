@@ -32,6 +32,10 @@
  *   GET /api/bgg/search?query=...&type=boardgame
  *   — 代理 xmlapi2/search，伺服器解析 XML，回傳 { ok, items: [{ id, name, year }] }
  *
+ * 對照 game_database（需 X-Api-Key + JWT，不需 admin）：
+ *   GET /api/bgg/resolve-pending-ids?ids=1,2,3
+ *   — 回傳已入庫的 BGG ID 與 name_zh/name_en（最多 100 個 id），供前端清理 users.*_bgg_pending
+ *
  * 管理員 BGG thing 代理（需 X-Api-Key + JWT + admin／超管）：
  *   GET /api/admin/bgg/thing?id=123&stats=1
  *   — 代理 xmlapi2/thing；帶 BGG_XML_API_BEARER；回傳 application/xml
@@ -793,6 +797,48 @@ async function handleGetBggSearchJson(request, env, origin) {
 }
 
 /**
+ * GET /api/bgg/resolve-pending-ids?ids= — JWT；回傳已在 game_database 的 id 與主名
+ */
+async function handleGetBggResolvePendingIds(request, env, origin, db) {
+  if (!db) return errorResponse('Database not configured', 503, origin, env);
+  const url = new URL(request.url);
+  const raw = url.searchParams.get('ids') || '';
+  const parts = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => /^\d+$/.test(s))
+    .slice(0, 100);
+  if (!parts.length) return jsonResponse({ items: [] }, 200, origin, env);
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return errorResponse('Authentication required', 401, origin, env);
+  try {
+    await verifyGoogleJWT(token, env.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    return errorResponse('Authentication failed: ' + err.message, 401, origin, env);
+  }
+
+  const map = await lookupGamesByBggIds(db, parts);
+  const items = [];
+  for (const id of parts) {
+    const row = map.get(String(id));
+    if (row) {
+      const zh = row.name_zh != null ? String(row.name_zh).trim() : '';
+      const en = row.name_en != null ? String(row.name_en).trim() : '';
+      const ja = row.name_ja != null ? String(row.name_ja).trim() : '';
+      items.push({
+        bgg_id: String(id),
+        name_zh: zh || null,
+        name_en: en || null,
+        display_name: zh || en || ja || '',
+      });
+    }
+  }
+  return jsonResponse({ items }, 200, origin, env);
+}
+
+/**
  * GET /api/admin/bgg/search?query=&type=boardgame
  */
 async function handleGetAdminBggSearch(request, env, origin, db) {
@@ -1006,6 +1052,22 @@ export default {
         console.error('bgg search json', e);
         return errorResponse(
           e && e.message ? e.message : 'BGG search failed',
+          500,
+          origin,
+          env
+        );
+      }
+    }
+
+    // ── GET /api/bgg/resolve-pending-ids（需 X-Api-Key + JWT）：對照 game_database，清理 pending 用 ──
+    if (url.pathname === '/api/bgg/resolve-pending-ids' && method === 'GET') {
+      if (!env.DB) return errorResponse('Database not configured', 503, origin, env);
+      try {
+        return await handleGetBggResolvePendingIds(request, env, origin, env.DB);
+      } catch (e) {
+        console.error('resolve-pending-ids', e);
+        return errorResponse(
+          e && e.message ? e.message : 'resolve-pending-ids failed',
           500,
           origin,
           env
@@ -1565,6 +1627,13 @@ async function aggregateGameNamesForAdmin(db) {
     }
     if (rows.length < BATCH) break;
     offset += BATCH;
+  }
+  const pendingIds = [...pendingById.keys()];
+  if (pendingIds.length && db) {
+    const inDb = await lookupGamesByBggIds(db, pendingIds);
+    for (const id of pendingIds) {
+      if (inDb.has(String(id))) pendingById.delete(id);
+    }
   }
   const nameCounts = Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
   const bggPendingIdCounts = Array.from(pendingById.entries())

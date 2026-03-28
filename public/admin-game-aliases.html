@@ -459,7 +459,7 @@
             <h3 style="margin:0 0 0.5rem;font-size:1rem;">🧩 待匯入 BGG ID（玩家收藏尚無站內對照）</h3>
             <p class="hint" style="margin:0 0 0.75rem;line-height:1.45;font-size:0.86rem;">
                 以下為全站使用者寫入 <code>owned_games_bgg_pending</code>／<code>to_buy_games_bgg_pending</code> 的次數（同一人在兩欄各出現會算兩次）。
-                請到 <a href="admin-add-games.html">批次新增遊戲（BGG ID）</a> 或 <a href="admin-bgg-axis-sync.html">BGG 六軸／資料同步</a> 將遊戲寫入資料庫後，玩家端即可對照。
+                請到 <a href="admin-bgg-axis-sync.html">BGG 六軸／資料同步</a> 將對應 BGG ID 寫入 <code>game_database</code> 後，玩家端即可對照。
             </p>
             <div id="bgg-pending-panel-body" style="overflow-x:auto;max-height:14rem;"></div>
         </div>
@@ -714,7 +714,13 @@
                     buy_pending: v.buy_pending,
                 }))
                 .sort((a, b) => b.count - a.count);
-            return { gameStats, bggPendingIdCounts: legacyBggPending };
+            const dbBggIds = new Set();
+            for (const g of allGames) {
+                const bid = g && g.bgg_id != null ? String(g.bgg_id).trim() : '';
+                if (bid) dbBggIds.add(bid);
+            }
+            const legacyBggPendingFiltered = legacyBggPending.filter((row) => !dbBggIds.has(String(row.bgg_id)));
+            return { gameStats, bggPendingIdCounts: legacyBggPendingFiltered };
         }
 
         // 載入所有資料
