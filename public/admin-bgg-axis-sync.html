@@ -60,6 +60,10 @@
             <h1>BGG ID 掃描 · Category／Mechanic → 六軸補齊</h1>
             <p>依 <strong>BGG ID 由小到大</strong> 逐筆檢查：是否已收錄於 <code>game_database</code>。<strong>xmlapi2/thing</strong>（Worker → Jina 備援）可取得：<strong>category／mechanic 官方名稱</strong>（<code>&lt;link type="boardgamecategory|boardgamemechanic"&gt;</code>）、<strong>min／max playtime</strong>、年份、人數、複雜度、圖片、subdomain 類型等。<strong>Jina 讀 HTML</strong>僅作備援（封面、thing 失敗時的標籤／數值補洞）。六軸仍依標籤＋複雜度對照表計算。</p>
             <p>未收錄則以 thing 為主建立新遊戲並帶入六軸。<strong>請分段設定 ID 範圍</strong>，避免一次掃過大區間。</p>
+            <p class="hint" style="margin-top:0.65rem;line-height:1.55;">
+                <strong>玩家簡易建檔：</strong>使用者在「編輯桌遊收藏」用 BGG 選遊戲並儲存時，會在 <code>game_database</code> 寫入<strong>最小列</strong>（<code>bgg_id</code>＋名稱），欄位 <code>ingest_source = user_collection</code>。
+                掃描該 ID 時 log 會出現 <strong>📌</strong> 提示；請照常跑掃描以補齊 thing／category／六軸（與一般建檔相同流程，不會在儲存收藏時卡住）。
+            </p>
         </div>
 
         <section class="card">
@@ -122,7 +126,7 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/admin-auth.js?v=20260319-localdev"></script>
-    <script src="js/app.js?v=20260331"></script>
+    <script src="js/app.js?v=20260403"></script>
     <script src="js/bgg-axis-deltas-v1.js?v=1"></script>
     <script src="js/bgg-axis-deltas-loader.js?v=1"></script>
     <script src="js/bgg-six-axes-compute.js?v=1"></script>
@@ -767,6 +771,10 @@
             const forceMeta = document.getElementById('force-meta').checked;
             const forceAxes = document.getElementById('force-axes').checked;
             let row = bggIdToRow.get(idStr);
+
+            if (row && String(row.ingest_source || '') === 'user_collection') {
+                log(`[${idStr}] 📌 此筆為玩家從「編輯收藏」建立的簡易建檔（ingest_source=user_collection），將以 thing／六軸補齊`, 'warn');
+            }
 
             let jina;
             try {
