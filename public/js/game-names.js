@@ -16,6 +16,8 @@ window.GameNames = (() => {
     // 快取時改存壓縮格式：{ keys: [...], games: [...], map: {key: idx} }
     // 讀出後還原成 nameMap，每款遊戲資料只存一份，節省 60~70% localStorage 空間
     let nameMap = {};
+    /** bgg_id（trim 後字串）→ 與 nameMap 相同的 entry 物件，供依 ID 對照收藏字串 */
+    let bggIdToEntry = {};
     let loaded = false;
     let loadPromise = null;
 
@@ -96,6 +98,15 @@ window.GameNames = (() => {
         }
     }
 
+    function rebuildBggIdToEntryFromNameMap() {
+        bggIdToEntry = {};
+        for (const entry of Object.values(nameMap)) {
+            if (!entry || !entry.bgg_id) continue;
+            const bid = String(entry.bgg_id).trim();
+            if (bid) bggIdToEntry[bid] = entry;
+        }
+    }
+
     // ── 載入 game_database（只載入一次，優先用快取）──
     async function load() {
         if (loaded) return Promise.resolve();
@@ -107,6 +118,7 @@ window.GameNames = (() => {
                 const cached = loadCache();
                 if (cached && Object.keys(cached).length > 0) {
                     nameMap = cached;
+                    rebuildBggIdToEntryFromNameMap();
                     loaded = true;
                     console.log(`[GameNames] ✅ 快取命中，載入 ${Object.keys(nameMap).length} 筆（省略 fetch）`);
                     return;
@@ -177,6 +189,7 @@ window.GameNames = (() => {
 
                 // ③ 寫入快取
                 saveCache(nameMap);
+                rebuildBggIdToEntryFromNameMap();
                 loaded = true;
 
             } catch (e) {
@@ -200,6 +213,7 @@ window.GameNames = (() => {
             });
         } catch(e) {}
         nameMap = {};
+        bggIdToEntry = {};
         loaded = false;
         loadPromise = null;
         console.log('[GameNames] 快取已清除');
@@ -221,6 +235,11 @@ window.GameNames = (() => {
         if (!name) return null;
         const key = normalizeName(name);
         return nameMap[key] || null;
+    }
+
+    function lookupByBggId(bggId) {
+        const bid = String(bggId || '').trim();
+        return bid ? (bggIdToEntry[bid] || null) : null;
     }
 
     /**
@@ -331,5 +350,5 @@ window.GameNames = (() => {
             : null;
     }
 
-    return { load, clearCache, lookup, resolveNames, formatCard, formatTag, formatInline, displayName, getImageUrl, getDirectImageUrl, fetchCoverImage, get _nameMap() { return nameMap; } };
+    return { load, clearCache, lookup, lookupByBggId, resolveNames, formatCard, formatTag, formatInline, displayName, getImageUrl, getDirectImageUrl, fetchCoverImage, get _nameMap() { return nameMap; } };
 })();

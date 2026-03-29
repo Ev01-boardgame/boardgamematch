@@ -317,7 +317,8 @@
                 </div>
                 <p class="hint" style="margin-bottom:0.5rem;">
                     僅讀取你在 BGG 上<strong>公開</strong>的「擁有」與「願望清單」。我們<strong>不會</strong>索取你的 BGG 密碼；若 collection 設為私密則無法讀取。
-                    匯入與現有清單為<strong>聯集</strong>（只新增、不刪除既有項目）。站內尚無對照者會記錄 BGG ID，供後台處理。預覽需<strong>已登入</strong>（帶 JWT）。
+                    匯入與現有清單為<strong>聯集</strong>（只新增、不刪除既有項目）。預覽需<strong>已登入</strong>（帶 JWT）。
+                    <strong>按「儲存變更」時</strong>：凡帶 <strong>BGG ID</strong> 的項目會先寫入站內 <code>game_database</code> 的<strong>簡易建檔</strong>（僅 id／名稱，標記 <code>ingest_source=user_collection</code>），並盡量自 pending 移除；後台再以「BGG 六軸掃描」依同一 BGG ID 補齊 thing／category／六軸，無需在儲存時等待完整建檔。
                     <strong>預覽視窗</strong>內請按「確認匯入至清單」，再按本頁下方「儲存變更」，資料才會寫入伺服器。
                 </p>
                 <div class="bgg-import-row">
@@ -428,8 +429,8 @@
     </div>
 
     <script src="js/api-base.js?v=20260320"></script>
-    <script src="js/app.js?v=20260331"></script>
-    <script src="js/game-names.js"></script>
+    <script src="js/app.js?v=20260403"></script>
+    <script src="js/game-names.js?v=20260403"></script>
     <script>
         let currentUser = null;
         let ownedGames = [];
@@ -604,15 +605,26 @@
                         if (!ownedGames.includes(name)) ownedGames.push(name);
                         const pi = ownedBggPending.indexOf(id);
                         if (pi >= 0) ownedBggPending.splice(pi, 1);
+                        acBggLink.owned[name] = id;
                     }
                     if (applyWish) {
                         if (!toBuyGames.includes(name)) toBuyGames.push(name);
                         const pi = toBuyBggPending.indexOf(id);
                         if (pi >= 0) toBuyBggPending.splice(pi, 1);
+                        acBggLink.buy[name] = id;
                     }
                 } else {
-                    if (applyOwned && !ownedBggPending.includes(id)) ownedBggPending.push(id);
-                    if (applyWish && !toBuyBggPending.includes(id)) toBuyBggPending.push(id);
+                    const displayName = (row.bggName || '').trim() || `BGG ${id}`;
+                    if (applyOwned) {
+                        if (!ownedBggPending.includes(id)) ownedBggPending.push(id);
+                        if (!ownedGames.includes(displayName)) ownedGames.push(displayName);
+                        acBggLink.owned[displayName] = id;
+                    }
+                    if (applyWish) {
+                        if (!toBuyBggPending.includes(id)) toBuyBggPending.push(id);
+                        if (!toBuyGames.includes(displayName)) toBuyGames.push(displayName);
+                        acBggLink.buy[displayName] = id;
+                    }
                 }
             });
             closeBggModal();
@@ -652,6 +664,30 @@
             } catch (e) {}
         }
 
+        /** 自 users.collection_bgg_links 還原「顯示名 → BGG ID」（與 prune 依 ID 對齊一致） */
+        function hydrateCollectionBggLinksFromUser() {
+            try {
+                Object.keys(acBggLink.owned).forEach((k) => { delete acBggLink.owned[k]; });
+                Object.keys(acBggLink.buy).forEach((k) => { delete acBggLink.buy[k]; });
+                const raw = currentUser && currentUser.collection_bgg_links;
+                if (!raw) return;
+                const o = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (!o || typeof o !== 'object') return;
+                if (o.owned && typeof o.owned === 'object') {
+                    for (const [k, v] of Object.entries(o.owned)) {
+                        const id = String(v == null ? '' : v).trim();
+                        if (k && /^\d+$/.test(id)) acBggLink.owned[k] = id;
+                    }
+                }
+                if (o.buy && typeof o.buy === 'object') {
+                    for (const [k, v] of Object.entries(o.buy)) {
+                        const id = String(v == null ? '' : v).trim();
+                        if (k && /^\d+$/.test(id)) acBggLink.buy[k] = id;
+                    }
+                }
+            } catch (e) {}
+        }
+
         async function loadPage() {
             try { await GameNames.load(); } catch (e) {}
             const localUser = GameMBTI.getCurrentUser();
@@ -677,6 +713,7 @@
                     }
                 }
             } catch (e) {}
+            hydrateCollectionBggLinksFromUser();
             try {
                 const rawPinned = currentUser?.pinned_games;
                 const parsed = typeof rawPinned === 'string' ? JSON.parse(rawPinned) : rawPinned;
@@ -1032,11 +1069,41 @@
             }
         }
 
+        /** 供 POST /api/bgg/ensure-user-game-stubs：以 BGG ID 為準寫入 D1 簡易 game_database 列 */
+        function collectBggStubsForEnsure() {
+            const byId = new Map();
+            for (const name of ownedGames) {
+                const id = acBggLink.owned[name];
+                const k = id != null ? String(id).trim() : '';
+                if (!/^\d+$/.test(k)) continue;
+                if (!byId.has(k)) byId.set(k, String(name || '').trim() || `BGG ${k}`);
+            }
+            for (const name of toBuyGames) {
+                const id = acBggLink.buy[name];
+                const k = id != null ? String(id).trim() : '';
+                if (!/^\d+$/.test(k)) continue;
+                if (!byId.has(k)) byId.set(k, String(name || '').trim() || `BGG ${k}`);
+            }
+            for (const raw of ownedBggPending) {
+                const k = String(raw == null ? '' : raw).trim();
+                if (!/^\d+$/.test(k)) continue;
+                if (!byId.has(k)) byId.set(k, `BGG ${k}`);
+            }
+            for (const raw of toBuyBggPending) {
+                const k = String(raw == null ? '' : raw).trim();
+                if (!/^\d+$/.test(k)) continue;
+                if (!byId.has(k)) byId.set(k, `BGG ${k}`);
+            }
+            return [...byId.entries()].map(([bgg_id, display_name]) => ({ bgg_id, display_name }));
+        }
+
         async function saveChanges() {
             currentUser.owned_games = [...ownedGames];
             currentUser.to_buy_games = [...toBuyGames];
-            currentUser.owned_games_bgg_pending = [...ownedBggPending];
-            currentUser.to_buy_games_bgg_pending = [...toBuyBggPending];
+            let po = [...ownedBggPending];
+            let pb = [...toBuyBggPending];
+            currentUser.owned_games_bgg_pending = [...po];
+            currentUser.to_buy_games_bgg_pending = [...pb];
             const existingPinned = (() => {
                 try {
                     const raw = currentUser?.pinned_games;
@@ -1050,6 +1117,11 @@
                 buy: [...(pinnedGames.buy || [])]
             };
             currentUser.pinned_games = mergedPinned;
+            const collectionLinksJson = JSON.stringify({
+                owned: { ...acBggLink.owned },
+                buy: { ...acBggLink.buy },
+            });
+            currentUser.collection_bgg_links = collectionLinksJson;
             GameMBTI.setCurrentUser(currentUser);
 
             const hint = document.getElementById('save-hint');
@@ -1060,15 +1132,48 @@
                 return;
             }
 
+            const stubs = collectBggStubsForEnsure();
+            if (stubs.length) {
+                hint.textContent = '儲存中（寫入遊戲庫 bgg_id…）';
+                try {
+                    const hdrs = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+                    const er = await fetch('/api/bgg/ensure-user-game-stubs', {
+                        method: 'POST',
+                        headers: { ...hdrs, 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ stubs }),
+                    });
+                    if (er.ok) {
+                        const ej = await er.json().catch(() => ({}));
+                        const done = new Set(
+                            [...(ej.created || []), ...(ej.existing || [])].map((x) => String(x).trim())
+                        );
+                        po = po.filter((id) => !done.has(String(id).trim()));
+                        pb = pb.filter((id) => !done.has(String(id).trim()));
+                        ownedBggPending = po;
+                        toBuyBggPending = pb;
+                        currentUser.owned_games_bgg_pending = [...po];
+                        currentUser.to_buy_games_bgg_pending = [...pb];
+                        updatePendingHint();
+                    }
+                } catch (e) {
+                    /* 仍繼續寫入 users，避免網路失敗導致收藏全失敗 */
+                }
+            }
+
             try {
                 await safePatch(`tables/users/${currentUser.id}`, {
                     owned_games: ownedGames,
                     to_buy_games: toBuyGames,
                     pinned_games: mergedPinned,
-                    owned_games_bgg_pending: ownedBggPending,
-                    to_buy_games_bgg_pending: toBuyBggPending
+                    owned_games_bgg_pending: po,
+                    to_buy_games_bgg_pending: pb,
+                    collection_bgg_links: collectionLinksJson,
                 });
                 hint.textContent = '已儲存到你的檔案';
+                try {
+                    if (typeof GameNames !== 'undefined' && GameNames.clearCache) GameNames.clearCache();
+                } catch (e) {}
             } catch (e) {
                 hint.textContent = '儲存失敗，請稍後再試';
             }
