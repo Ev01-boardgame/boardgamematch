@@ -744,8 +744,8 @@
     </footer>
 
     <script src="js/api-base.js?v=20260320"></script>
-    <script src="js/app.js?v=20260403"></script>
-    <script src="js/game-names.js?v=20260403"></script>
+    <script src="js/app.js?v=20260404"></script>
+    <script src="js/game-names.js?v=20260404"></script>
     <script src="js/preference-axis-capsule.js?v=4"></script>
 
     <script>
@@ -876,6 +876,11 @@
                 await cleanupLegacyGameNames(currentUser);
                 if (typeof GameMBTI.pruneResolvedBggPendingForUser === 'function') {
                     if (await GameMBTI.pruneResolvedBggPendingForUser(currentUser)) {
+                        window.currentUser = currentUser;
+                    }
+                }
+                if (typeof GameMBTI.alignCollectionGameLabelsToDatabase === 'function') {
+                    if (await GameMBTI.alignCollectionGameLabelsToDatabase(currentUser)) {
                         window.currentUser = currentUser;
                     }
                 }
@@ -2078,6 +2083,26 @@
                 window._profileCurrentUnplayedTab = currentUnplayedTab;
                 window._profileCurrentCollectionTab = currentCollectionTab;
 
+                let collectionLinkOwned = {};
+                let collectionLinkBuy = {};
+                try {
+                    const rawL = currentUser.collection_bgg_links;
+                    const oL = typeof rawL === 'string' ? JSON.parse(rawL) : rawL;
+                    if (oL && typeof oL.owned === 'object' && oL.owned !== null && !Array.isArray(oL.owned)) {
+                        collectionLinkOwned = oL.owned;
+                    }
+                    if (oL && typeof oL.buy === 'object' && oL.buy !== null && !Array.isArray(oL.buy)) {
+                        collectionLinkBuy = oL.buy;
+                    }
+                } catch (e) {}
+
+                function bggIdForCollectionGame(catKey, gameName) {
+                    if (catKey !== 'owned' && catKey !== 'to_buy') return null;
+                    const bag = catKey === 'owned' ? collectionLinkOwned : collectionLinkBuy;
+                    const id = bag && gameName != null ? String(bag[gameName] != null ? bag[gameName] : '').trim() : '';
+                    return /^\d+$/.test(id) ? id : null;
+                }
+
                 function renderPanel(cat) {
                     const panel = document.getElementById(cat.panelId);
                     if (!panel) return;
@@ -2104,8 +2129,9 @@
                         display = games.slice(0, MAX_DISPLAY);
                     }
 
-                    panel.innerHTML = display.map(game => {
-                        return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game)}</div>`;
+                    panel.innerHTML = display.map((game) => {
+                        const bid = bggIdForCollectionGame(cat.key, game);
+                        return `<div class="game-tag ${cat.tagClass}">${GameNames.formatTag(game, bid)}</div>`;
                     }).join('');
                 }
 

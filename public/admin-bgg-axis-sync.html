@@ -14,6 +14,19 @@
         }
         .hero h1 { margin: 0 0 0.4rem; font-size: 1.35rem; }
         .hero p { margin: 0.25rem 0; font-size: 0.88rem; opacity: 0.95; line-height: 1.5; }
+        /* .hint 預設為 --text-light，會蓋掉 hero 的白字 */
+        .hero .hint {
+            color: #fff;
+            opacity: 0.95;
+        }
+        .hero .hint code {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 0.08em 0.35em;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+        .hero .hint strong { color: #fff; }
         .card {
             background: var(--card-bg); border-radius: 0.85rem; padding: 1.15rem 1.25rem;
             margin-bottom: 1rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);

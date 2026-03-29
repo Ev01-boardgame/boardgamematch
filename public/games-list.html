@@ -159,8 +159,8 @@
     </footer>
 
     <script src="js/api-base.js?v=20260320"></script>
-    <script src="js/app.js?v=20260320"></script>
-    <script src="js/game-names.js"></script>
+    <script src="js/app.js?v=20260404"></script>
+    <script src="js/game-names.js?v=20260404"></script>
 
     <script>
         let currentUser = null;
@@ -273,9 +273,23 @@
             displayGamesList();
         }
 
+        function parseCollectionBggLinks(raw) {
+            try {
+                const o = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                return {
+                    owned: o && typeof o.owned === 'object' && o.owned !== null && !Array.isArray(o.owned) ? o.owned : {},
+                    buy: o && typeof o.buy === 'object' && o.buy !== null && !Array.isArray(o.buy) ? o.buy : {},
+                };
+            } catch (e) {
+                return { owned: {}, buy: {} };
+            }
+        }
+
         function displayGamesList() {
             const tab = TABS.find(t => t.type === listType) || TABS[1];
             const games = currentUser[tab.field] || [];
+            const coll = tab.type === 'owned' || tab.type === 'to_buy' ? parseCollectionBggLinks(currentUser.collection_bgg_links) : null;
+            const linkBag = tab.type === 'owned' ? coll?.owned : tab.type === 'to_buy' ? coll?.buy : null;
 
             document.getElementById('list-title').innerHTML = `${tab.emoji} ${tab.label}的桌遊`;
             document.getElementById('list-header').innerHTML = `${tab.emoji} ${tab.label}的遊戲`;
@@ -286,7 +300,11 @@
                 container.innerHTML = `<div class="empty-state"><p>尚未有任何遊戲</p></div>`;
             } else {
                 container.innerHTML = '<div class="game-tags-container">'
-                    + games.map(game => `<div class="game-tag" style="${tab.tagStyle}">${GameNames.formatTag(game)}</div>`).join('')
+                    + games.map((game) => {
+                        const id = linkBag && game != null ? String(linkBag[game] != null ? linkBag[game] : '').trim() : '';
+                        const bid = /^\d+$/.test(id) ? id : null;
+                        return `<div class="game-tag" style="${tab.tagStyle}">${GameNames.formatTag(game, bid)}</div>`;
+                    }).join('')
                     + '</div>';
             }
         }
